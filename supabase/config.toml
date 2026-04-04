@@ -1,19 +1,1 @@
 project_id = "kdzfymqgsylrmfnbvdoj"
-
-[functions.export-excel-with-images]
-verify_jwt = false
-
-[functions.transcribe-voice]
-verify_jwt = false
-
-[functions.send-gd-alert]
-verify_jwt = false
-
-[functions.check-gd-threshold]
-verify_jwt = false
-
-[functions.create-sub-user]
-verify_jwt = false
-
-[functions.update-sub-user]
-verify_jwt = false
