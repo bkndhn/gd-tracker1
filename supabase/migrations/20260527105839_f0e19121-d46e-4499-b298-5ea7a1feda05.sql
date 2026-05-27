@@ -1,0 +1,1 @@
+UPDATE public.profiles SET role = 'super_admin', admin_id = NULL, status = 'active' WHERE email = 'bknqwe19@gmail.com';
