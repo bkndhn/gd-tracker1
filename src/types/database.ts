@@ -152,7 +152,7 @@ export interface Database {
           status: 'active' | 'paused';
           max_shops: number | null;
           max_users: number | null;
-          last_login_at: string | null;
+          last_login_at?: string | null;
         };
         Insert: {
           id: string;
