@@ -10,7 +10,7 @@ export interface Database {
           updated_at: string;
           whatsapp_group_link: string | null;
           deleted_at: string | null;
-          admin_id: string | null;
+          admin_id?: string | null;
         };
         Insert: {
           id?: string;
@@ -64,7 +64,7 @@ export interface Database {
           created_at: string;
           updated_at: string;
           deleted_at: string | null;
-          admin_id: string | null;
+          admin_id?: string | null;
         };
         Insert: {
           id?: string;
@@ -90,7 +90,7 @@ export interface Database {
           created_at: string;
           updated_at: string;
           deleted_at: string | null;
-          admin_id: string | null;
+          admin_id?: string | null;
         };
         Insert: {
           id?: string;
@@ -116,7 +116,7 @@ export interface Database {
           created_at: string;
           updated_at: string;
           deleted_at: string | null;
-          admin_id: string | null;
+          admin_id?: string | null;
         };
         Insert: {
           id?: string;
@@ -152,7 +152,7 @@ export interface Database {
           status: 'active' | 'paused';
           max_shops: number | null;
           max_users: number | null;
-          last_login_at: string | null;
+          last_login_at?: string | null;
         };
         Insert: {
           id: string;
@@ -203,7 +203,7 @@ export interface Database {
           notes: string;
           created_at: string;
           updated_at: string;
-          image_url: string | null;
+          image_url?: string | null;
           voice_note_url: string | null;
           admin_id: string | null;
         };

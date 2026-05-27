@@ -144,7 +144,7 @@ export const Dashboard = () => {
         gd_entry_images: imagesData.filter(img => img.gd_entry_id === entry.id)
       })) || [];
 
-      return entriesWithImages as GDEntry[];
+      return entriesWithImages as unknown as GDEntry[];
     },
     enabled: !!profile && (isAdmin || isManager),
     staleTime: 1000 * 60,
