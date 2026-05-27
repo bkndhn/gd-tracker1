@@ -10,7 +10,7 @@ export interface Database {
           updated_at: string;
           whatsapp_group_link: string | null;
           deleted_at: string | null;
-          admin_id: string | null;
+          admin_id?: string | null;
         };
         Insert: {
           id?: string;
