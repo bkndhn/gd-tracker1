@@ -71,7 +71,7 @@ export const SuperAdminDashboard = () => {
       if (profilesRes.error) throw profilesRes.error;
       if (shopsRes.error) throw shopsRes.error;
 
-      const profiles = (profilesRes.data || []) as AdminProfile[];
+      const profiles = (profilesRes.data || []) as unknown as AdminProfile[];
       setAllProfiles(profiles);
       setAllShops(shopsRes.data || []);
 
