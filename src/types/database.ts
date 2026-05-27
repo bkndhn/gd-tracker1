@@ -203,7 +203,7 @@ export interface Database {
           notes: string;
           created_at: string;
           updated_at: string;
-          image_url: string | null;
+          image_url?: string | null;
           voice_note_url: string | null;
           admin_id: string | null;
         };

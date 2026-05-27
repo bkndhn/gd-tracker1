@@ -31,7 +31,7 @@ export const AuditLogViewer = () => {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      let query = (supabase.from('audit_logs') as any)
+      let query = ((supabase as any).from('audit_logs'))
         .select('*')
         .order('created_at', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);

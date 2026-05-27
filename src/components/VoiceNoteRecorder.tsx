@@ -31,7 +31,7 @@ export const VoiceNoteRecorder = ({ onVoiceNoteChange, onTranscriptionChange, ex
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const waveformRef = useRef<HTMLDivElement | null>(null);
   const currentFileRef = useRef<File | null>(null);
 
