@@ -1,8 +1,8 @@
 
 import { Button } from '@/components/ui/button';
-import { BarChart3, Plus, Settings, FileText, User, Shield } from 'lucide-react';
+import { BarChart3, Plus, Settings, FileText, Shield } from 'lucide-react';
 
-type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'profile' | 'super_admin';
+type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'super_admin';
 
 interface MobileBottomNavProps {
   activeTab: ActiveTab;
@@ -36,12 +36,6 @@ export const MobileBottomNav = ({ activeTab, setActiveTab, isAdmin, isManager, i
               className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
               <Plus className="h-4 w-4" /><span className="text-xs">GD</span>
             </Button>
-            {(isAdmin || isManager) && (
-              <Button variant={activeTab === 'profile' ? 'default' : 'ghost'} onClick={() => setActiveTab('profile')}
-                className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
-                <User className="h-4 w-4" /><span className="text-xs">Profile</span>
-              </Button>
-            )}
             {(isAdmin || isManager) && (
               <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} onClick={() => setActiveTab('dashboard')}
                 className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
