@@ -74,10 +74,6 @@ export const MainApp = () => {
         return isSuperAdmin ? (
           <Suspense fallback={<LoadingSpinner />}><SuperAdminDashboard /></Suspense>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
-      case 'profile':
-        return !isSuperAdmin ? (
-          <Suspense fallback={<LoadingSpinner />}><UserProfile /></Suspense>
-        ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'gd':
         return !isSuperAdmin ? <DamagedGoodsForm /> : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'dashboard':
@@ -128,9 +124,9 @@ export const MainApp = () => {
                   <Plus className="h-4 w-4" />GD
                 </Button>
                 {(isAdmin || isManager) && (
-                  <Button variant={activeTab === 'profile' ? 'default' : 'ghost'} onClick={() => setActiveTab('profile')}
+                  <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} onClick={() => setActiveTab('dashboard')}
                     className="flex items-center gap-2 flex-shrink-0">
-                    <User className="h-4 w-4" />Profile
+                    <BarChart3 className="h-4 w-4" />Dashboard
                   </Button>
                 )}
                 {(isAdmin || isManager) && (
