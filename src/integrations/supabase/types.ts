@@ -43,6 +43,7 @@ export type Database = {
       }
       categories: {
         Row: {
+          admin_id: string | null
           created_at: string | null
           deleted_at: string | null
           id: string
@@ -50,6 +51,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          admin_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           id?: string
@@ -57,6 +59,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          admin_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           id?: string
@@ -141,6 +144,7 @@ export type Database = {
       }
       customer_types: {
         Row: {
+          admin_id: string | null
           created_at: string | null
           deleted_at: string | null
           id: string
@@ -148,6 +152,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          admin_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           id?: string
@@ -155,6 +160,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          admin_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           id?: string
@@ -401,6 +407,7 @@ export type Database = {
       }
       shops: {
         Row: {
+          admin_id: string | null
           created_at: string | null
           deleted_at: string | null
           id: string
@@ -409,6 +416,7 @@ export type Database = {
           whatsapp_group_link: string | null
         }
         Insert: {
+          admin_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           id?: string
@@ -417,6 +425,7 @@ export type Database = {
           whatsapp_group_link?: string | null
         }
         Update: {
+          admin_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           id?: string
@@ -428,6 +437,7 @@ export type Database = {
       }
       sizes: {
         Row: {
+          admin_id: string | null
           created_at: string | null
           deleted_at: string | null
           id: string
@@ -435,6 +445,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          admin_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           id?: string
@@ -442,6 +453,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          admin_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           id?: string

@@ -8,16 +8,15 @@ import { DamagedGoodsForm } from '@/components/DamagedGoodsForm';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Plus, Settings, FileText, User, Shield } from 'lucide-react';
+import { BarChart3, Plus, Settings, FileText, Shield } from 'lucide-react';
 
 // Lazy load heavy components
 const Dashboard = React.lazy(() => import('@/components/Dashboard').then(m => ({ default: m.Dashboard })));
 const ReportsPanel = React.lazy(() => import('@/components/ReportsPanel').then(m => ({ default: m.ReportsPanel })));
 const AdminPanel = React.lazy(() => import('@/components/AdminPanel').then(m => ({ default: m.AdminPanel })));
-const UserProfile = React.lazy(() => import('@/components/UserProfile').then(m => ({ default: m.UserProfile })));
 const SuperAdminDashboard = React.lazy(() => import('@/components/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
 
-type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'profile' | 'super_admin';
+type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'super_admin';
 
 export const MainApp = () => {
   const { isSuperAdmin, isAdmin, isManager, profile, user, signOut, adminId } = useAuth();
