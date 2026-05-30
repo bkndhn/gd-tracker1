@@ -105,10 +105,10 @@ export const Dashboard = () => {
           customer_type_id,
           notes,
           voice_note_url,
-          shops!fk_goods_damaged_entries_shop(name),
-          categories!fk_goods_damaged_entries_category(name),
-          sizes!fk_goods_damaged_entries_size(size),
-          customer_types(name)
+          shops:shop_id(name),
+          categories:category_id(name),
+          sizes:size_id(size),
+          customer_types:customer_type_id(name)
         `)
         .order('created_at', { ascending: false });
 
