@@ -130,12 +130,6 @@ export const MainApp = () => {
                   </Button>
                 )}
                 {(isAdmin || isManager) && (
-                  <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} onClick={() => setActiveTab('dashboard')}
-                    className="flex items-center gap-2 flex-shrink-0">
-                    <BarChart3 className="h-4 w-4" />Dashboard
-                  </Button>
-                )}
-                {(isAdmin || isManager) && (
                   <Button variant={activeTab === 'reports' ? 'default' : 'ghost'} onClick={() => setActiveTab('reports')}
                     className="flex items-center gap-2 flex-shrink-0">
                     <FileText className="h-4 w-4" />Reports
