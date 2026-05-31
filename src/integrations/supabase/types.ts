@@ -467,6 +467,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ensure_current_profile: {
+        Args: never
+        Returns: {
+          admin_id: string | null
+          created_at: string | null
+          default_category_id: string | null
+          default_size_id: string | null
+          deleted_at: string | null
+          email: string | null
+          id: string
+          max_entries: number | null
+          max_images_per_entry: number | null
+          max_images_total: number | null
+          max_shops: number | null
+          max_users: number | null
+          name: string
+          role: string
+          shop_id: string | null
+          status: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_user_admin_id_secure: { Args: { user_uuid: string }; Returns: string }
       get_user_role_secure: { Args: { user_uuid: string }; Returns: string }
       get_user_shop_id_secure: { Args: { user_uuid: string }; Returns: string }
