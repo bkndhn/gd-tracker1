@@ -406,8 +406,8 @@ export const DamagedGoodsForm = () => {
 
   const resetForm = () => {
     setFormData({
-      category_id: (profile as any)?.default_category_id || 'none',
-      size_id: (profile as any)?.default_size_id || 'none',
+      category_id: 'none',
+      size_id: 'none',
       shop_id: profile?.shop_id || 'none',
       customer_type_id: ''
     });
@@ -415,6 +415,10 @@ export const DamagedGoodsForm = () => {
     setSelectedImages([]);
     setVoiceNoteFile(null);
     setCustomFieldValues({});
+    // Clear any cached file inputs so the next entry starts fresh
+    document.querySelectorAll<HTMLInputElement>('input[type="file"]').forEach(el => {
+      try { el.value = ''; } catch {}
+    });
     setTimeout(() => {
       const notesInput = document.querySelector('textarea#notes') as HTMLTextAreaElement;
       if (notesInput) notesInput.focus();
