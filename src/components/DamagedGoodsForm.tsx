@@ -60,6 +60,7 @@ export const DamagedGoodsForm = () => {
   const [maxEntries, setMaxEntries] = useState<number | null>(null);
   const [currentEntryCount, setCurrentEntryCount] = useState(0);
   const [notes, setNotes] = useState('');
+  const [formKey, setFormKey] = useState(0);
   
   const [formData, setFormData] = useState({
     category_id: 'none',
@@ -406,8 +407,8 @@ export const DamagedGoodsForm = () => {
 
   const resetForm = () => {
     setFormData({
-      category_id: (profile as any)?.default_category_id || 'none',
-      size_id: (profile as any)?.default_size_id || 'none',
+      category_id: 'none',
+      size_id: 'none',
       shop_id: profile?.shop_id || 'none',
       customer_type_id: ''
     });
@@ -415,6 +416,11 @@ export const DamagedGoodsForm = () => {
     setSelectedImages([]);
     setVoiceNoteFile(null);
     setCustomFieldValues({});
+    setFormKey(k => k + 1);
+    // Clear any cached file inputs so the next entry starts fresh
+    document.querySelectorAll<HTMLInputElement>('input[type="file"]').forEach(el => {
+      try { el.value = ''; } catch {}
+    });
     setTimeout(() => {
       const notesInput = document.querySelector('textarea#notes') as HTMLTextAreaElement;
       if (notesInput) notesInput.focus();
@@ -575,6 +581,7 @@ export const DamagedGoodsForm = () => {
           <div className="space-y-2">
             <Label>Notes / Voice / Images {!voiceNoteFile && !notes.trim() && '*'}</Label>
             <WhatsAppInputBar
+              key={formKey}
               notes={notes}
               onNotesChange={setNotes}
               onImagesChange={setSelectedImages}
