@@ -60,6 +60,7 @@ export const DamagedGoodsForm = () => {
   const [maxEntries, setMaxEntries] = useState<number | null>(null);
   const [currentEntryCount, setCurrentEntryCount] = useState(0);
   const [notes, setNotes] = useState('');
+  const [formKey, setFormKey] = useState(0);
   
   const [formData, setFormData] = useState({
     category_id: 'none',
@@ -415,6 +416,7 @@ export const DamagedGoodsForm = () => {
     setSelectedImages([]);
     setVoiceNoteFile(null);
     setCustomFieldValues({});
+    setFormKey(k => k + 1);
     // Clear any cached file inputs so the next entry starts fresh
     document.querySelectorAll<HTMLInputElement>('input[type="file"]').forEach(el => {
       try { el.value = ''; } catch {}
@@ -579,6 +581,7 @@ export const DamagedGoodsForm = () => {
           <div className="space-y-2">
             <Label>Notes / Voice / Images {!voiceNoteFile && !notes.trim() && '*'}</Label>
             <WhatsAppInputBar
+              key={formKey}
               notes={notes}
               onNotesChange={setNotes}
               onImagesChange={setSelectedImages}
