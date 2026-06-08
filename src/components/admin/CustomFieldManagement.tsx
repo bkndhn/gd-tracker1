@@ -288,11 +288,16 @@ export const CustomFieldManagement = () => {
               {fields.map((field) => (
                 <div key={field.id} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium">{field.name}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {(options[field.id] || []).length} options
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {FIELD_TYPES.find(t => t.value === (field.field_type || 'dropdown'))?.label || field.field_type}
                       </Badge>
+                      {(field.field_type || 'dropdown') === 'dropdown' && (
+                        <Badge variant="secondary" className="text-xs">
+                          {(options[field.id] || []).length} options
+                        </Badge>
+                      )}
                       {field.is_mandatory && (
                         <Badge variant="destructive" className="text-xs">
                           <Asterisk className="h-3 w-3 mr-0.5" />
