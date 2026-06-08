@@ -23,6 +23,7 @@ interface CustomField {
   is_visible: boolean;
   is_mandatory: boolean;
   display_order: number;
+  field_type?: string;
 }
 
 interface CustomFieldOption {
