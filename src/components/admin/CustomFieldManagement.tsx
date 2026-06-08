@@ -462,11 +462,23 @@ export const CustomFieldManagement = () => {
             <DialogDescription>Update the field name</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Input
-              value={editFieldName}
-              onChange={(e) => setEditFieldName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleEditField()}
-            />
+            <div className="space-y-2">
+              <Label>Field Name</Label>
+              <Input
+                value={editFieldName}
+                onChange={(e) => setEditFieldName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleEditField()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Field Type</Label>
+              <Select value={editFieldType} onValueChange={setEditFieldType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FIELD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => { setIsEditFieldOpen(false); setEditingField(null); }}>Cancel</Button>
               <Button onClick={handleEditField} disabled={!editFieldName.trim()}>Save</Button>
