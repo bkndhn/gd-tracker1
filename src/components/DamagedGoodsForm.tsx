@@ -173,14 +173,15 @@ export const DamagedGoodsForm = () => {
 
   const uploadImages = async (entryId: string) => {
     if (selectedImages.length === 0) return;
+    const tenantPrefix = adminId || profile?.id;
     const uploadPromises = selectedImages.map(async (file, index) => {
-      const fileName = `${entryId}/${Date.now()}-${index}-${file.name}`;
+      // Path MUST start with admin_id so storage RLS (tenant-folder check) passes for everyone.
+      const fileName = `${tenantPrefix}/${entryId}/${Date.now()}-${index}-${file.name}`;
       const { data, error } = await supabase.storage.from('gd-entry-images').upload(fileName, file, {
         cacheControl: '3600',
         upsert: false
       });
       if (error) throw error;
-      // Store the signed URL (bucket is private)
       const { data: signedData } = await supabase.storage.from('gd-entry-images').createSignedUrl(data.path, 3600);
       const imageUrl = signedData?.signedUrl || data.path;
       const { error: dbError } = await supabase.from('gd_entry_images').insert({
@@ -197,7 +198,8 @@ export const DamagedGoodsForm = () => {
 
   const uploadVoiceNote = async (entryId: string): Promise<string | null> => {
     if (!voiceNoteFile) return null;
-    const fileName = `${entryId}/${Date.now()}-${voiceNoteFile.name}`;
+    const tenantPrefix = adminId || profile?.id;
+    const fileName = `${tenantPrefix}/${entryId}/${Date.now()}-${voiceNoteFile.name}`;
     const { data, error } = await supabase.storage
       .from('gd-voice-notes')
       .upload(fileName, voiceNoteFile, { cacheControl: '3600', upsert: false });
