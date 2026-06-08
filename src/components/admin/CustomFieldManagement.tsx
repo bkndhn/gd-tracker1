@@ -30,6 +30,7 @@ interface CustomField {
   is_visible: boolean;
   is_mandatory: boolean;
   display_order: number;
+  field_type?: string;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
