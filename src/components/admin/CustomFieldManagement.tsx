@@ -54,11 +54,13 @@ export const CustomFieldManagement = () => {
 
   // Add field state
   const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldType, setNewFieldType] = useState('dropdown');
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
 
   // Edit field state
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [editFieldName, setEditFieldName] = useState('');
+  const [editFieldType, setEditFieldType] = useState('dropdown');
   const [isEditFieldOpen, setIsEditFieldOpen] = useState(false);
 
   // Delete field state
