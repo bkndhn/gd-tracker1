@@ -122,8 +122,9 @@ export const useOfflineSync = () => {
 
         // Upload images if any
         if (entry.images.length > 0) {
+          const tenantPrefix = entryData.admin_id || entry.formData?.admin_id;
           const uploadPromises = entry.images.map(async (file, index) => {
-            const fileName = `${entryData.id}/${Date.now()}-${index}-${file.name}`;
+            const fileName = `${tenantPrefix}/${entryData.id}/${Date.now()}-${index}-${file.name}`;
             const { data, error } = await supabase.storage
               .from('gd-entry-images')
               .upload(fileName, file, {

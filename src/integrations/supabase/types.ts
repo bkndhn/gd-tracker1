@@ -112,6 +112,7 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           display_order: number | null
+          field_type: string
           id: string
           is_mandatory: boolean | null
           is_visible: boolean | null
@@ -123,6 +124,7 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           display_order?: number | null
+          field_type?: string
           id?: string
           is_mandatory?: boolean | null
           is_visible?: boolean | null
@@ -134,6 +136,7 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           display_order?: number | null
+          field_type?: string
           id?: string
           is_mandatory?: boolean | null
           is_visible?: boolean | null
@@ -176,6 +179,7 @@ export type Database = {
           custom_field_option_id: string | null
           gd_entry_id: string | null
           id: string
+          value: string | null
         }
         Insert: {
           created_at?: string | null
@@ -183,6 +187,7 @@ export type Database = {
           custom_field_option_id?: string | null
           gd_entry_id?: string | null
           id?: string
+          value?: string | null
         }
         Update: {
           created_at?: string | null
@@ -190,6 +195,7 @@ export type Database = {
           custom_field_option_id?: string | null
           gd_entry_id?: string | null
           id?: string
+          value?: string | null
         }
         Relationships: [
           {
@@ -405,6 +411,48 @@ export type Database = {
           },
         ]
       }
+      scheduled_email_reports: {
+        Row: {
+          admin_id: string
+          created_at: string
+          deleted_at: string | null
+          frequency: string
+          id: string
+          is_enabled: boolean
+          last_sent_at: string | null
+          recipient_email: string
+          report_time: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          deleted_at?: string | null
+          frequency?: string
+          id?: string
+          is_enabled?: boolean
+          last_sent_at?: string | null
+          recipient_email: string
+          report_time?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          frequency?: string
+          id?: string
+          is_enabled?: boolean
+          last_sent_at?: string | null
+          recipient_email?: string
+          report_time?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shops: {
         Row: {
           admin_id: string | null
@@ -467,6 +515,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_gd_storage_path: {
+        Args: { _bucket_id: string; _object_name: string }
+        Returns: boolean
+      }
       ensure_current_profile: {
         Args: never
         Returns: {
