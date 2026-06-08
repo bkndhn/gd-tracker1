@@ -125,12 +125,14 @@ export const CustomFieldManagement = () => {
       const { error } = await (supabase.from('custom_fields') as any)
         .insert({
           name: newFieldName.trim(),
+          field_type: newFieldType,
           admin_id: (profile as any)?.admin_id || profile?.id,
           display_order: fields.length,
         });
       if (error) throw error;
       toast.success('Custom field created');
       setNewFieldName('');
+      setNewFieldType('dropdown');
       setIsAddFieldOpen(false);
       fetchFields();
     } catch (error: any) {
@@ -142,7 +144,7 @@ export const CustomFieldManagement = () => {
     if (!editingField || !editFieldName.trim()) return;
     try {
       const { error } = await (supabase.from('custom_fields') as any)
-        .update({ name: editFieldName.trim() })
+        .update({ name: editFieldName.trim(), field_type: editFieldType })
         .eq('id', editingField.id);
       if (error) throw error;
       toast.success('Field updated');
