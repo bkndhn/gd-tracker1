@@ -224,11 +224,15 @@ export const DamagedGoodsForm = () => {
     
     // Custom field values
     customFields.forEach(field => {
-      const optId = customFieldValues[field.id];
-      if (optId) {
+      const val = customFieldValues[field.id];
+      if (!val) return;
+      const type = field.field_type || 'dropdown';
+      if (type === 'dropdown') {
         const opts = customFieldOptions[field.id] || [];
-        const opt = opts.find(o => o.id === optId);
+        const opt = opts.find(o => o.id === val);
         if (opt) msg += `🏷️ ${field.name}: ${opt.value}\n`;
+      } else {
+        msg += `🏷️ ${field.name}: ${val}\n`;
       }
     });
     
