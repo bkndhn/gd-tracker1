@@ -9,8 +9,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, Edit, Trash2, Settings2, Eye, EyeOff, Asterisk } from 'lucide-react';
+
+const FIELD_TYPES = [
+  { value: 'dropdown', label: 'Dropdown' },
+  { value: 'text', label: 'Text' },
+  { value: 'textarea', label: 'Long text' },
+  { value: 'number', label: 'Number' },
+  { value: 'date', label: 'Date' },
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Phone' },
+];
 
 interface CustomField {
   id: string;
@@ -19,6 +30,7 @@ interface CustomField {
   is_visible: boolean;
   is_mandatory: boolean;
   display_order: number;
+  field_type?: string;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -42,11 +54,13 @@ export const CustomFieldManagement = () => {
 
   // Add field state
   const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldType, setNewFieldType] = useState('dropdown');
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
 
   // Edit field state
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [editFieldName, setEditFieldName] = useState('');
+  const [editFieldType, setEditFieldType] = useState('dropdown');
   const [isEditFieldOpen, setIsEditFieldOpen] = useState(false);
 
   // Delete field state
@@ -111,12 +125,14 @@ export const CustomFieldManagement = () => {
       const { error } = await (supabase.from('custom_fields') as any)
         .insert({
           name: newFieldName.trim(),
+          field_type: newFieldType,
           admin_id: (profile as any)?.admin_id || profile?.id,
           display_order: fields.length,
         });
       if (error) throw error;
       toast.success('Custom field created');
       setNewFieldName('');
+      setNewFieldType('dropdown');
       setIsAddFieldOpen(false);
       fetchFields();
     } catch (error: any) {
@@ -128,7 +144,7 @@ export const CustomFieldManagement = () => {
     if (!editingField || !editFieldName.trim()) return;
     try {
       const { error } = await (supabase.from('custom_fields') as any)
-        .update({ name: editFieldName.trim() })
+        .update({ name: editFieldName.trim(), field_type: editFieldType })
         .eq('id', editingField.id);
       if (error) throw error;
       toast.success('Field updated');
@@ -272,11 +288,16 @@ export const CustomFieldManagement = () => {
               {fields.map((field) => (
                 <div key={field.id} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium">{field.name}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {(options[field.id] || []).length} options
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {FIELD_TYPES.find(t => t.value === (field.field_type || 'dropdown'))?.label || field.field_type}
                       </Badge>
+                      {(field.field_type || 'dropdown') === 'dropdown' && (
+                        <Badge variant="secondary" className="text-xs">
+                          {(options[field.id] || []).length} options
+                        </Badge>
+                      )}
                       {field.is_mandatory && (
                         <Badge variant="destructive" className="text-xs">
                           <Asterisk className="h-3 w-3 mr-0.5" />
@@ -313,6 +334,7 @@ export const CustomFieldManagement = () => {
                         onClick={() => {
                           setEditingField(field);
                           setEditFieldName(field.name);
+                          setEditFieldType(field.field_type || 'dropdown');
                           setIsEditFieldOpen(true);
                         }}
                       >
@@ -328,7 +350,8 @@ export const CustomFieldManagement = () => {
                     </div>
                   </div>
 
-                  {/* Options list */}
+                  {/* Options list (dropdown only) */}
+                  {(field.field_type || 'dropdown') === 'dropdown' && (
                   <div className="pl-4 border-l-2 border-muted space-y-2">
                     <div className="flex gap-2">
                       <Input
@@ -389,6 +412,7 @@ export const CustomFieldManagement = () => {
                       )}
                     </div>
                   </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -413,8 +437,17 @@ export const CustomFieldManagement = () => {
                 onKeyPress={(e) => e.key === 'Enter' && handleCreateField()}
               />
             </div>
+            <div className="space-y-2">
+              <Label>Field Type</Label>
+              <Select value={newFieldType} onValueChange={setNewFieldType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FIELD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => { setIsAddFieldOpen(false); setNewFieldName(''); }}>Cancel</Button>
+              <Button variant="outline" onClick={() => { setIsAddFieldOpen(false); setNewFieldName(''); setNewFieldType('dropdown'); }}>Cancel</Button>
               <Button onClick={handleCreateField} disabled={!newFieldName.trim()}>Create Field</Button>
             </div>
           </div>
@@ -429,11 +462,23 @@ export const CustomFieldManagement = () => {
             <DialogDescription>Update the field name</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Input
-              value={editFieldName}
-              onChange={(e) => setEditFieldName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleEditField()}
-            />
+            <div className="space-y-2">
+              <Label>Field Name</Label>
+              <Input
+                value={editFieldName}
+                onChange={(e) => setEditFieldName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleEditField()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Field Type</Label>
+              <Select value={editFieldType} onValueChange={setEditFieldType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FIELD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => { setIsEditFieldOpen(false); setEditingField(null); }}>Cancel</Button>
               <Button onClick={handleEditField} disabled={!editFieldName.trim()}>Save</Button>

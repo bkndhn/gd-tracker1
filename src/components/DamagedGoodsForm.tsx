@@ -23,6 +23,7 @@ interface CustomField {
   is_visible: boolean;
   is_mandatory: boolean;
   display_order: number;
+  field_type?: string;
 }
 
 interface CustomFieldOption {
@@ -223,11 +224,15 @@ export const DamagedGoodsForm = () => {
     
     // Custom field values
     customFields.forEach(field => {
-      const optId = customFieldValues[field.id];
-      if (optId) {
+      const val = customFieldValues[field.id];
+      if (!val) return;
+      const type = field.field_type || 'dropdown';
+      if (type === 'dropdown') {
         const opts = customFieldOptions[field.id] || [];
-        const opt = opts.find(o => o.id === optId);
+        const opt = opts.find(o => o.id === val);
         if (opt) msg += `🏷️ ${field.name}: ${opt.value}\n`;
+      } else {
+        msg += `🏷️ ${field.name}: ${val}\n`;
       }
     });
     
@@ -356,14 +361,17 @@ export const DamagedGoodsForm = () => {
         await uploadImages(createdEntry.id);
       }
 
-      // Save custom field values
+      // Save custom field values (dropdown -> option_id, others -> value text)
       const customValueInserts = Object.entries(customFieldValues)
-        .filter(([, optionId]) => optionId)
-        .map(([fieldId, optionId]) => ({
-          gd_entry_id: createdEntry.id,
-          custom_field_id: fieldId,
-          custom_field_option_id: optionId,
-        }));
+        .filter(([, v]) => v !== undefined && v !== null && v !== '')
+        .map(([fieldId, v]) => {
+          const field = customFields.find(f => f.id === fieldId);
+          const type = field?.field_type || 'dropdown';
+          if (type === 'dropdown') {
+            return { gd_entry_id: createdEntry.id, custom_field_id: fieldId, custom_field_option_id: v };
+          }
+          return { gd_entry_id: createdEntry.id, custom_field_id: fieldId, value: v };
+        });
       if (customValueInserts.length > 0) {
         const { error: cvError } = await (supabase.from('gd_entry_custom_values') as any).insert(customValueInserts);
         if (cvError && import.meta.env.DEV) console.error('Error saving custom field values:', cvError);
@@ -558,24 +566,43 @@ export const DamagedGoodsForm = () => {
 
           {/* Custom Fields */}
           {customFields.map((field) => {
+            const type = field.field_type || 'dropdown';
             const fieldOptions = customFieldOptions[field.id] || [];
-            if (fieldOptions.length === 0) return null;
+            const value = customFieldValues[field.id] || '';
+            const setValue = (v: string) => setCustomFieldValues(prev => ({ ...prev, [field.id]: v }));
+            if (type === 'dropdown' && fieldOptions.length === 0) return null;
             return (
               <div key={field.id} className="space-y-2">
                 <Label>{field.name} {field.is_mandatory && '*'}</Label>
-                <Select
-                  value={customFieldValues[field.id] || ''}
-                  onValueChange={(value) => setCustomFieldValues(prev => ({ ...prev, [field.id]: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={`Select ${field.name.toLowerCase()}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fieldOptions.map((opt) => (
-                      <SelectItem key={opt.id} value={opt.id}>{opt.value}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {type === 'dropdown' && (
+                  <Select value={value} onValueChange={setValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={`Select ${field.name.toLowerCase()}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fieldOptions.map((opt) => (
+                        <SelectItem key={opt.id} value={opt.id}>{opt.value}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {type === 'textarea' && (
+                  <textarea
+                    className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder={`Enter ${field.name.toLowerCase()}`}
+                  />
+                )}
+                {type !== 'dropdown' && type !== 'textarea' && (
+                  <input
+                    type={type === 'number' ? 'number' : type === 'date' ? 'date' : type === 'email' ? 'email' : type === 'phone' ? 'tel' : 'text'}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder={`Enter ${field.name.toLowerCase()}`}
+                  />
+                )}
               </div>
             );
           })}

@@ -10,6 +10,7 @@ import { UserManagement } from '@/components/admin/UserManagement';
 import { WhatsAppSettings } from '@/components/admin/WhatsAppSettings';
 import { FieldVisibilitySettings } from '@/components/admin/FieldVisibilitySettings';
 import { CustomFieldManagement } from '@/components/admin/CustomFieldManagement';
+import { ScheduledEmailReports } from '@/components/admin/ScheduledEmailReports';
 
 type Shop = Database['public']['Tables']['shops']['Row'];
 type Category = Database['public']['Tables']['categories']['Row'];
@@ -83,6 +84,8 @@ export const AdminPanel = () => {
       <UserManagement shops={shops} profiles={profiles} onRefresh={fetchData} />
       
       <CustomFieldManagement />
+
+      <ScheduledEmailReports />
     </div>
   );
 };
