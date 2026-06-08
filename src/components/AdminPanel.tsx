@@ -84,6 +84,8 @@ export const AdminPanel = () => {
       <UserManagement shops={shops} profiles={profiles} onRefresh={fetchData} />
       
       <CustomFieldManagement />
+
+      <ScheduledEmailReports />
     </div>
   );
 };
