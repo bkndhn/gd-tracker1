@@ -350,7 +350,8 @@ export const CustomFieldManagement = () => {
                     </div>
                   </div>
 
-                  {/* Options list */}
+                  {/* Options list (dropdown only) */}
+                  {(field.field_type || 'dropdown') === 'dropdown' && (
                   <div className="pl-4 border-l-2 border-muted space-y-2">
                     <div className="flex gap-2">
                       <Input
