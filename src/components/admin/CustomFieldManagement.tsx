@@ -412,6 +412,7 @@ export const CustomFieldManagement = () => {
                       )}
                     </div>
                   </div>
+                  )}
                 </div>
               ))}
             </div>
