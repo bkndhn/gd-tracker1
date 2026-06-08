@@ -9,8 +9,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, Edit, Trash2, Settings2, Eye, EyeOff, Asterisk } from 'lucide-react';
+
+const FIELD_TYPES = [
+  { value: 'dropdown', label: 'Dropdown' },
+  { value: 'text', label: 'Text' },
+  { value: 'textarea', label: 'Long text' },
+  { value: 'number', label: 'Number' },
+  { value: 'date', label: 'Date' },
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Phone' },
+];
 
 interface CustomField {
   id: string;
