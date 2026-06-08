@@ -566,24 +566,43 @@ export const DamagedGoodsForm = () => {
 
           {/* Custom Fields */}
           {customFields.map((field) => {
+            const type = field.field_type || 'dropdown';
             const fieldOptions = customFieldOptions[field.id] || [];
-            if (fieldOptions.length === 0) return null;
+            const value = customFieldValues[field.id] || '';
+            const setValue = (v: string) => setCustomFieldValues(prev => ({ ...prev, [field.id]: v }));
+            if (type === 'dropdown' && fieldOptions.length === 0) return null;
             return (
               <div key={field.id} className="space-y-2">
                 <Label>{field.name} {field.is_mandatory && '*'}</Label>
-                <Select
-                  value={customFieldValues[field.id] || ''}
-                  onValueChange={(value) => setCustomFieldValues(prev => ({ ...prev, [field.id]: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={`Select ${field.name.toLowerCase()}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fieldOptions.map((opt) => (
-                      <SelectItem key={opt.id} value={opt.id}>{opt.value}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {type === 'dropdown' && (
+                  <Select value={value} onValueChange={setValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={`Select ${field.name.toLowerCase()}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fieldOptions.map((opt) => (
+                        <SelectItem key={opt.id} value={opt.id}>{opt.value}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {type === 'textarea' && (
+                  <textarea
+                    className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder={`Enter ${field.name.toLowerCase()}`}
+                  />
+                )}
+                {type !== 'dropdown' && type !== 'textarea' && (
+                  <input
+                    type={type === 'number' ? 'number' : type === 'date' ? 'date' : type === 'email' ? 'email' : type === 'phone' ? 'tel' : 'text'}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder={`Enter ${field.name.toLowerCase()}`}
+                  />
+                )}
               </div>
             );
           })}
