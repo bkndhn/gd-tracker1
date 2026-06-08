@@ -437,8 +437,17 @@ export const CustomFieldManagement = () => {
                 onKeyPress={(e) => e.key === 'Enter' && handleCreateField()}
               />
             </div>
+            <div className="space-y-2">
+              <Label>Field Type</Label>
+              <Select value={newFieldType} onValueChange={setNewFieldType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FIELD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => { setIsAddFieldOpen(false); setNewFieldName(''); }}>Cancel</Button>
+              <Button variant="outline" onClick={() => { setIsAddFieldOpen(false); setNewFieldName(''); setNewFieldType('dropdown'); }}>Cancel</Button>
               <Button onClick={handleCreateField} disabled={!newFieldName.trim()}>Create Field</Button>
             </div>
           </div>
