@@ -334,6 +334,7 @@ export const CustomFieldManagement = () => {
                         onClick={() => {
                           setEditingField(field);
                           setEditFieldName(field.name);
+                          setEditFieldType(field.field_type || 'dropdown');
                           setIsEditFieldOpen(true);
                         }}
                       >
