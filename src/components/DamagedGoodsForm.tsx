@@ -361,14 +361,17 @@ export const DamagedGoodsForm = () => {
         await uploadImages(createdEntry.id);
       }
 
-      // Save custom field values
+      // Save custom field values (dropdown -> option_id, others -> value text)
       const customValueInserts = Object.entries(customFieldValues)
-        .filter(([, optionId]) => optionId)
-        .map(([fieldId, optionId]) => ({
-          gd_entry_id: createdEntry.id,
-          custom_field_id: fieldId,
-          custom_field_option_id: optionId,
-        }));
+        .filter(([, v]) => v !== undefined && v !== null && v !== '')
+        .map(([fieldId, v]) => {
+          const field = customFields.find(f => f.id === fieldId);
+          const type = field?.field_type || 'dropdown';
+          if (type === 'dropdown') {
+            return { gd_entry_id: createdEntry.id, custom_field_id: fieldId, custom_field_option_id: v };
+          }
+          return { gd_entry_id: createdEntry.id, custom_field_id: fieldId, value: v };
+        });
       if (customValueInserts.length > 0) {
         const { error: cvError } = await (supabase.from('gd_entry_custom_values') as any).insert(customValueInserts);
         if (cvError && import.meta.env.DEV) console.error('Error saving custom field values:', cvError);
