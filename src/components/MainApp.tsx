@@ -10,11 +10,15 @@ import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Plus, Settings, FileText, Shield } from 'lucide-react';
 
-// Lazy load heavy components
-const Dashboard = React.lazy(() => import('@/components/Dashboard').then(m => ({ default: m.Dashboard })));
-const ReportsPanel = React.lazy(() => import('@/components/ReportsPanel').then(m => ({ default: m.ReportsPanel })));
-const AdminPanel = React.lazy(() => import('@/components/AdminPanel').then(m => ({ default: m.AdminPanel })));
-const SuperAdminDashboard = React.lazy(() => import('@/components/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
+// Lazy load heavy components with prefetch helpers for instant nav
+const importDashboard = () => import('@/components/Dashboard').then(m => ({ default: m.Dashboard }));
+const importReports = () => import('@/components/ReportsPanel').then(m => ({ default: m.ReportsPanel }));
+const importAdmin = () => import('@/components/AdminPanel').then(m => ({ default: m.AdminPanel }));
+const importSuperAdmin = () => import('@/components/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard }));
+const Dashboard = React.lazy(importDashboard);
+const ReportsPanel = React.lazy(importReports);
+const AdminPanel = React.lazy(importAdmin);
+const SuperAdminDashboard = React.lazy(importSuperAdmin);
 
 type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'super_admin';
 
