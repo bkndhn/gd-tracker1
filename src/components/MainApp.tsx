@@ -66,6 +66,17 @@ export const MainApp = () => {
     }
   }, [activeTab]);
 
+  // Prefetch all heavy panels right after first paint so tab clicks are instant
+  useEffect(() => {
+    const idle = (cb: () => void) => (window as any).requestIdleCallback?.(cb) ?? setTimeout(cb, 600);
+    idle(() => {
+      importDashboard();
+      importReports();
+      if (isAdmin) importAdmin();
+      if (isSuperAdmin) importSuperAdmin();
+    });
+  }, [isAdmin, isSuperAdmin]);
+
   const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
