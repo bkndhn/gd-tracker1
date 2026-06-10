@@ -53,7 +53,7 @@ export const ScheduledEmailReports = () => {
     const { error } = await (supabase.from('scheduled_email_reports') as any).insert({
       admin_id: adminId,
       recipient_email: email.trim().toLowerCase(),
-      report_time: time + ':00',
+      report_time: (time.length === 5 ? time + ':00' : time),
       frequency: freq,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata',
       is_enabled: true,
