@@ -1578,6 +1578,9 @@ export const ReportsPanel = () => {
                           sortKey="customerType"
                         />
                       </TableHead>
+                      <TableHead className="font-semibold text-primary whitespace-nowrap min-w-[130px]">
+                        REPORTER
+                      </TableHead>
                       {customFields.map(cf => (
                         <TableHead key={cf.id} className="font-semibold text-primary whitespace-nowrap min-w-[100px]">
                           <div className="flex items-center">{cf.name.toUpperCase()}</div>
