@@ -72,6 +72,7 @@ export const ReportsPanel = () => {
   const [dateFilter, setDateFilter] = useState<string>('today');
   const [customDateFrom, setCustomDateFrom] = useState<Date>();
   const [customDateTo, setCustomDateTo] = useState<Date>();
+  const [reporterSearch, setReporterSearch] = useState<string>('');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
 
   // Table column filters (Excel-like)
