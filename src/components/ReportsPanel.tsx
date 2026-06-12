@@ -72,6 +72,7 @@ export const ReportsPanel = () => {
   const [dateFilter, setDateFilter] = useState<string>('today');
   const [customDateFrom, setCustomDateFrom] = useState<Date>();
   const [customDateTo, setCustomDateTo] = useState<Date>();
+  const [reporterSearch, setReporterSearch] = useState<string>('');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
 
   // Table column filters (Excel-like)
@@ -99,7 +100,7 @@ export const ReportsPanel = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [entries, selectedShop, selectedCategory, selectedSize, selectedCustomerType, dateFilter, customDateFrom, customDateTo]);
+  }, [entries, selectedShop, selectedCategory, selectedSize, selectedCustomerType, dateFilter, customDateFrom, customDateTo, reporterSearch]);
 
   const fetchData = async () => {
     try {
@@ -312,6 +313,12 @@ export const ReportsPanel = () => {
           }
           break;
       }
+    }
+
+    // Reporter search (case-insensitive substring match on employee_name)
+    if (reporterSearch.trim()) {
+      const q = reporterSearch.trim().toLowerCase();
+      filtered = filtered.filter(entry => (entry.employee_name || '').toLowerCase().includes(q));
     }
 
     setFilteredEntries(filtered);
@@ -1206,7 +1213,19 @@ export const ReportsPanel = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2 min-w-0">
+              <Label className="text-sm font-medium">Reporter</Label>
+              <Input
+                type="text"
+                placeholder="Search by reporter name..."
+                value={reporterSearch}
+                onChange={(e) => setReporterSearch(e.target.value)}
+                className="w-full"
+              />
+            </div>
           </div>
+
 
           {dateFilter === 'custom' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
