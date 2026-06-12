@@ -1137,6 +1137,18 @@ export const ReportsPanel = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Global search across all columns */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Search</Label>
+            <Input
+              type="text"
+              placeholder="Search across reporter, shop, category, size, customer type, notes, date..."
+              value={reporterSearch}
+              onChange={(e) => setReporterSearch(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
           {/* Mobile-friendly grid layout */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
             <div className="space-y-2 min-w-0">
