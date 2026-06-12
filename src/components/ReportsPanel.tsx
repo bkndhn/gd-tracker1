@@ -100,7 +100,7 @@ export const ReportsPanel = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [entries, selectedShop, selectedCategory, selectedSize, selectedCustomerType, dateFilter, customDateFrom, customDateTo]);
+  }, [entries, selectedShop, selectedCategory, selectedSize, selectedCustomerType, dateFilter, customDateFrom, customDateTo, reporterSearch]);
 
   const fetchData = async () => {
     try {
