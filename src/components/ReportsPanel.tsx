@@ -1622,6 +1622,7 @@ export const ReportsPanel = () => {
                         <TableCell className="whitespace-nowrap text-center">{entry.categories.name}</TableCell>
                         <TableCell className="text-center whitespace-nowrap">{entry.sizes.size}</TableCell>
                         <TableCell className="whitespace-nowrap text-center">{entry.customer_types?.name || 'N/A'}</TableCell>
+                        <TableCell className="whitespace-nowrap text-center font-medium">{entry.employee_name || 'Unknown'}</TableCell>
                         {customFields.map(cf => (
                           <TableCell key={cf.id} className="whitespace-nowrap text-center">
                             {entry.customFieldValues?.[cf.id] || 'N/A'}
