@@ -315,10 +315,21 @@ export const ReportsPanel = () => {
       }
     }
 
-    // Reporter search (case-insensitive substring match on employee_name)
+    // Global search across all visible columns
     if (reporterSearch.trim()) {
       const q = reporterSearch.trim().toLowerCase();
-      filtered = filtered.filter(entry => (entry.employee_name || '').toLowerCase().includes(q));
+      filtered = filtered.filter(entry => {
+        const hay = [
+          entry.employee_name,
+          entry.notes,
+          entry.shops?.name,
+          entry.categories?.name,
+          entry.sizes?.size,
+          entry.customer_types?.name,
+          new Date(entry.created_at).toLocaleString(),
+        ].filter(Boolean).join(' ').toLowerCase();
+        return hay.includes(q);
+      });
     }
 
     setFilteredEntries(filtered);
@@ -1126,6 +1137,18 @@ export const ReportsPanel = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Global search across all columns */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Search</Label>
+            <Input
+              type="text"
+              placeholder="Search across reporter, shop, category, size, customer type, notes, date..."
+              value={reporterSearch}
+              onChange={(e) => setReporterSearch(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
           {/* Mobile-friendly grid layout */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
             <div className="space-y-2 min-w-0">
@@ -1214,16 +1237,6 @@ export const ReportsPanel = () => {
               </Select>
             </div>
 
-            <div className="space-y-2 min-w-0">
-              <Label className="text-sm font-medium">Reporter</Label>
-              <Input
-                type="text"
-                placeholder="Search by reporter name..."
-                value={reporterSearch}
-                onChange={(e) => setReporterSearch(e.target.value)}
-                className="w-full"
-              />
-            </div>
           </div>
 
 
@@ -1565,6 +1578,9 @@ export const ReportsPanel = () => {
                           sortKey="customerType"
                         />
                       </TableHead>
+                      <TableHead className="font-semibold text-primary whitespace-nowrap min-w-[130px]">
+                        REPORTER
+                      </TableHead>
                       {customFields.map(cf => (
                         <TableHead key={cf.id} className="font-semibold text-primary whitespace-nowrap min-w-[100px]">
                           <div className="flex items-center">{cf.name.toUpperCase()}</div>
@@ -1606,6 +1622,7 @@ export const ReportsPanel = () => {
                         <TableCell className="whitespace-nowrap text-center">{entry.categories.name}</TableCell>
                         <TableCell className="text-center whitespace-nowrap">{entry.sizes.size}</TableCell>
                         <TableCell className="whitespace-nowrap text-center">{entry.customer_types?.name || 'N/A'}</TableCell>
+                        <TableCell className="whitespace-nowrap text-center font-medium">{entry.employee_name || 'Unknown'}</TableCell>
                         {customFields.map(cf => (
                           <TableCell key={cf.id} className="whitespace-nowrap text-center">
                             {entry.customFieldValues?.[cf.id] || 'N/A'}
