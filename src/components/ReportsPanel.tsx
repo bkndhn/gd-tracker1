@@ -315,10 +315,21 @@ export const ReportsPanel = () => {
       }
     }
 
-    // Reporter search (case-insensitive substring match on employee_name)
+    // Global search across all visible columns
     if (reporterSearch.trim()) {
       const q = reporterSearch.trim().toLowerCase();
-      filtered = filtered.filter(entry => (entry.employee_name || '').toLowerCase().includes(q));
+      filtered = filtered.filter(entry => {
+        const hay = [
+          entry.employee_name,
+          entry.notes,
+          entry.shops?.name,
+          entry.categories?.name,
+          entry.sizes?.size,
+          entry.customer_types?.name,
+          new Date(entry.created_at).toLocaleString(),
+        ].filter(Boolean).join(' ').toLowerCase();
+        return hay.includes(q);
+      });
     }
 
     setFilteredEntries(filtered);
