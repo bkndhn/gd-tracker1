@@ -1213,7 +1213,19 @@ export const ReportsPanel = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2 min-w-0">
+              <Label className="text-sm font-medium">Reporter</Label>
+              <Input
+                type="text"
+                placeholder="Search by reporter name..."
+                value={reporterSearch}
+                onChange={(e) => setReporterSearch(e.target.value)}
+                className="w-full"
+              />
+            </div>
           </div>
+
 
           {dateFilter === 'custom' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
