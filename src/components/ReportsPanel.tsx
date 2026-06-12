@@ -315,6 +315,12 @@ export const ReportsPanel = () => {
       }
     }
 
+    // Reporter search (case-insensitive substring match on employee_name)
+    if (reporterSearch.trim()) {
+      const q = reporterSearch.trim().toLowerCase();
+      filtered = filtered.filter(entry => (entry.employee_name || '').toLowerCase().includes(q));
+    }
+
     setFilteredEntries(filtered);
   };
 
