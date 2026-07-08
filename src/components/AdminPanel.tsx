@@ -85,7 +85,7 @@ export const AdminPanel = () => {
       
       <CustomFieldManagement />
 
-      <ScheduledEmailReports />
+
     </div>
   );
 };
