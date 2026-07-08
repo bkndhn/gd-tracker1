@@ -1303,35 +1303,6 @@ export const ReportsPanel = () => {
             <Button onClick={clearFilters} variant="outline" className="w-full sm:w-auto">
               Clear Filters
             </Button>
-            <Button onClick={exportExcelMulti} className="flex items-center justify-center gap-2 w-full sm:w-auto">
-              <Download className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">Export Excel with Image Info ({filteredEntries.length})</span>
-            </Button>
-            <Button 
-              onClick={exportExcelAdvanced} 
-              variant="secondary" 
-              className="flex items-center justify-center gap-2 w-full sm:w-auto"
-              disabled={isExportingWithImages}
-            >
-              {isExportingWithImages ? (
-                <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin" />
-              ) : (
-                <Image className="h-4 w-4 flex-shrink-0" />
-              )}
-              <span className="truncate">
-                {isExportingWithImages ? 'Exporting...' : `Excel with Embedded Images (${filteredEntries.length})`}
-              </span>
-            </Button>
-            <Button onClick={exportReportPDF} variant="outline" className="flex items-center justify-center gap-2 w-full sm:w-auto">
-              <FileText className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">Export PDF ({filteredEntries.length})</span>
-            </Button>
-            {isAdmin && (
-              <Button onClick={sendGDAlert} variant="outline" className="flex items-center justify-center gap-2 w-full sm:w-auto border-orange-200 text-orange-600 hover:bg-orange-50">
-                <Mail className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">Send Alert</span>
-              </Button>
-            )}
           </div>
         </CardContent>
       </Card>
