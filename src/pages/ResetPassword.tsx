@@ -76,9 +76,8 @@ export const ResetPassword = () => {
       }
 
       // Use the Vercel production URL for password reset redirects
-      const productionUrl = 'https://gd-tracking.vercel.app';
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${productionUrl}/reset-password`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) throw error;

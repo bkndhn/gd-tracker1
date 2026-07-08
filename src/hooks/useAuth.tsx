@@ -207,9 +207,8 @@ export const useAuth = () => {
   };
 
   const resetPassword = async (email: string) => {
-    const productionUrl = 'https://gd-tracking.vercel.app';
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${productionUrl}/reset-password`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     return { error };
   };
