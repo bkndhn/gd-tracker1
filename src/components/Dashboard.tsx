@@ -20,6 +20,8 @@ import { ImageDisplay } from './ImageDisplay';
 import { VoiceNotePlayer } from './VoiceNotePlayer';
 import { NoteViewerModal } from './NoteViewerModal';
 import { AnalyticsCharts } from './AnalyticsCharts';
+import { useFieldLabels } from '@/hooks/useFieldLabels';
+import { AIInsightsPanel } from './AIInsightsPanel';
 
 interface GDEntry {
   id: string;
@@ -40,6 +42,7 @@ interface GDEntry {
 export const Dashboard = () => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
   const { isOnline, pendingCount } = useOfflineSync();
+  const { labels } = useFieldLabels();
 
   // Filter states
   const [selectedShop, setSelectedShop] = useState<string>('all');
