@@ -1096,6 +1096,7 @@ export const ReportsPanel = () => {
 
   return (
     <div className="space-y-6 w-full min-w-0">
+      {summary && <AIInsightsPanel context="reports" data={summary} />}
       <Card className="w-full">
         {/* Header content was already replaced correctly above, just need to ensure surrounding structure is valid */}
         {/* ... checking previous edit ... */}
