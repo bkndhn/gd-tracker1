@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Play, Pause, Trash2, Settings, Users, Building, Shield, Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity, UserPlus } from 'lucide-react';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
+import { GoogleDriveBackupPanel } from './admin/GoogleDriveBackupPanel';
 import { AuditLogViewer } from './AuditLogViewer';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
@@ -522,6 +523,7 @@ export const SuperAdminDashboard = () => {
               </div>
             </CardContent>
           </Card>
+          <GoogleDriveBackupPanel />
         </div>
       </TabsContent>
 
