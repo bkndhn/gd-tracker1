@@ -780,7 +780,14 @@ export const Dashboard = () => {
             </div>
           )}
 
-          {/* Breakdown Sections */}
+          {/* AI Insights */}
+          {summary && (
+            <div className="mt-6">
+              <AIInsightsPanel context="dashboard" data={summary} />
+            </div>
+          )}
+
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
             {/* By Shop */}
             <Card className="hover:shadow-lg transition-shadow">
