@@ -14,6 +14,7 @@ import { WhatsAppInputBar } from '@/components/WhatsAppInputBar';
 import { toast } from 'sonner';
 import { Database } from '@/types/database';
 import { sanitizeNotes, isValidUUID } from '@/utils/security';
+import { useFieldLabels } from '@/hooks/useFieldLabels';
 
 type CustomerType = Database['public']['Tables']['customer_types']['Row'];
 
@@ -41,6 +42,7 @@ interface FieldVisibility {
 
 export const DamagedGoodsForm = () => {
   const { profile } = useAuth();
+  const { labels } = useFieldLabels();
   const { categories, sizes, shops, loading: dataLoading } = useCachedData();
   const { isOnline, pendingCount, saveOfflineEntry } = useOfflineSync();
   const queryClient = useQueryClient();
@@ -484,7 +486,7 @@ export const DamagedGoodsForm = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {fieldVisibility.category && (
               <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
+                <Label htmlFor="category">{labels.category} *</Label>
                 <Select value={formData.category_id} onValueChange={value => handleInputChange('category_id', value)} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
@@ -501,7 +503,7 @@ export const DamagedGoodsForm = () => {
 
             {fieldVisibility.size && (
               <div className="space-y-2">
-                <Label htmlFor="size">Size *</Label>
+                <Label htmlFor="size">{labels.size} *</Label>
                 <Select value={formData.size_id} onValueChange={value => handleInputChange('size_id', value)} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a size" />
@@ -520,7 +522,7 @@ export const DamagedGoodsForm = () => {
           {/* Shop field - visible or auto-assigned */}
           {fieldVisibility.shops ? (
             <div className="space-y-2">
-              <Label htmlFor="shop">Shop *</Label>
+              <Label htmlFor="shop">{labels.shops} *</Label>
               {profile?.shop_id ? (
                 <>
                   <Input value={userShop?.name || 'Loading shop...'} disabled className="bg-muted cursor-not-allowed" />
@@ -542,14 +544,14 @@ export const DamagedGoodsForm = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              <Label>Shop</Label>
+              <Label>{labels.shops}</Label>
               <Input value={userShop?.name || (profile?.shop_id ? 'Loading...' : 'Auto-assigned')} disabled className="bg-muted cursor-not-allowed" />
             </div>
           )}
 
           {fieldVisibility.customer_type && (
             <div className="space-y-3">
-              <Label>Type of Customer *</Label>
+              <Label>{labels.customer_type} *</Label>
               <RadioGroup value={formData.customer_type_id} onValueChange={value => handleInputChange('customer_type_id', value)} required>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {customerTypes.map(type => (
