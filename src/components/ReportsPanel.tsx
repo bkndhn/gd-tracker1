@@ -25,6 +25,8 @@ import { format } from 'date-fns';
 import { Database } from '@/types/database';
 import * as XLSX from 'xlsx';
 import { exportToPDFViaHTML, exportMultiSectionPDFViaHTML, makeImageCell, type CellContent } from '@/utils/htmlPdfExport';
+import { useFieldLabels } from '@/hooks/useFieldLabels';
+import { AIInsightsPanel } from './AIInsightsPanel';
 
 interface CustomFieldDef {
   id: string;
@@ -55,6 +57,7 @@ type CustomerType = Database['public']['Tables']['customer_types']['Row'];
 export const ReportsPanel = () => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
   const { isOnline, pendingCount } = useOfflineSync();
+  const { labels } = useFieldLabels();
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<GoodsEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<GoodsEntry[]>([]);
@@ -1093,6 +1096,7 @@ export const ReportsPanel = () => {
 
   return (
     <div className="space-y-6 w-full min-w-0">
+      {summary && <AIInsightsPanel context="reports" data={summary} />}
       <Card className="w-full">
         {/* Header content was already replaced correctly above, just need to ensure surrounding structure is valid */}
         {/* ... checking previous edit ... */}
@@ -1152,13 +1156,13 @@ export const ReportsPanel = () => {
           {/* Mobile-friendly grid layout */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
             <div className="space-y-2 min-w-0">
-              <Label className="text-sm font-medium">Shop</Label>
+              <Label className="text-sm font-medium">{labels.shops}</Label>
               <Select value={selectedShop} onValueChange={setSelectedShop}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Shops</SelectItem>
+                  <SelectItem value="all">All {labels.shops}s</SelectItem>
                   {shops.map(shop => (
                     <SelectItem key={shop.id} value={shop.id}>
                       {shop.name}
@@ -1169,13 +1173,13 @@ export const ReportsPanel = () => {
             </div>
 
             <div className="space-y-2 min-w-0">
-              <Label className="text-sm font-medium">Category</Label>
+              <Label className="text-sm font-medium">{labels.category}</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="all">All {labels.category}</SelectItem>
                   {categories.map(category => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
@@ -1186,13 +1190,13 @@ export const ReportsPanel = () => {
             </div>
 
             <div className="space-y-2 min-w-0">
-              <Label className="text-sm font-medium">Size</Label>
+              <Label className="text-sm font-medium">{labels.size}</Label>
               <Select value={selectedSize} onValueChange={setSelectedSize}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Sizes</SelectItem>
+                  <SelectItem value="all">All {labels.size}</SelectItem>
                   {sizes.map(size => (
                     <SelectItem key={size.id} value={size.id}>
                       {size.size}
@@ -1203,13 +1207,13 @@ export const ReportsPanel = () => {
             </div>
 
             <div className="space-y-2 min-w-0">
-              <Label className="text-sm font-medium">Customer Type</Label>
+              <Label className="text-sm font-medium">{labels.customer_type}</Label>
               <Select value={selectedCustomerType} onValueChange={setSelectedCustomerType}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="all">All {labels.customer_type}</SelectItem>
                   {customerTypes.map(type => (
                     <SelectItem key={type.id} value={type.id}>
                       {type.name}
@@ -1410,7 +1414,7 @@ export const ReportsPanel = () => {
 
                       <div className="space-y-3">
                         <div>
-                          <h4 className="font-semibold text-sm mb-2 text-gradient-secondary">By Shop</h4>
+                          <h4 className="font-semibold text-sm mb-2 text-gradient-secondary">By {labels.shops}</h4>
                           <div className="space-y-1">
                             {Object.entries(summary.byShop).map(([shop, count]) => (
                               <div key={shop} className="flex justify-between text-sm p-2 bg-muted/50 rounded">
@@ -1422,7 +1426,7 @@ export const ReportsPanel = () => {
                         </div>
 
                         <div>
-                          <h4 className="font-semibold text-sm mb-2 text-gradient-secondary">By Category</h4>
+                          <h4 className="font-semibold text-sm mb-2 text-gradient-secondary">By {labels.category}</h4>
                           <div className="space-y-1">
                             {Object.entries(summary.byCategory).map(([category, count]) => (
                               <div key={category} className="flex justify-between text-sm p-2 bg-muted/50 rounded">
@@ -1434,7 +1438,7 @@ export const ReportsPanel = () => {
                         </div>
 
                         <div>
-                          <h4 className="font-semibold text-sm mb-2 text-gradient-secondary">By Size</h4>
+                          <h4 className="font-semibold text-sm mb-2 text-gradient-secondary">By {labels.size}</h4>
                           <div className="space-y-1">
                             {Object.entries(summary.bySize).map(([size, count]) => (
                               <div key={size} className="flex justify-between text-sm p-2 bg-muted/50 rounded">
@@ -1446,7 +1450,7 @@ export const ReportsPanel = () => {
                         </div>
 
                         <div>
-                          <h4 className="font-semibold text-sm mb-2 text-gradient-secondary">By Customer Type</h4>
+                          <h4 className="font-semibold text-sm mb-2 text-gradient-secondary">By {labels.customer_type}</h4>
                           <div className="space-y-1">
                             {Object.entries(summary.byCustomerType).map(([type, count]) => (
                               <div key={type} className="flex justify-between text-sm p-2 bg-muted/50 rounded">

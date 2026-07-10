@@ -20,6 +20,8 @@ import { ImageDisplay } from './ImageDisplay';
 import { VoiceNotePlayer } from './VoiceNotePlayer';
 import { NoteViewerModal } from './NoteViewerModal';
 import { AnalyticsCharts } from './AnalyticsCharts';
+import { useFieldLabels } from '@/hooks/useFieldLabels';
+import { AIInsightsPanel } from './AIInsightsPanel';
 
 interface GDEntry {
   id: string;
@@ -40,6 +42,7 @@ interface GDEntry {
 export const Dashboard = () => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
   const { isOnline, pendingCount } = useOfflineSync();
+  const { labels } = useFieldLabels();
 
   // Filter states
   const [selectedShop, setSelectedShop] = useState<string>('all');
@@ -575,17 +578,17 @@ export const Dashboard = () => {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
-                    <Label>Shop</Label>
+                    <Label>{labels.shops}</Label>
                     <Select
                       value={selectedShop}
                       onValueChange={setSelectedShop}
                       disabled={isManager}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="All Shops" />
+                        <SelectValue placeholder={`All ${labels.shops}s`} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Shops</SelectItem>
+                        <SelectItem value="all">All {labels.shops}s</SelectItem>
                         {masterData?.shops.map(shop => (
                           <SelectItem key={shop.id} value={shop.id}>{shop.name}</SelectItem>
                         ))}
@@ -594,13 +597,13 @@ export const Dashboard = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Category</Label>
+                    <Label>{labels.category}</Label>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger>
-                        <SelectValue placeholder="All Categories" />
+                        <SelectValue placeholder={`All ${labels.category}`} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
+                        <SelectItem value="all">All {labels.category}</SelectItem>
                         {masterData?.categories.map(cat => (
                           <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                         ))}
@@ -609,7 +612,7 @@ export const Dashboard = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Customer Type</Label>
+                    <Label>{labels.customer_type}</Label>
                     <Select value={selectedCustomerType} onValueChange={setSelectedCustomerType}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Types" />
@@ -777,7 +780,14 @@ export const Dashboard = () => {
             </div>
           )}
 
-          {/* Breakdown Sections */}
+          {/* AI Insights */}
+          {summary && (
+            <div className="mt-6">
+              <AIInsightsPanel context="dashboard" data={summary} />
+            </div>
+          )}
+
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
             {/* By Shop */}
             <Card className="hover:shadow-lg transition-shadow">
