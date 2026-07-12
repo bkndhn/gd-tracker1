@@ -53,6 +53,7 @@ export const SuperAdminDashboard = () => {
   const [maxEntries, setMaxEntries] = useState<number | ''>('');
   const [maxImagesPerEntry, setMaxImagesPerEntry] = useState<number>(10);
   const [maxImagesTotal, setMaxImagesTotal] = useState<number | ''>('');
+  const [aiEnabled, setAiEnabled] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedAdmins, setExpandedAdmins] = useState<Set<string>>(new Set());
   // Confirmation state for pause/activate actions
