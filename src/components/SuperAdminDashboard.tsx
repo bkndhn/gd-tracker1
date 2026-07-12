@@ -466,6 +466,13 @@ export const SuperAdminDashboard = () => {
                 onChange={e => setMaxImagesTotal(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Unlimited" />
               <p className="text-xs text-muted-foreground">Current usage: {imageCounts[selectedAdmin?.id || ''] || 0} images</p>
             </div>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <Label className="flex items-center gap-2"><Sparkles className="h-4 w-4" /> AI Insights</Label>
+                <p className="text-xs text-muted-foreground">Allow this tenant (admin + sub-users) to use AI Summary & Ask AI.</p>
+              </div>
+              <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
+            </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setLimitsDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleSetLimits}>Save Limits</Button>
