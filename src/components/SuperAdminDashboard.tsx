@@ -286,12 +286,13 @@ export const SuperAdminDashboard = () => {
         max_entries: maxEntries === '' ? null : maxEntries,
         max_images_per_entry: maxImagesPerEntry,
         max_images_total: maxImagesTotal === '' ? null : maxImagesTotal,
+        ai_enabled: aiEnabled,
       }).eq('id', selectedAdmin.id);
       if (error) throw error;
       toast.success('Limits updated successfully');
       setLimitsDialogOpen(false);
     } catch (error: any) { toast.error(error.message || 'Failed to update limits'); }
-  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal]);
+  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled]);
 
   const openLimitsDialog = useCallback((admin: AdminProfile) => {
     setSelectedAdmin(admin);
@@ -300,6 +301,7 @@ export const SuperAdminDashboard = () => {
     setMaxEntries(admin.max_entries ?? '');
     setMaxImagesPerEntry(admin.max_images_per_entry ?? 10);
     setMaxImagesTotal(admin.max_images_total ?? '');
+    setAiEnabled(admin.ai_enabled !== false);
     setLimitsDialogOpen(true);
   }, []);
 
