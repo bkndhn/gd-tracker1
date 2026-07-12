@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Play, Pause, Trash2, Settings, Users, Building, Shield, Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity, UserPlus } from 'lucide-react';
+import { Play, Pause, Trash2, Settings, Users, Building, Shield, Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity, UserPlus, Sparkles } from 'lucide-react';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { GoogleDriveBackupPanel } from './admin/GoogleDriveBackupPanel';
 import { AuditLogViewer } from './AuditLogViewer';
@@ -34,6 +34,7 @@ interface AdminProfile {
   admin_id: string | null;
   role: string;
   shop_id: string | null;
+  ai_enabled?: boolean;
 }
 
 export const SuperAdminDashboard = () => {
@@ -52,6 +53,7 @@ export const SuperAdminDashboard = () => {
   const [maxEntries, setMaxEntries] = useState<number | ''>('');
   const [maxImagesPerEntry, setMaxImagesPerEntry] = useState<number>(10);
   const [maxImagesTotal, setMaxImagesTotal] = useState<number | ''>('');
+  const [aiEnabled, setAiEnabled] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedAdmins, setExpandedAdmins] = useState<Set<string>>(new Set());
   // Confirmation state for pause/activate actions
@@ -284,12 +286,13 @@ export const SuperAdminDashboard = () => {
         max_entries: maxEntries === '' ? null : maxEntries,
         max_images_per_entry: maxImagesPerEntry,
         max_images_total: maxImagesTotal === '' ? null : maxImagesTotal,
+        ai_enabled: aiEnabled,
       }).eq('id', selectedAdmin.id);
       if (error) throw error;
       toast.success('Limits updated successfully');
       setLimitsDialogOpen(false);
     } catch (error: any) { toast.error(error.message || 'Failed to update limits'); }
-  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal]);
+  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled]);
 
   const openLimitsDialog = useCallback((admin: AdminProfile) => {
     setSelectedAdmin(admin);
@@ -298,6 +301,7 @@ export const SuperAdminDashboard = () => {
     setMaxEntries(admin.max_entries ?? '');
     setMaxImagesPerEntry(admin.max_images_per_entry ?? 10);
     setMaxImagesTotal(admin.max_images_total ?? '');
+    setAiEnabled(admin.ai_enabled !== false);
     setLimitsDialogOpen(true);
   }, []);
 
@@ -461,6 +465,13 @@ export const SuperAdminDashboard = () => {
               <Input type="number" min={0} value={maxImagesTotal}
                 onChange={e => setMaxImagesTotal(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Unlimited" />
               <p className="text-xs text-muted-foreground">Current usage: {imageCounts[selectedAdmin?.id || ''] || 0} images</p>
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <Label className="flex items-center gap-2"><Sparkles className="h-4 w-4" /> AI Insights</Label>
+                <p className="text-xs text-muted-foreground">Allow this tenant (admin + sub-users) to use AI Summary & Ask AI.</p>
+              </div>
+              <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setLimitsDialogOpen(false)}>Cancel</Button>
