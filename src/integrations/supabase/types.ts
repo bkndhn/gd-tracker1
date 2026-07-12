@@ -343,6 +343,7 @@ export type Database = {
       profiles: {
         Row: {
           admin_id: string | null
+          ai_enabled: boolean
           created_at: string | null
           default_category_id: string | null
           default_size_id: string | null
@@ -363,6 +364,7 @@ export type Database = {
         }
         Insert: {
           admin_id?: string | null
+          ai_enabled?: boolean
           created_at?: string | null
           default_category_id?: string | null
           default_size_id?: string | null
@@ -383,6 +385,7 @@ export type Database = {
         }
         Update: {
           admin_id?: string | null
+          ai_enabled?: boolean
           created_at?: string | null
           default_category_id?: string | null
           default_size_id?: string | null
@@ -523,6 +526,7 @@ export type Database = {
         Args: never
         Returns: {
           admin_id: string | null
+          ai_enabled: boolean
           created_at: string | null
           default_category_id: string | null
           default_size_id: string | null
