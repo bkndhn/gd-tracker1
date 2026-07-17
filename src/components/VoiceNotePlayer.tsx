@@ -179,6 +179,22 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
     }
   }, [duration]);
 
+  // Media Session API — lockscreen / background controls
+  useEffect(() => {
+    if (!isPlaying || typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+    const ms: any = (navigator as any).mediaSession;
+    try {
+      ms.metadata = new (window as any).MediaMetadata({ title: 'Voice Note', artist: 'GD Tracker' });
+      const setAction = (a: string, cb: any) => { try { ms.setActionHandler(a, cb); } catch {} };
+      setAction('play', () => { if (audioRef.current && !isPlayingRef.current) togglePlay(); });
+      setAction('pause', () => { if (audioRef.current && isPlayingRef.current) togglePlay(); });
+      setAction('seekbackward', (d: any) => seekTo((audioRef.current?.currentTime ?? 0) - (d?.seekOffset || 5)));
+      setAction('seekforward', (d: any) => seekTo((audioRef.current?.currentTime ?? 0) + (d?.seekOffset || 5)));
+      setAction('seekto', (d: any) => { if (typeof d?.seekTime === 'number') seekTo(d.seekTime); });
+      return () => { ['play','pause','seekbackward','seekforward','seekto'].forEach(a => setAction(a, null)); };
+    } catch {}
+  }, [isPlaying, togglePlay, seekTo]);
+
   const handlePointerDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!isLoaded || !duration) return;
     e.preventDefault();
