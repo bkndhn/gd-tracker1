@@ -103,6 +103,36 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
     };
   }, [stopAnimationLoop]);
 
+  // Media Session API — lockscreen / background controls
+  useEffect(() => {
+    if (!isPlaying || typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: 'Voice Note',
+        artist: 'GD Tracker',
+      });
+      const setAction = (a: MediaSessionAction, cb: (() => void) | null) => {
+        try { navigator.mediaSession.setActionHandler(a, cb as any); } catch {}
+      };
+      setAction('play', () => { if (audioRef.current && !isPlayingRef.current) togglePlay(); });
+      setAction('pause', () => { if (audioRef.current && isPlayingRef.current) togglePlay(); });
+      setAction('seekbackward', (details: any) => {
+        const skip = details?.seekOffset || 5;
+        seekTo((audioRef.current?.currentTime ?? 0) - skip);
+      });
+      setAction('seekforward', (details: any) => {
+        const skip = details?.seekOffset || 5;
+        seekTo((audioRef.current?.currentTime ?? 0) + skip);
+      });
+      setAction('seekto', (details: any) => {
+        if (typeof details?.seekTime === 'number') seekTo(details.seekTime);
+      });
+      return () => {
+        ['play','pause','seekbackward','seekforward','seekto'].forEach(a => setAction(a as MediaSessionAction, null));
+      };
+    } catch {}
+  }, [isPlaying, togglePlay, seekTo]);
+
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = playbackSpeed;
   }, [playbackSpeed]);
