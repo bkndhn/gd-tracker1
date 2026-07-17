@@ -103,6 +103,7 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
     };
   }, [stopAnimationLoop]);
 
+
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = playbackSpeed;
   }, [playbackSpeed]);
@@ -177,6 +178,22 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
       setDisplayTime(clampedTime);
     }
   }, [duration]);
+
+  // Media Session API — lockscreen / background controls
+  useEffect(() => {
+    if (!isPlaying || typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+    const ms: any = (navigator as any).mediaSession;
+    try {
+      ms.metadata = new (window as any).MediaMetadata({ title: 'Voice Note', artist: 'GD Tracker' });
+      const setAction = (a: string, cb: any) => { try { ms.setActionHandler(a, cb); } catch {} };
+      setAction('play', () => { if (audioRef.current && !isPlayingRef.current) togglePlay(); });
+      setAction('pause', () => { if (audioRef.current && isPlayingRef.current) togglePlay(); });
+      setAction('seekbackward', (d: any) => seekTo((audioRef.current?.currentTime ?? 0) - (d?.seekOffset || 5)));
+      setAction('seekforward', (d: any) => seekTo((audioRef.current?.currentTime ?? 0) + (d?.seekOffset || 5)));
+      setAction('seekto', (d: any) => { if (typeof d?.seekTime === 'number') seekTo(d.seekTime); });
+      return () => { ['play','pause','seekbackward','seekforward','seekto'].forEach(a => setAction(a, null)); };
+    } catch {}
+  }, [isPlaying, togglePlay, seekTo]);
 
   const handlePointerDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!isLoaded || !duration) return;
@@ -278,14 +295,25 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
       {/* Waveform */}
       <div
         ref={waveformRef}
-        className={`flex-1 min-w-0 ${waveH} cursor-pointer relative select-none overflow-hidden touch-none`}
+        tabIndex={0}
+        className={`flex-1 min-w-0 ${waveH} cursor-pointer relative select-none overflow-hidden touch-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full`}
         onMouseDown={handlePointerDown}
         onTouchStart={handlePointerDown}
+        onKeyDown={(e) => {
+          if (!isLoaded || !duration) return;
+          const cur = audioRef.current?.currentTime ?? 0;
+          if (e.key === ' ' || e.key === 'k') { e.preventDefault(); togglePlay(); }
+          else if (e.key === 'ArrowRight') { e.preventDefault(); seekTo(cur + (e.shiftKey ? 10 : 5)); }
+          else if (e.key === 'ArrowLeft') { e.preventDefault(); seekTo(cur - (e.shiftKey ? 10 : 5)); }
+          else if (e.key === 'Home') { e.preventDefault(); seekTo(0); }
+          else if (e.key === 'End') { e.preventDefault(); seekTo(duration - 0.1); }
+          else if (/^[0-9]$/.test(e.key)) { e.preventDefault(); seekTo((parseInt(e.key, 10) / 10) * duration); }
+        }}
         role="slider"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(progressPercent)}
-        aria-label="Voice note progress"
+        aria-label="Voice note progress. Space to play, arrows to seek."
       >
         <div className="absolute inset-0 flex items-center gap-[2px] pointer-events-none">
           {waveformBars.map((height, index) => {
