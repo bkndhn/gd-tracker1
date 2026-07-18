@@ -47,12 +47,14 @@ export const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background w-full overflow-x-hidden">
-      <nav className="border-b bg-card w-full">
+      <nav className="sticky top-0 z-40 border-b border-border/60 bg-card/80 backdrop-blur-md supports-[backdrop-filter]:bg-card/70 w-full shadow-[0_1px_0_0_hsl(var(--border))]">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16 min-w-0">
             <div className="flex items-center min-w-0 flex-shrink-0">
-              <Package className="h-6 w-6 sm:h-8 sm:w-8 text-primary flex-shrink-0" />
-              <span className="ml-2 text-lg sm:text-xl font-bold text-foreground truncate">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary/15 to-accent/15 ring-1 ring-primary/20">
+                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+              </div>
+              <span className="ml-2 text-lg sm:text-xl font-bold text-gradient-primary truncate tracking-tight">
                 <span className="sm:hidden">GD</span>
                 <span className="hidden sm:inline">GD Tracker</span>
               </span>
@@ -64,7 +66,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   {profile?.name}
                 </span>
                 {roleBadge && (
-                  <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs rounded flex-shrink-0 ${roleBadge.className}`}>
+                  <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full flex-shrink-0 shadow-sm ${roleBadge.className}`}>
                     {roleBadge.label}
                   </span>
                 )}
@@ -78,7 +80,7 @@ export const Layout = ({ children }: LayoutProps) => {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowLogoutConfirm(true)}
-                className="flex items-center gap-1 sm:gap-2 flex-shrink-0"
+                className="flex items-center gap-1 sm:gap-2 flex-shrink-0 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 transition-colors"
               >
                 <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Sign Out</span>
@@ -86,6 +88,7 @@ export const Layout = ({ children }: LayoutProps) => {
             </div>
           </div>
         </div>
+        <div className="h-[2px] w-full bg-gradient-to-r from-primary via-accent to-secondary opacity-70" />
       </nav>
       
       <main className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-4 lg:px-8 w-full min-w-0">
