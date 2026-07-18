@@ -576,57 +576,6 @@ export const Dashboard = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  <div className="space-y-2">
-                    <Label>{labels.shops}</Label>
-                    <Select
-                      value={selectedShop}
-                      onValueChange={setSelectedShop}
-                      disabled={isManager}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={`All ${labels.shops}s`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All {labels.shops}s</SelectItem>
-                        {masterData?.shops.map(shop => (
-                          <SelectItem key={shop.id} value={shop.id}>{shop.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>{labels.category}</Label>
-                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={`All ${labels.category}`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All {labels.category}</SelectItem>
-                        {masterData?.categories.map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>{labels.customer_type}</Label>
-                    <Select value={selectedCustomerType} onValueChange={setSelectedCustomerType}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Types" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        {masterData?.customerTypes.map(type => (
-                          <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Date Range</Label>
@@ -635,12 +584,12 @@ export const Dashboard = () => {
                         <SelectValue placeholder="Select date range" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="all_time">All Time</SelectItem>
                         <SelectItem value="today">Today</SelectItem>
                         <SelectItem value="yesterday">Yesterday</SelectItem>
                         <SelectItem value="this_week">This Week</SelectItem>
                         <SelectItem value="this_month">This Month</SelectItem>
                         <SelectItem value="this_year">This Year</SelectItem>
-                        <SelectItem value="all_time">All Time</SelectItem>
                         <SelectItem value="custom">Custom Range</SelectItem>
                       </SelectContent>
                     </Select>
@@ -699,6 +648,57 @@ export const Dashboard = () => {
                       </div>
                     </div>
                   )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="space-y-2">
+                    <Label>{labels.shops}</Label>
+                    <Select
+                      value={selectedShop}
+                      onValueChange={setSelectedShop}
+                      disabled={isManager}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={`All ${labels.shops}s`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All {labels.shops}s</SelectItem>
+                        {masterData?.shops.map(shop => (
+                          <SelectItem key={shop.id} value={shop.id}>{shop.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>{labels.category}</Label>
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={`All ${labels.category}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All {labels.category}</SelectItem>
+                        {masterData?.categories.map(cat => (
+                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>{labels.customer_type}</Label>
+                    <Select value={selectedCustomerType} onValueChange={setSelectedCustomerType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        {masterData?.customerTypes.map(type => (
+                          <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
