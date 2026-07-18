@@ -283,7 +283,7 @@ export const Dashboard = () => {
     setSelectedShop('all');
     setSelectedCategory('all');
     setSelectedCustomerType('all');
-    setDateRangePreset('today');
+    setDateRangePreset('all_time');
     setCustomDateFrom(undefined);
     setCustomDateTo(undefined);
   };
