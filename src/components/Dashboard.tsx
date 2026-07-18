@@ -329,7 +329,7 @@ export const Dashboard = () => {
   };
 
   const hasActiveFilters = selectedShop !== 'all' || selectedCategory !== 'all' ||
-    selectedCustomerType !== 'all' || dateRangePreset !== 'today';
+    selectedCustomerType !== 'all' || dateRangePreset !== 'all_time';
 
   const calculateChange = (current: number, previous: number) => {
     if (previous === 0) return current > 0 ? 100 : 0;
