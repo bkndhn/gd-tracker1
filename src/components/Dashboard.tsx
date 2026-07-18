@@ -48,7 +48,7 @@ export const Dashboard = () => {
   const [selectedShop, setSelectedShop] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCustomerType, setSelectedCustomerType] = useState<string>('all');
-  const [dateRangePreset, setDateRangePreset] = useState<string>('today');
+  const [dateRangePreset, setDateRangePreset] = useState<string>('all_time');
   const [customDateFrom, setCustomDateFrom] = useState<Date>();
   const [customDateTo, setCustomDateTo] = useState<Date>();
   const [showFilters, setShowFilters] = useState(false);
