@@ -348,6 +348,14 @@ export const CustomFieldManagement = () => {
                           onCheckedChange={() => handleToggleMandatory(field)}
                         />
                       </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Move up"
+                        onClick={() => handleMoveField(field, -1)}>
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Move down"
+                        onClick={() => handleMoveField(field, 1)}>
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </Button>
                       <Button
                         variant="ghost" size="icon"
                         className="h-8 w-8 border border-primary/20 hover:border-primary hover:bg-primary/10"
