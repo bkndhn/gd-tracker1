@@ -369,7 +369,7 @@ export const DamagedGoodsForm = () => {
         .map(([fieldId, v]) => {
           const field = customFields.find(f => f.id === fieldId);
           const type = field?.field_type || 'dropdown';
-          if (type === 'dropdown') {
+          if (type === 'dropdown' || type === 'radio') {
             return { gd_entry_id: createdEntry.id, custom_field_id: fieldId, custom_field_option_id: v };
           }
           return { gd_entry_id: createdEntry.id, custom_field_id: fieldId, value: v };
