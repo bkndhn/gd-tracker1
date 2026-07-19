@@ -15,6 +15,7 @@ import { Plus, Edit, Trash2, Settings2, Eye, EyeOff, Asterisk } from 'lucide-rea
 
 const FIELD_TYPES = [
   { value: 'dropdown', label: 'Dropdown' },
+  { value: 'radio', label: 'Radio' },
   { value: 'text', label: 'Text' },
   { value: 'textarea', label: 'Long text' },
   { value: 'number', label: 'Number' },
@@ -22,6 +23,8 @@ const FIELD_TYPES = [
   { value: 'email', label: 'Email' },
   { value: 'phone', label: 'Phone' },
 ];
+
+const HAS_OPTIONS = (t?: string) => (t || 'dropdown') === 'dropdown' || t === 'radio';
 
 interface CustomField {
   id: string;
