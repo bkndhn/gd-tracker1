@@ -215,6 +215,13 @@ ${dataStr}`;
     const text = json?.choices?.[0]?.message?.content || '';
     cacheSet(cacheKey, text);
 
+    // Log usage (skip super_admin — unmetered)
+    if (role !== 'super_admin' && tenantAdminId) {
+      supa.from('ai_usage_log').insert({
+        admin_id: tenantAdminId, user_id: userId, mode, context,
+      }).then(() => {}, (e) => console.error('usage log insert failed', e));
+    }
+
     return jsonRes({ text, cached: false });
   } catch (e: any) {
     console.error('gd-ai-insights error', e);
