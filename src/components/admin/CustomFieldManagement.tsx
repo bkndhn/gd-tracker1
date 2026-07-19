@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Edit, Trash2, Settings2, Eye, EyeOff, Asterisk } from 'lucide-react';
+import { Plus, Edit, Trash2, Settings2, Eye, EyeOff, Asterisk, ArrowUp, ArrowDown } from 'lucide-react';
 
 const FIELD_TYPES = [
   { value: 'dropdown', label: 'Dropdown' },
