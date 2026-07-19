@@ -485,6 +485,26 @@ export const SuperAdminDashboard = () => {
               </div>
               <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
             </div>
+            {aiEnabled && (
+              <div className="grid grid-cols-3 gap-2 rounded-md border p-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Daily cap</Label>
+                  <Input type="number" min={0} placeholder="∞" value={aiDaily}
+                    onChange={e => setAiDaily(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Monthly cap</Label>
+                  <Input type="number" min={0} placeholder="∞" value={aiMonthly}
+                    onChange={e => setAiMonthly(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Lifetime cap</Label>
+                  <Input type="number" min={0} placeholder="∞" value={aiLifetime}
+                    onChange={e => setAiLifetime(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <p className="text-xs text-muted-foreground col-span-3">Blank = unlimited. Counters reset at midnight (daily) and on the 1st (monthly).</p>
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setLimitsDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleSetLimits}>Save Limits</Button>
