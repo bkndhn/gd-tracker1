@@ -296,7 +296,7 @@ export const CustomFieldManagement = () => {
                       <Badge variant="outline" className="text-xs capitalize">
                         {FIELD_TYPES.find(t => t.value === (field.field_type || 'dropdown'))?.label || field.field_type}
                       </Badge>
-                      {(field.field_type || 'dropdown') === 'dropdown' && (
+                      {HAS_OPTIONS(field.field_type) && (
                         <Badge variant="secondary" className="text-xs">
                           {(options[field.id] || []).length} options
                         </Badge>
