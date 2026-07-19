@@ -35,6 +35,9 @@ interface AdminProfile {
   role: string;
   shop_id: string | null;
   ai_enabled?: boolean;
+  ai_daily_limit?: number | null;
+  ai_monthly_limit?: number | null;
+  ai_lifetime_limit?: number | null;
 }
 
 export const SuperAdminDashboard = () => {
