@@ -257,6 +257,23 @@ export const CustomFieldManagement = () => {
     }
   };
 
+  const handleMoveField = async (field: CustomField, direction: -1 | 1) => {
+    const sorted = [...fields].sort((a, b) => a.display_order - b.display_order);
+    const idx = sorted.findIndex(f => f.id === field.id);
+    const swapIdx = idx + direction;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= sorted.length) return;
+    const a = sorted[idx], b = sorted[swapIdx];
+    try {
+      // Swap using a temporary value to avoid unique conflicts if any
+      await (supabase.from('custom_fields') as any).update({ display_order: -1 }).eq('id', a.id);
+      await (supabase.from('custom_fields') as any).update({ display_order: a.display_order }).eq('id', b.id);
+      await (supabase.from('custom_fields') as any).update({ display_order: b.display_order }).eq('id', a.id);
+      fetchFields();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to reorder');
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-32">Loading custom fields...</div>;
   }
