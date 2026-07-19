@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     if (userErr || !userData?.user) return jsonRes({ error: 'Unauthorized' }, 401);
     const userId = userData.user.id;
 
-    // ---- Load caller profile + tenant AI toggle ----
+    // ---- Load caller profile + tenant AI toggle + quotas ----
     const { data: prof } = await supa
       .from('profiles')
       .select('id, role, status, deleted_at, ai_enabled, admin_id')
@@ -81,23 +81,70 @@ Deno.serve(async (req) => {
       return jsonRes({ error: 'Account not available' }, 403);
     }
     const role = (prof as any).role as string;
-    // Only admin / manager / super_admin may use AI insights
     if (!['admin', 'manager', 'super_admin'].includes(role)) {
       return jsonRes({ error: 'AI insights not permitted for your role' }, 403);
     }
-    // Effective AI toggle: super_admin bypasses; others use their tenant admin's ai_enabled.
+
+    let tenantAdminId: string | null = null;
+    let quotas = { daily: null as number | null, monthly: null as number | null, lifetime: null as number | null };
+
     if (role !== 'super_admin') {
-      const tenantId = role === 'admin' ? userId : (prof as any).admin_id;
+      tenantAdminId = role === 'admin' ? userId : (prof as any).admin_id;
       let aiEnabled = true;
-      if (role === 'admin') aiEnabled = (prof as any).ai_enabled !== false;
-      else if (tenantId) {
-        const { data: adminRow } = await supa
-          .from('profiles').select('ai_enabled, status, deleted_at')
-          .eq('id', tenantId).maybeSingle();
-        aiEnabled = !!adminRow && (adminRow as any).ai_enabled !== false
-          && !(adminRow as any).deleted_at && (adminRow as any).status !== 'paused';
+      let adminRow: any = null;
+      if (role === 'admin') {
+        adminRow = prof;
+        aiEnabled = (prof as any).ai_enabled !== false;
+      } else if (tenantAdminId) {
+        const { data } = await supa
+          .from('profiles')
+          .select('ai_enabled, status, deleted_at, ai_daily_limit, ai_monthly_limit, ai_lifetime_limit')
+          .eq('id', tenantAdminId).maybeSingle();
+        adminRow = data;
+        aiEnabled = !!data && (data as any).ai_enabled !== false
+          && !(data as any).deleted_at && (data as any).status !== 'paused';
       }
       if (!aiEnabled) return jsonRes({ error: 'AI Insights disabled for your organization' }, 403);
+
+      // Load quotas from admin row (if manager/user, we didn't fetch limits above)
+      if (role === 'admin') {
+        const { data: limits } = await supa
+          .from('profiles')
+          .select('ai_daily_limit, ai_monthly_limit, ai_lifetime_limit')
+          .eq('id', userId).maybeSingle();
+        adminRow = { ...(adminRow || {}), ...(limits || {}) };
+      }
+      quotas = {
+        daily: (adminRow as any)?.ai_daily_limit ?? null,
+        monthly: (adminRow as any)?.ai_monthly_limit ?? null,
+        lifetime: (adminRow as any)?.ai_lifetime_limit ?? null,
+      };
+
+      // ---- Enforce quotas ----
+      if (tenantAdminId && (quotas.daily || quotas.monthly || quotas.lifetime)) {
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+        const [dayRes, monthRes, lifeRes] = await Promise.all([
+          quotas.daily ? supa.from('ai_usage_log').select('id', { count: 'exact', head: true })
+            .eq('admin_id', tenantAdminId).gte('created_at', startOfDay) : Promise.resolve({ count: 0 } as any),
+          quotas.monthly ? supa.from('ai_usage_log').select('id', { count: 'exact', head: true })
+            .eq('admin_id', tenantAdminId).gte('created_at', startOfMonth) : Promise.resolve({ count: 0 } as any),
+          quotas.lifetime ? supa.from('ai_usage_log').select('id', { count: 'exact', head: true })
+            .eq('admin_id', tenantAdminId) : Promise.resolve({ count: 0 } as any),
+        ]);
+
+        if (quotas.daily && (dayRes.count || 0) >= quotas.daily) {
+          return jsonRes({ error: `Daily AI limit reached (${quotas.daily}). Resets at midnight.` }, 429);
+        }
+        if (quotas.monthly && (monthRes.count || 0) >= quotas.monthly) {
+          return jsonRes({ error: `Monthly AI limit reached (${quotas.monthly}). Resets on the 1st.` }, 429);
+        }
+        if (quotas.lifetime && (lifeRes.count || 0) >= quotas.lifetime) {
+          return jsonRes({ error: `Lifetime AI limit reached (${quotas.lifetime}). Contact your administrator.` }, 429);
+        }
+      }
     }
 
     // ---- Rate limit ----
