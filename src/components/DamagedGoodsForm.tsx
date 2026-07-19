@@ -229,7 +229,7 @@ export const DamagedGoodsForm = () => {
       const val = customFieldValues[field.id];
       if (!val) return;
       const type = field.field_type || 'dropdown';
-      if (type === 'dropdown') {
+      if (type === 'dropdown' || type === 'radio') {
         const opts = customFieldOptions[field.id] || [];
         const opt = opts.find(o => o.id === val);
         if (opt) msg += `🏷️ ${field.name}: ${opt.value}\n`;
