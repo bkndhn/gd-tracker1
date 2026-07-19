@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage_log: {
+        Row: {
+          admin_id: string
+          context: string | null
+          created_at: string
+          id: string
+          mode: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_id: string
+          context?: string | null
+          created_at?: string
+          id?: string
+          mode?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_id?: string
+          context?: string | null
+          created_at?: string
+          id?: string
+          mode?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           admin_id: string | null
@@ -343,7 +370,10 @@ export type Database = {
       profiles: {
         Row: {
           admin_id: string | null
+          ai_daily_limit: number | null
           ai_enabled: boolean
+          ai_lifetime_limit: number | null
+          ai_monthly_limit: number | null
           created_at: string | null
           default_category_id: string | null
           default_size_id: string | null
@@ -364,7 +394,10 @@ export type Database = {
         }
         Insert: {
           admin_id?: string | null
+          ai_daily_limit?: number | null
           ai_enabled?: boolean
+          ai_lifetime_limit?: number | null
+          ai_monthly_limit?: number | null
           created_at?: string | null
           default_category_id?: string | null
           default_size_id?: string | null
@@ -385,7 +418,10 @@ export type Database = {
         }
         Update: {
           admin_id?: string | null
+          ai_daily_limit?: number | null
           ai_enabled?: boolean
+          ai_lifetime_limit?: number | null
+          ai_monthly_limit?: number | null
           created_at?: string | null
           default_category_id?: string | null
           default_size_id?: string | null
@@ -526,7 +562,10 @@ export type Database = {
         Args: never
         Returns: {
           admin_id: string | null
+          ai_daily_limit: number | null
           ai_enabled: boolean
+          ai_lifetime_limit: number | null
+          ai_monthly_limit: number | null
           created_at: string | null
           default_category_id: string | null
           default_size_id: string | null

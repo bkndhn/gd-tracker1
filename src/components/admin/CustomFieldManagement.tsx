@@ -11,10 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Edit, Trash2, Settings2, Eye, EyeOff, Asterisk } from 'lucide-react';
+import { Plus, Edit, Trash2, Settings2, Eye, EyeOff, Asterisk, ArrowUp, ArrowDown } from 'lucide-react';
 
 const FIELD_TYPES = [
   { value: 'dropdown', label: 'Dropdown' },
+  { value: 'radio', label: 'Radio' },
   { value: 'text', label: 'Text' },
   { value: 'textarea', label: 'Long text' },
   { value: 'number', label: 'Number' },
@@ -22,6 +23,8 @@ const FIELD_TYPES = [
   { value: 'email', label: 'Email' },
   { value: 'phone', label: 'Phone' },
 ];
+
+const HAS_OPTIONS = (t?: string) => (t || 'dropdown') === 'dropdown' || t === 'radio';
 
 interface CustomField {
   id: string;
@@ -254,6 +257,23 @@ export const CustomFieldManagement = () => {
     }
   };
 
+  const handleMoveField = async (field: CustomField, direction: -1 | 1) => {
+    const sorted = [...fields].sort((a, b) => a.display_order - b.display_order);
+    const idx = sorted.findIndex(f => f.id === field.id);
+    const swapIdx = idx + direction;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= sorted.length) return;
+    const a = sorted[idx], b = sorted[swapIdx];
+    try {
+      // Swap using a temporary value to avoid unique conflicts if any
+      await (supabase.from('custom_fields') as any).update({ display_order: -1 }).eq('id', a.id);
+      await (supabase.from('custom_fields') as any).update({ display_order: a.display_order }).eq('id', b.id);
+      await (supabase.from('custom_fields') as any).update({ display_order: b.display_order }).eq('id', a.id);
+      fetchFields();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to reorder');
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-32">Loading custom fields...</div>;
   }
@@ -293,7 +313,7 @@ export const CustomFieldManagement = () => {
                       <Badge variant="outline" className="text-xs capitalize">
                         {FIELD_TYPES.find(t => t.value === (field.field_type || 'dropdown'))?.label || field.field_type}
                       </Badge>
-                      {(field.field_type || 'dropdown') === 'dropdown' && (
+                      {HAS_OPTIONS(field.field_type) && (
                         <Badge variant="secondary" className="text-xs">
                           {(options[field.id] || []).length} options
                         </Badge>
@@ -328,6 +348,14 @@ export const CustomFieldManagement = () => {
                           onCheckedChange={() => handleToggleMandatory(field)}
                         />
                       </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Move up"
+                        onClick={() => handleMoveField(field, -1)}>
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Move down"
+                        onClick={() => handleMoveField(field, 1)}>
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </Button>
                       <Button
                         variant="ghost" size="icon"
                         className="h-8 w-8 border border-primary/20 hover:border-primary hover:bg-primary/10"
@@ -350,8 +378,8 @@ export const CustomFieldManagement = () => {
                     </div>
                   </div>
 
-                  {/* Options list (dropdown only) */}
-                  {(field.field_type || 'dropdown') === 'dropdown' && (
+                  {/* Options list (dropdown + radio) */}
+                  {HAS_OPTIONS(field.field_type) && (
                   <div className="pl-4 border-l-2 border-muted space-y-2">
                     <div className="flex gap-2">
                       <Input

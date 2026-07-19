@@ -229,7 +229,7 @@ export const DamagedGoodsForm = () => {
       const val = customFieldValues[field.id];
       if (!val) return;
       const type = field.field_type || 'dropdown';
-      if (type === 'dropdown') {
+      if (type === 'dropdown' || type === 'radio') {
         const opts = customFieldOptions[field.id] || [];
         const opt = opts.find(o => o.id === val);
         if (opt) msg += `🏷️ ${field.name}: ${opt.value}\n`;
@@ -369,7 +369,7 @@ export const DamagedGoodsForm = () => {
         .map(([fieldId, v]) => {
           const field = customFields.find(f => f.id === fieldId);
           const type = field?.field_type || 'dropdown';
-          if (type === 'dropdown') {
+          if (type === 'dropdown' || type === 'radio') {
             return { gd_entry_id: createdEntry.id, custom_field_id: fieldId, custom_field_option_id: v };
           }
           return { gd_entry_id: createdEntry.id, custom_field_id: fieldId, value: v };
@@ -572,7 +572,7 @@ export const DamagedGoodsForm = () => {
             const fieldOptions = customFieldOptions[field.id] || [];
             const value = customFieldValues[field.id] || '';
             const setValue = (v: string) => setCustomFieldValues(prev => ({ ...prev, [field.id]: v }));
-            if (type === 'dropdown' && fieldOptions.length === 0) return null;
+            if ((type === 'dropdown' || type === 'radio') && fieldOptions.length === 0) return null;
             return (
               <div key={field.id} className="space-y-2">
                 <Label>{field.name} {field.is_mandatory && '*'}</Label>
@@ -588,6 +588,16 @@ export const DamagedGoodsForm = () => {
                     </SelectContent>
                   </Select>
                 )}
+                {type === 'radio' && (
+                  <RadioGroup value={value} onValueChange={setValue} className="flex flex-wrap gap-3">
+                    {fieldOptions.map((opt) => (
+                      <div key={opt.id} className="flex items-center space-x-2">
+                        <RadioGroupItem value={opt.id} id={`cf-${field.id}-${opt.id}`} />
+                        <Label htmlFor={`cf-${field.id}-${opt.id}`} className="font-normal cursor-pointer">{opt.value}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                )}
                 {type === 'textarea' && (
                   <textarea
                     className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -596,7 +606,7 @@ export const DamagedGoodsForm = () => {
                     placeholder={`Enter ${field.name.toLowerCase()}`}
                   />
                 )}
-                {type !== 'dropdown' && type !== 'textarea' && (
+                {type !== 'dropdown' && type !== 'radio' && type !== 'textarea' && (
                   <input
                     type={type === 'number' ? 'number' : type === 'date' ? 'date' : type === 'email' ? 'email' : type === 'phone' ? 'tel' : 'text'}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"

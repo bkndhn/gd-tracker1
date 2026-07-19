@@ -35,6 +35,9 @@ interface AdminProfile {
   role: string;
   shop_id: string | null;
   ai_enabled?: boolean;
+  ai_daily_limit?: number | null;
+  ai_monthly_limit?: number | null;
+  ai_lifetime_limit?: number | null;
 }
 
 export const SuperAdminDashboard = () => {
@@ -54,6 +57,9 @@ export const SuperAdminDashboard = () => {
   const [maxImagesPerEntry, setMaxImagesPerEntry] = useState<number>(10);
   const [maxImagesTotal, setMaxImagesTotal] = useState<number | ''>('');
   const [aiEnabled, setAiEnabled] = useState<boolean>(true);
+  const [aiDaily, setAiDaily] = useState<number | ''>('');
+  const [aiMonthly, setAiMonthly] = useState<number | ''>('');
+  const [aiLifetime, setAiLifetime] = useState<number | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedAdmins, setExpandedAdmins] = useState<Set<string>>(new Set());
   // Confirmation state for pause/activate actions
@@ -287,12 +293,15 @@ export const SuperAdminDashboard = () => {
         max_images_per_entry: maxImagesPerEntry,
         max_images_total: maxImagesTotal === '' ? null : maxImagesTotal,
         ai_enabled: aiEnabled,
+        ai_daily_limit: aiDaily === '' ? null : aiDaily,
+        ai_monthly_limit: aiMonthly === '' ? null : aiMonthly,
+        ai_lifetime_limit: aiLifetime === '' ? null : aiLifetime,
       }).eq('id', selectedAdmin.id);
       if (error) throw error;
       toast.success('Limits updated successfully');
       setLimitsDialogOpen(false);
     } catch (error: any) { toast.error(error.message || 'Failed to update limits'); }
-  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled]);
+  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled, aiDaily, aiMonthly, aiLifetime]);
 
   const openLimitsDialog = useCallback((admin: AdminProfile) => {
     setSelectedAdmin(admin);
@@ -302,6 +311,9 @@ export const SuperAdminDashboard = () => {
     setMaxImagesPerEntry(admin.max_images_per_entry ?? 10);
     setMaxImagesTotal(admin.max_images_total ?? '');
     setAiEnabled(admin.ai_enabled !== false);
+    setAiDaily(admin.ai_daily_limit ?? '');
+    setAiMonthly(admin.ai_monthly_limit ?? '');
+    setAiLifetime(admin.ai_lifetime_limit ?? '');
     setLimitsDialogOpen(true);
   }, []);
 
@@ -473,6 +485,26 @@ export const SuperAdminDashboard = () => {
               </div>
               <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
             </div>
+            {aiEnabled && (
+              <div className="grid grid-cols-3 gap-2 rounded-md border p-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Daily cap</Label>
+                  <Input type="number" min={0} placeholder="∞" value={aiDaily}
+                    onChange={e => setAiDaily(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Monthly cap</Label>
+                  <Input type="number" min={0} placeholder="∞" value={aiMonthly}
+                    onChange={e => setAiMonthly(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Lifetime cap</Label>
+                  <Input type="number" min={0} placeholder="∞" value={aiLifetime}
+                    onChange={e => setAiLifetime(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <p className="text-xs text-muted-foreground col-span-3">Blank = unlimited. Counters reset at midnight (daily) and on the 1st (monthly).</p>
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setLimitsDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleSetLimits}>Save Limits</Button>
