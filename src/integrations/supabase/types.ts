@@ -102,6 +102,8 @@ export type Database = {
           deleted_at: string | null
           display_order: number | null
           id: string
+          legacy_id: string | null
+          legacy_table: string | null
           updated_at: string | null
           value: string
         }
@@ -111,6 +113,8 @@ export type Database = {
           deleted_at?: string | null
           display_order?: number | null
           id?: string
+          legacy_id?: string | null
+          legacy_table?: string | null
           updated_at?: string | null
           value: string
         }
@@ -120,6 +124,8 @@ export type Database = {
           deleted_at?: string | null
           display_order?: number | null
           id?: string
+          legacy_id?: string | null
+          legacy_table?: string | null
           updated_at?: string | null
           value?: string
         }
@@ -142,8 +148,10 @@ export type Database = {
           field_type: string
           id: string
           is_mandatory: boolean | null
+          is_standard: boolean
           is_visible: boolean | null
           name: string
+          standard_key: string | null
           updated_at: string | null
         }
         Insert: {
@@ -154,8 +162,10 @@ export type Database = {
           field_type?: string
           id?: string
           is_mandatory?: boolean | null
+          is_standard?: boolean
           is_visible?: boolean | null
           name: string
+          standard_key?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -166,8 +176,10 @@ export type Database = {
           field_type?: string
           id?: string
           is_mandatory?: boolean | null
+          is_standard?: boolean
           is_visible?: boolean | null
           name?: string
+          standard_key?: string | null
           updated_at?: string | null
         }
         Relationships: []
