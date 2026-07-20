@@ -393,10 +393,32 @@ export const DamagedGoodsForm = () => {
           }
           return { gd_entry_id: createdEntry.id, custom_field_id: fieldId, value: v };
         });
+
+      // Phase 2B: dual-write standard fields (shop/category/size/customer_type) into
+      // gd_entry_custom_values under their seeded standard custom_field. Look up option
+      // via the legacy_id → option_id map so reports can eventually read from here.
+      const dualWrite = (legacyTable: string, legacyId?: string | null) => {
+        if (!legacyId) return;
+        const meta = standardFieldMap[legacyTable];
+        if (!meta) return;
+        const optionId = meta.byLegacyId[legacyId];
+        if (!optionId) return;
+        customValueInserts.push({
+          gd_entry_id: createdEntry.id,
+          custom_field_id: meta.fieldId,
+          custom_field_option_id: optionId,
+        } as any);
+      };
+      dualWrite('shops', entryData.shop_id);
+      dualWrite('categories', entryData.category_id);
+      dualWrite('sizes', entryData.size_id);
+      dualWrite('customer_types', entryData.customer_type_id);
+
       if (customValueInserts.length > 0) {
         const { error: cvError } = await (supabase.from('gd_entry_custom_values') as any).insert(customValueInserts);
         if (cvError && import.meta.env.DEV) console.error('Error saving custom field values:', cvError);
       }
+
 
       const successParts = [];
       if (selectedImages.length > 0) successParts.push(`${selectedImages.length} image(s)`);
