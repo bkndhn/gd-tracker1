@@ -25,13 +25,18 @@ interface CustomField {
   is_mandatory: boolean;
   display_order: number;
   field_type?: string;
+  is_standard?: boolean;
+  standard_key?: string | null;
 }
 
 interface CustomFieldOption {
   id: string;
   custom_field_id: string;
   value: string;
+  legacy_id?: string | null;
+  legacy_table?: string | null;
 }
+
 
 interface FieldVisibility {
   category: boolean;
@@ -52,6 +57,8 @@ export const DamagedGoodsForm = () => {
   const [customerTypes, setCustomerTypes] = useState<CustomerType[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customFieldOptions, setCustomFieldOptions] = useState<Record<string, CustomFieldOption[]>>({});
+  const [standardFieldMap, setStandardFieldMap] = useState<Record<string, { fieldId: string; byLegacyId: Record<string, string> }>>({});
+
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [voiceNoteFile, setVoiceNoteFile] = useState<File | null>(null);
@@ -131,7 +138,9 @@ export const DamagedGoodsForm = () => {
       ]);
       if (ctRes.data) setCustomerTypes(ctRes.data);
       if (cfRes.data && cfRes.data.length > 0) {
-        setCustomFields(cfRes.data);
+        // Hide seeded standard fields from the dynamic renderer (Phase 2B: dual-write only)
+        const nonStandard = cfRes.data.filter((f: CustomField) => !f.is_standard);
+        setCustomFields(nonStandard);
         const fieldIds = cfRes.data.map((f: CustomField) => f.id);
         const { data: optData } = await (supabase.from('custom_field_options') as any)
           .select('*')
@@ -145,9 +154,19 @@ export const DamagedGoodsForm = () => {
             grouped[opt.custom_field_id].push(opt);
           });
           setCustomFieldOptions(grouped);
+          // Build map: legacy_table -> { fieldId, byLegacyId: { legacy_id -> option_id } }
+          const map: Record<string, { fieldId: string; byLegacyId: Record<string, string> }> = {};
+          cfRes.data.filter((f: CustomField) => f.is_standard && f.standard_key).forEach((f: CustomField) => {
+            const legacyTable = ({ shop: 'shops', category: 'categories', size: 'sizes', customer_type: 'customer_types' } as any)[f.standard_key!];
+            const byLegacyId: Record<string, string> = {};
+            (grouped[f.id] || []).forEach(o => { if (o.legacy_id) byLegacyId[o.legacy_id] = o.id; });
+            map[legacyTable] = { fieldId: f.id, byLegacyId };
+          });
+          setStandardFieldMap(map);
         }
       }
     };
+
     fetchFormData();
     fetchSettings();
   }, [fetchSettings]);
