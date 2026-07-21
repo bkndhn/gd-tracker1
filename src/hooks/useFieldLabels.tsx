@@ -69,11 +69,18 @@ export const useFieldLabels = () => {
 
   useEffect(() => {
     if (!adminId) return;
-    const ch = supabase
-      .channel(`field-labels-${adminId}`)
+    const chSettings = supabase
+      .channel(`field-labels-settings-${adminId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings', filter: `admin_id=eq.${adminId}` }, () => load())
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    const chFields = supabase
+      .channel(`field-labels-fields-${adminId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_fields', filter: `admin_id=eq.${adminId}` }, () => load())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(chSettings);
+      supabase.removeChannel(chFields);
+    };
   }, [adminId, load]);
 
   return { labels, loading, reload: load };
