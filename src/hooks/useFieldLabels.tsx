@@ -26,22 +26,38 @@ export const useFieldLabels = () => {
   const load = useCallback(async () => {
     if (!adminId) { setLoading(false); return; }
     try {
-      const { data } = await supabase
-        .from('app_settings')
-        .select('value')
-        .eq('key', 'field_visibility')
-        .eq('admin_id', adminId)
-        .maybeSingle();
-      if (data?.value) {
-        const v = data.value as any;
-        const l = v.labels || {};
-        setLabels({
-          category: l.category || DEFAULT_LABELS.category,
-          size: l.size || DEFAULT_LABELS.size,
-          customer_type: l.customer_type || DEFAULT_LABELS.customer_type,
-          shops: l.shops || DEFAULT_LABELS.shops,
-        });
-      }
+      // Phase 2C: source labels from seeded custom_fields (is_standard=true) so
+      // renames in Custom Field Management propagate everywhere. Fall back to
+      // legacy app_settings.field_visibility labels, then defaults.
+      const [cfRes, settingsRes] = await Promise.all([
+        supabase
+          .from('custom_fields')
+          .select('name, standard_key')
+          .eq('admin_id', adminId)
+          .eq('is_standard', true),
+        supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'field_visibility')
+          .eq('admin_id', adminId)
+          .maybeSingle(),
+      ]);
+
+      const cfMap: Record<string, string> = {};
+      (cfRes.data || []).forEach((r: any) => {
+        if (r.standard_key && r.name) cfMap[r.standard_key] = r.name;
+      });
+      const legacy = ((settingsRes.data?.value as any)?.labels) || {};
+
+      const pick = (key: keyof FieldLabels, standardKey: string) =>
+        cfMap[standardKey] || legacy[key] || DEFAULT_LABELS[key];
+
+      setLabels({
+        category: pick('category', 'category'),
+        size: pick('size', 'size'),
+        customer_type: pick('customer_type', 'customer_type'),
+        shops: pick('shops', 'shop'),
+      });
     } catch (e) {
       if (import.meta.env.DEV) console.error('useFieldLabels error', e);
     } finally {
@@ -53,11 +69,18 @@ export const useFieldLabels = () => {
 
   useEffect(() => {
     if (!adminId) return;
-    const ch = supabase
-      .channel(`field-labels-${adminId}`)
+    const chSettings = supabase
+      .channel(`field-labels-settings-${adminId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings', filter: `admin_id=eq.${adminId}` }, () => load())
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    const chFields = supabase
+      .channel(`field-labels-fields-${adminId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_fields', filter: `admin_id=eq.${adminId}` }, () => load())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(chSettings);
+      supabase.removeChannel(chFields);
+    };
   }, [adminId, load]);
 
   return { labels, loading, reload: load };
