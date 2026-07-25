@@ -32,6 +32,8 @@ export const ExportSettings = () => {
   const [settingId, setSettingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewTarget, setPreviewTarget] = useState<'pdf' | 'excel' | null>(null);
+
 
   const adminId = (profile as any)?.admin_id || profile?.id;
 
