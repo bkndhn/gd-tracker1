@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { FileDown, ArrowUp, ArrowDown, Save } from 'lucide-react';
+import { FileDown, ArrowUp, ArrowDown, Save, Eye } from 'lucide-react';
+import { ExportPreviewDialog } from './ExportPreviewDialog';
+
 
 interface CustomField {
   id: string;
@@ -30,6 +32,8 @@ export const ExportSettings = () => {
   const [settingId, setSettingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewTarget, setPreviewTarget] = useState<'pdf' | 'excel' | null>(null);
+
 
   const adminId = (profile as any)?.admin_id || profile?.id;
 
@@ -192,11 +196,21 @@ export const ExportSettings = () => {
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-sm font-semibold mb-2">PDF Export</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold">PDF Export</h3>
+              <Button variant="outline" size="sm" onClick={() => setPreviewTarget('pdf')}>
+                <Eye className="h-3.5 w-3.5 mr-1.5" /> Preview
+              </Button>
+            </div>
             {renderList('pdf')}
           </div>
           <div>
-            <h3 className="text-sm font-semibold mb-2">Excel Export</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold">Excel Export</h3>
+              <Button variant="outline" size="sm" onClick={() => setPreviewTarget('excel')}>
+                <Eye className="h-3.5 w-3.5 mr-1.5" /> Preview
+              </Button>
+            </div>
             {renderList('excel')}
           </div>
         </div>
@@ -204,7 +218,16 @@ export const ExportSettings = () => {
           <Save className="h-4 w-4 mr-2" />
           {saving ? 'Saving...' : 'Save Export Settings'}
         </Button>
+
+        <ExportPreviewDialog
+          open={previewTarget !== null}
+          onOpenChange={(o) => !o && setPreviewTarget(null)}
+          target={previewTarget || 'pdf'}
+          fieldIds={previewTarget ? config[previewTarget] : []}
+          fieldNames={Object.fromEntries(fields.map(f => [f.id, f.name]))}
+        />
       </CardContent>
     </Card>
   );
 };
+
