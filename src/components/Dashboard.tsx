@@ -664,8 +664,8 @@ export const Dashboard = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All {labels.category}</SelectItem>
-                        {masterData?.categories.map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                        {categoryOptions.map(name => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -679,9 +679,10 @@ export const Dashboard = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Types</SelectItem>
-                        {masterData?.customerTypes.map(type => (
-                          <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                        {customerTypeOptions.map(name => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
                         ))}
+
                       </SelectContent>
                     </Select>
                   </div>
