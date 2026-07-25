@@ -1156,9 +1156,9 @@ export const ReportsPanel = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All {labels.category}</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
+                  {categoryOptions.map(name => (
+                    <SelectItem key={name} value={name}>
+                      {name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1173,9 +1173,9 @@ export const ReportsPanel = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All {labels.size}</SelectItem>
-                  {sizes.map(size => (
-                    <SelectItem key={size.id} value={size.id}>
-                      {size.size}
+                  {sizeOptions.map(name => (
+                    <SelectItem key={name} value={name}>
+                      {name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1190,11 +1190,12 @@ export const ReportsPanel = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All {labels.customer_type}</SelectItem>
-                  {customerTypes.map(type => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
+                  {customerTypeOptions.map(name => (
+                    <SelectItem key={name} value={name}>
+                      {name}
                     </SelectItem>
                   ))}
+
                 </SelectContent>
               </Select>
             </div>
