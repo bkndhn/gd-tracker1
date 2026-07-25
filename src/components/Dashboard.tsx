@@ -22,6 +22,8 @@ import { NoteViewerModal } from './NoteViewerModal';
 import { AnalyticsCharts } from './AnalyticsCharts';
 import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
+import { useCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
+
 
 interface GDEntry {
   id: string;
