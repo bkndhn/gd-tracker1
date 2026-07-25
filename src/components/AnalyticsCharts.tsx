@@ -8,15 +8,13 @@ interface GDEntry {
   id: string;
   created_at: string;
   shop_id: string;
-  category_id: string;
-  size_id: string;
-  customer_type_id: string | null;
   notes: string;
   shops: { name: string } | null;
   categories: { name: string } | null;
   sizes: { size: string } | null;
   customer_types: { name: string } | null;
 }
+
 
 interface AnalyticsChartsProps {
   entries: GDEntry[];
