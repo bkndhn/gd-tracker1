@@ -1,66 +1,69 @@
-# Plan
 
-Big scope — split into 4 phases so each ships verifiable value. Phase 1 is safe UX + AI controls; Phase 2 is the risky "remove standard fields" migration.
+# Full custom-field cutover + validation + export preview
 
-## Phase 1 — Custom field UX + radio + reordering (safe, no data migration)
+This is a large, staged change touching the two biggest screens in the app, the GD form, one edge function, and adds two new pieces. Because it's destructive to the legacy read/write paths, I want approval on scope and ordering before I ship it.
 
-**Schema (migration)**
-- `custom_fields`: add `display_order INT`, `is_standard BOOLEAN DEFAULT false`, `standard_key TEXT` (values: `shop|category|size|customer_type`). Backfill 4 rows per admin representing the current standard fields so they show up in the same reorder list.
-- `custom_fields.field_type` CHECK: add `'radio'`.
-- Tenant/branch isolation re-verified via existing `admin_id` scoping; add `admin_id` NOT NULL enforcement + policy tightening on `custom_fields` and `custom_field_options`.
+## 1. Dashboard + Reports read from `gd_entry_custom_values`
 
-**Admin panel (`CustomFieldManagement.tsx`)**
-- Single unified list showing standard + custom fields together.
-- Drag-to-reorder (dnd-kit) writing `display_order`.
-- Field-type picker gains **Radio**; standard fields keep their fixed type (Phase 2 removes this restriction).
-- Per-admin isolation preserved (already scoped by `admin_id`).
+Today both screens join `shops`, `categories`, `sizes`, `customer_types` and drive filters/summary cards from those FKs. Cutover:
 
-**GD form (`DamagedGoodsForm.tsx`)**
-- Render fields sorted by `display_order`, mixing standard + custom freely.
-- Add `RadioGroup` renderer for `field_type='radio'`.
+- New shared hook `useEntryCustomValues(entryIds)` — one batched fetch of `gd_entry_custom_values` + `custom_field_options` + `custom_fields` for a set of entry IDs, returned as `{ [entryId]: { [fieldId]: { value, fieldName, standardKey } } }`.
+- Dashboard: replace the `shops:shop_id(name) …` joins with a plain entry fetch + the hook. Summary breakdowns (byShop, byCategory, bySize, byCustomerType) key on the seeded standard fields via `standard_key`. Filter dropdowns fed by `custom_field_options` scoped to those seeded fields (per tenant). Modal drill-down + PDF/Excel export from Dashboard read the same shape.
+- Reports: same swap. Table column filters, sorting, global search, and summary cards all key off custom-field values. Extra visible custom fields already render as extra columns — this unifies them with the four ex-standard ones so there's a single code path.
+- Field labels keep flowing through `useFieldLabels` (already sourced from `custom_fields.name`).
 
-**Reports / Dashboard / Drive backup**
-- Read the same ordered list so column order matches admin config.
+## 2. Remove legacy dual-write and legacy dependencies
 
-## Phase 2 — Full replacement of standard fields (planned, not auto-shipped)
+Only after step 1 is verified in the preview:
 
-Marked as a follow-up because it is destructive and touches ~20 files. Deliverable in this phase: a written migration plan doc (`docs/CUSTOM_FIELDS_MIGRATION.md`) covering:
-- Copy every `shops/categories/sizes/customer_types` row into `custom_field_options` under the 4 seeded standard `custom_fields`.
-- Rewrite `goods_damaged_entries` foreign keys into `gd_entry_custom_values` rows.
-- Update Reports/Dashboard/AI/Drive exports to read only from custom values.
-- Rollback SQL + dry-run script.
+- `DamagedGoodsForm.tsx`: drop the `standardFieldMap` bridge — stop writing `shop_id`/`category_id`/`size_id`/`customer_type_id` on `goods_damaged_entries`. Keep writing `shop_id` for now because RLS and manager isolation depend on `profiles.shop_id` matching an entry's `shop_id`; that stays until we redesign RLS. Category/size/customer_type FKs stop being written.
+- Migration: make `category_id`, `size_id`, `customer_type_id` nullable if not already, and archive `categories`, `sizes`, `customer_types` by renaming to `_legacy_*` with grants revoked (kept 30 days for rollback per the migration doc). Do **not** drop.
+- Delete legacy admin UI already gone; also delete unused imports/types referencing those tables in `Dashboard.tsx`, `ReportsPanel.tsx`, `AnalyticsCharts.tsx`, `AIInsightsPanel.tsx`, `src/types/database.ts`, edge functions `backup-to-gdrive`, `send-scheduled-reports`, `export-excel-with-images`, `gd-ai-insights`.
+- Edge functions rewritten to read from `gd_entry_custom_values` for the four ex-standard fields plus any admin-added custom fields (they already partially do).
 
-I will ship the doc + seed migration this turn. Actual cutover runs only after you approve the doc (one-way change).
+Risk: `shop_id` stays on the entry row. Everything else routes through custom values.
 
-## Phase 3 — Super Admin AI quotas
+## 3. Server-side custom-field validation
 
-**Schema**
-- `profiles`: add `ai_daily_limit INT`, `ai_monthly_limit INT`, `ai_lifetime_limit INT` (NULL = unlimited). Keep existing `ai_enabled` toggle.
-- New table `ai_usage_log(admin_id, user_id, created_at)` with indexes on `(admin_id, created_at)`.
-- Grants + RLS: only super_admin reads all; admin reads own tenant aggregate.
+New Postgres trigger `validate_gd_entry_custom_values()` on `gd_entry_custom_values` INSERT/UPDATE and a companion trigger on `goods_damaged_entries` AFTER INSERT that verifies:
 
-**Edge function `gd-ai-insights`**
-- Before calling model: count today / this month / lifetime for the caller's `admin_id`; reject with `429` + clear message if exceeded.
-- Insert usage row after successful call.
+- Every `custom_fields` row with `is_mandatory = true` and `is_visible = true` for the entry's admin has a matching value.
+- For `dropdown`/`radio`: `custom_field_option_id` must reference an option belonging to that field.
+- For `text`: `value` non-empty, length ≤ 500.
+- For `number`: `value` matches `^-?\d+(\.\d+)?$`.
+- For `date`: `value` matches `^\d{4}-\d{2}-\d{2}$` and parses.
 
-**Super Admin UI (`SuperAdminDashboard.tsx`)**
-- Per-admin row: AI enabled toggle + 3 numeric inputs (day/month/lifetime) + live usage counters.
+Raises `EXCEPTION` with a clear message so the form's `onError` surfaces which field failed. Client-side validation in `DamagedGoodsForm` is kept as a UX layer; the trigger is the source of truth.
 
-**Gemini free tier note** (answering your question): Lovable AI Gateway does not expose per-user Gemini quotas — usage is billed from your workspace credit pool (Google/Gemini itself doesn't grant end-user quotas via the gateway). So limits must be enforced by us in the edge function, which is what this phase does.
+## 4. Export preview
 
-## Phase 4 — Security & launch readiness review
+New component `ExportPreviewDialog.tsx` opened from `ExportSettings.tsx` ("Preview PDF" / "Preview Excel" buttons):
 
-After Phase 1 + 3 ship:
-- Run `security--run_security_scan`, fix findings, mark resolved.
-- Produce `LAUNCH_READINESS.md`: RLS coverage matrix, tenant isolation proof, auth hardening checklist, backup/PITR status, known gaps.
+- Fetches the last 5 real GD entries for the admin using the same custom-value pipeline as the exporter.
+- Renders an in-modal HTML table that mirrors the exact column order and formatting the real export will produce (same header styling, same date format, same image-thumb placement for PDF).
+- Excel preview uses a scrollable HTML grid mirroring the sheet; PDF preview reuses the print-CSS the real export uses so what you see = what prints.
+- Live-updates as the admin toggles/reorders fields in the settings panel — no save required to preview.
 
-## Out of scope this turn
-- Actual data cutover from standard → custom (Phase 2 cutover) — needs your go-ahead on the doc.
-- hCaptcha, PITR (previously declined).
+## Files touched
 
-## Technical notes
-- Drag-and-drop: `@dnd-kit/core` + `@dnd-kit/sortable` (already common in shadcn ecosystems; ~15KB).
-- All new tables get GRANTs for `authenticated` + `service_role`, RLS enabled, `admin_id`-scoped policies using existing `get_user_admin_id_secure`.
-- Realtime channels stay tenant-scoped (`tenant:<admin_id>`).
+Frontend (edit): `src/components/Dashboard.tsx`, `src/components/ReportsPanel.tsx`, `src/components/DamagedGoodsForm.tsx`, `src/components/AnalyticsCharts.tsx`, `src/components/AIInsightsPanel.tsx`, `src/components/admin/ExportSettings.tsx`, `src/types/database.ts`.
+Frontend (new): `src/hooks/useEntryCustomValues.tsx`, `src/components/admin/ExportPreviewDialog.tsx`.
+Edge functions (edit): `supabase/functions/gd-ai-insights/index.ts`, `supabase/functions/backup-to-gdrive/index.ts`, `supabase/functions/send-scheduled-reports/index.ts`, `supabase/functions/export-excel-with-images/index.ts`.
+DB migrations: (a) validation trigger; (b) archive legacy lookup tables + null legacy FKs on entries.
 
-Confirm and I'll execute Phase 1 + 3 + the Phase 2 planning doc in one go, then Phase 4.
+## Order of shipping
+
+I'll ship these in **four separate migrations / commits** so each stage is reversible:
+
+1. Read cutover (frontend only, dual-write still on).
+2. Validation trigger migration.
+3. Export preview.
+4. Stop dual-write + archive legacy tables (destructive; last).
+
+## Explicit call-outs / risks
+
+- Manager RLS still uses `profiles.shop_id` = `goods_damaged_entries.shop_id`. `shop_id` on entries **stays**. Renaming the "Shop" custom field in the UI won't move data isolation — that's still branch-based, correctly.
+- Historical entries without `gd_entry_custom_values` were backfilled in the last migration, so cutover reads should be complete. I'll add a defensive fallback that reads legacy columns only if a custom value is missing, then log to detect any gaps.
+- The archive step (step 4) is 30-day reversible via the `_legacy_*` tables per your migration doc. After 30 days you'd need a manual drop.
+
+Approve and I'll ship stage 1 first, verify Dashboard/Reports visually against real data, then proceed through stages 2–4 in this same run.
