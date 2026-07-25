@@ -221,18 +221,16 @@ export const DamagedGoodsForm = () => {
     setLoading(true);
     const sanitizedNotes = sanitizeNotes(notes.trim(), 1000);
 
-    // Dual-write: also populate legacy columns from resolved standard field selections
-    // so existing dashboard/reports keep working during the custom-fields cutover.
+    // Custom fields are the single source of truth; only shop_id stays on the
+    // entry row because branch-level RLS depends on it.
     const entryData: any = {
       shop_id: effectiveShopId,
       employee_id: profile.id,
       employee_name: profile.name,
       notes: sanitizedNotes || 'Voice note attached',
       admin_id: adminId,
-      category_id: resolveLegacyId('category'),
-      size_id: resolveLegacyId('size'),
-      customer_type_id: resolveLegacyId('customer_type'),
     };
+
 
     try {
       if (!isOnline) {
