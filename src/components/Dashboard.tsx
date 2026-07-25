@@ -22,14 +22,13 @@ import { NoteViewerModal } from './NoteViewerModal';
 import { AnalyticsCharts } from './AnalyticsCharts';
 import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
+import { useCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
+
 
 interface GDEntry {
   id: string;
   created_at: string;
   shop_id: string;
-  category_id: string;
-  size_id: string;
-  customer_type_id: string | null;
   notes: string;
   shops: { name: string } | null;
   categories: { name: string } | null;
@@ -38,6 +37,7 @@ interface GDEntry {
   voice_note_url?: string | null;
   gd_entry_images?: Array<{ id: string; image_url: string; image_name?: string }>;
 }
+
 
 export const Dashboard = () => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
@@ -71,48 +71,23 @@ export const Dashboard = () => {
     }
   }, [isManager, userShopId]);
 
-  // Fetch master data (shops, categories, customer types)
+  // Shops still live in their own table (branch-level RLS depends on shop_id)
   const { data: masterData } = useQuery({
     queryKey: ['dashboard-master-data'],
     queryFn: async () => {
-      const [shopsRes, categoriesRes, customerTypesRes] = await Promise.all([
-        supabase.from('shops').select('*').is('deleted_at', null).order('name'),
-        supabase.from('categories').select('*').is('deleted_at', null).order('name'),
-        supabase.from('customer_types').select('*').is('deleted_at', null).order('name'),
-      ]);
-
-      return {
-        shops: shopsRes.data || [],
-        categories: categoriesRes.data || [],
-        customerTypes: customerTypesRes.data || [],
-      };
+      const shopsRes = await supabase.from('shops').select('*').is('deleted_at', null).order('name');
+      return { shops: shopsRes.data || [] };
     },
     staleTime: 1000 * 60 * 5,
   });
 
-  // Fetch all GD entries
-  const { data: allEntries, isLoading, refetch } = useQuery<GDEntry[]>({
+  // Fetch all GD entries (no legacy lookup joins)
+  const { data: rawEntries, isLoading, refetch } = useQuery<any[]>({
     queryKey: ['dashboard-entries', userShopId],
     queryFn: async () => {
-      if (import.meta.env.DEV) console.log('Fetching dashboard entries...');
-
-      // Fetch entries without images first
       const { data: entriesData, error: entriesError } = await supabase
         .from('goods_damaged_entries')
-        .select(`
-          id,
-          created_at,
-          shop_id,
-          category_id,
-          size_id,
-          customer_type_id,
-          notes,
-          voice_note_url,
-          shops:shop_id(name),
-          categories:category_id(name),
-          sizes:size_id(size),
-          customer_types:customer_type_id(name)
-        `)
+        .select('id, created_at, shop_id, notes, voice_note_url')
         .order('created_at', { ascending: false });
 
       if (entriesError) {
@@ -120,7 +95,6 @@ export const Dashboard = () => {
         throw entriesError;
       }
 
-      // Fetch images separately for reliability
       const entryIds = entriesData?.map(e => e.id) || [];
       let imagesData: any[] = [];
 
@@ -133,27 +107,38 @@ export const Dashboard = () => {
 
         if (imagesError) {
           if (import.meta.env.DEV) console.error('Dashboard images fetch error:', imagesError);
-          // Continue without images rather than failing
         } else {
           imagesData = imgData || [];
         }
       }
 
-      if (import.meta.env.DEV) console.log('Fetched entries:', entriesData?.length || 0, 'images:', imagesData.length);
-
-      // Join images to entries
-      const entriesWithImages = entriesData?.map(entry => ({
+      return (entriesData || []).map(entry => ({
         ...entry,
-        gd_entry_images: imagesData.filter(img => img.gd_entry_id === entry.id)
-      })) || [];
-
-      return entriesWithImages as unknown as GDEntry[];
+        gd_entry_images: imagesData.filter(img => img.gd_entry_id === entry.id),
+      }));
     },
     enabled: !!profile && (isAdmin || isManager),
     staleTime: 1000 * 60,
     refetchInterval: 1000 * 60 * 5,
   });
 
+  const entryIds = useMemo(() => (rawEntries || []).map(e => e.id), [rawEntries]);
+  const { data: cvIndex } = useCustomValueIndex(entryIds, !!rawEntries);
+
+  // Resolve every display field from gd_entry_custom_values
+  const allEntries = useMemo<GDEntry[] | undefined>(() => {
+    if (!rawEntries) return undefined;
+    return rawEntries.map(entry => ({
+      ...entry,
+      shops: { name: stdValue(cvIndex, entry.id, 'shop') || 'Unknown' },
+      categories: { name: stdValue(cvIndex, entry.id, 'category') || 'Unknown' },
+      sizes: { size: stdValue(cvIndex, entry.id, 'size') || 'Unknown' },
+      customer_types: { name: stdValue(cvIndex, entry.id, 'customer_type') || 'Unknown' },
+    })) as GDEntry[];
+  }, [rawEntries, cvIndex]);
+
+  const categoryOptions = useMemo(() => stdOptions(cvIndex, 'category'), [cvIndex]);
+  const customerTypeOptions = useMemo(() => stdOptions(cvIndex, 'customer_type'), [cvIndex]);
 
   // Calculate summary from filtered entries
   const summary = useMemo(() => {
@@ -166,11 +151,12 @@ export const Dashboard = () => {
       filtered = filtered.filter(e => e.shop_id === selectedShop);
     }
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(e => e.category_id === selectedCategory);
+      filtered = filtered.filter(e => e.categories?.name === selectedCategory);
     }
     if (selectedCustomerType !== 'all') {
-      filtered = filtered.filter(e => e.customer_type_id === selectedCustomerType);
+      filtered = filtered.filter(e => e.customer_types?.name === selectedCustomerType);
     }
+
     if (customDateFrom) {
       filtered = filtered.filter(e => new Date(e.created_at) >= customDateFrom);
     }
@@ -678,8 +664,8 @@ export const Dashboard = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All {labels.category}</SelectItem>
-                        {masterData?.categories.map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                        {categoryOptions.map(name => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -693,9 +679,10 @@ export const Dashboard = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Types</SelectItem>
-                        {masterData?.customerTypes.map(type => (
-                          <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                        {customerTypeOptions.map(name => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
                         ))}
+
                       </SelectContent>
                     </Select>
                   </div>

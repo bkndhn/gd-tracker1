@@ -27,6 +27,7 @@ import * as XLSX from 'xlsx';
 import { exportToPDFViaHTML, exportMultiSectionPDFViaHTML, makeImageCell, type CellContent } from '@/utils/htmlPdfExport';
 import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
+import { fetchCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
 
 interface CustomFieldDef {
   id: string;
@@ -46,13 +47,10 @@ type GoodsEntry = Database['public']['Tables']['goods_damaged_entries']['Row'] &
     image_name?: string;
   }>;
   voice_note_url?: string | null;
-  customFieldValues?: Record<string, string>; // fieldId -> option value text
+  customFieldValues?: Record<string, string>; // fieldId -> value text
 };
 
 type Shop = Database['public']['Tables']['shops']['Row'];
-type Category = Database['public']['Tables']['categories']['Row'];
-type Size = Database['public']['Tables']['sizes']['Row'];
-type CustomerType = Database['public']['Tables']['customer_types']['Row'];
 
 export const ReportsPanel = () => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
@@ -62,9 +60,10 @@ export const ReportsPanel = () => {
   const [entries, setEntries] = useState<GoodsEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<GoodsEntry[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [sizes, setSizes] = useState<Size[]>([]);
-  const [customerTypes, setCustomerTypes] = useState<CustomerType[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [sizeOptions, setSizeOptions] = useState<string[]>([]);
+  const [customerTypeOptions, setCustomerTypeOptions] = useState<string[]>([]);
+
   const [customFields, setCustomFields] = useState<CustomFieldDef[]>([]);
 
   // Filter states - default to "today"
@@ -152,86 +151,45 @@ export const ReportsPanel = () => {
 
       if (import.meta.env.DEV) console.log('Fetched images for entries:', imagesData);
 
-
-      // Fetch related data separately (including custom fields)
-      const [shopsRes, categoriesRes, sizesRes, customerTypesRes, cfRes] = await Promise.all([
+      // Shops table remains (branch RLS); everything else comes from custom fields
+      const [shopsRes, cvIndex] = await Promise.all([
         supabase.from('shops').select('*').order('name'),
-        supabase.from('categories').select('*').order('name'),
-        supabase.from('sizes').select('*').order('size'),
-        supabase.from('customer_types').select('*').is('deleted_at', null).order('name'),
-        (supabase.from('custom_fields') as any).select('*').is('deleted_at', null).eq('is_visible', true).order('display_order'),
+        fetchCustomValueIndex(entryIds),
       ]);
 
       if (shopsRes.error) {
         if (import.meta.env.DEV) console.error('Error fetching shops:', shopsRes.error);
         throw shopsRes.error;
       }
-      if (categoriesRes.error) {
-        if (import.meta.env.DEV) console.error('Error fetching categories:', categoriesRes.error);
-        throw categoriesRes.error;
-      }
-      if (sizesRes.error) {
-        if (import.meta.env.DEV) console.error('Error fetching sizes:', sizesRes.error);
-        throw sizesRes.error;
-      }
-      if (customerTypesRes.error) {
-        if (import.meta.env.DEV) console.error('Error fetching customer types:', customerTypesRes.error);
-        throw customerTypesRes.error;
-      }
 
-      // Fetch custom field values and options for entries
-      const visibleFields: CustomFieldDef[] = cfRes.data || [];
-      let customValuesMap: Record<string, Record<string, string>> = {}; // entryId -> { fieldId -> optionValue }
+      // Extra (non-standard) custom fields render as additional columns
+      const extraFields: CustomFieldDef[] = cvIndex.visibleFields
+        .filter(f => !f.is_standard)
+        .map(f => ({ id: f.id, name: f.name, is_visible: f.is_visible, display_order: f.display_order }));
 
-      if (visibleFields.length > 0 && entryIds.length > 0) {
-        const fieldIds = visibleFields.map(f => f.id);
-        const [cvRes, cfoRes] = await Promise.all([
-          (supabase.from('gd_entry_custom_values') as any)
-            .select('*')
-            .in('gd_entry_id', entryIds)
-            .in('custom_field_id', fieldIds),
-          (supabase.from('custom_field_options') as any)
-            .select('*')
-            .in('custom_field_id', fieldIds)
-            .is('deleted_at', null),
-        ]);
-
-        const optionsById: Record<string, string> = {};
-        (cfoRes.data || []).forEach((opt: any) => { optionsById[opt.id] = opt.value; });
-
-        (cvRes.data || []).forEach((cv: any) => {
-          if (!customValuesMap[cv.gd_entry_id]) customValuesMap[cv.gd_entry_id] = {};
-          customValuesMap[cv.gd_entry_id][cv.custom_field_id] = optionsById[cv.custom_field_option_id] || 'N/A';
-        });
-      }
-
-      // Manually join the data including images
       const enrichedEntries = entriesData.map(entry => {
         const shop = shopsRes.data.find(s => s.id === entry.shop_id);
-        const category = categoriesRes.data.find(c => c.id === entry.category_id);
-        const size = sizesRes.data.find(s => s.id === entry.size_id);
-        const customerType = customerTypesRes.data.find(ct => ct.id === entry.customer_type_id);
         const entryImages = imagesData.filter(img => img.gd_entry_id === entry.id);
+        const customerTypeValue = stdValue(cvIndex, entry.id, 'customer_type');
 
         return {
           ...entry,
-          shops: { name: shop?.name || 'Unknown Shop' },
-          categories: { name: category?.name || 'Unknown Category' },
-          sizes: { size: size?.size || 'Unknown Size' },
-          customer_types: customerType ? { name: customerType.name } : undefined,
+          shops: { name: stdValue(cvIndex, entry.id, 'shop') || shop?.name || 'Unknown Shop' },
+          categories: { name: stdValue(cvIndex, entry.id, 'category') || 'Unknown Category' },
+          sizes: { size: stdValue(cvIndex, entry.id, 'size') || 'Unknown Size' },
+          customer_types: customerTypeValue ? { name: customerTypeValue } : undefined,
           gd_entry_images: entryImages,
-          customFieldValues: customValuesMap[entry.id] || {},
+          customFieldValues: cvIndex.valuesByEntry[entry.id] || {},
         };
       });
 
-      if (import.meta.env.DEV) console.log('Enriched entries with images:', enrichedEntries);
-
       setEntries(enrichedEntries);
       setShops(shopsRes.data);
-      setCategories(categoriesRes.data);
-      setSizes(sizesRes.data);
-      setCustomerTypes(customerTypesRes.data);
-      setCustomFields(visibleFields);
+      setCategoryOptions(stdOptions(cvIndex, 'category'));
+      setSizeOptions(stdOptions(cvIndex, 'size'));
+      setCustomerTypeOptions(stdOptions(cvIndex, 'customer_type'));
+      setCustomFields(extraFields);
+
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error fetching data:', error);
       toast.error('Failed to load reports data');
@@ -248,20 +206,21 @@ export const ReportsPanel = () => {
       filtered = filtered.filter(entry => entry.shop_id === selectedShop);
     }
 
-    // Category filter
+    // Category filter (custom field value)
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(entry => entry.category_id === selectedCategory);
+      filtered = filtered.filter(entry => entry.categories?.name === selectedCategory);
     }
 
-    // Size filter
+    // Size filter (custom field value)
     if (selectedSize !== 'all') {
-      filtered = filtered.filter(entry => entry.size_id === selectedSize);
+      filtered = filtered.filter(entry => entry.sizes?.size === selectedSize);
     }
 
-    // Customer type filter
+    // Customer type filter (custom field value)
     if (selectedCustomerType !== 'all') {
-      filtered = filtered.filter(entry => entry.customer_type_id === selectedCustomerType);
+      filtered = filtered.filter(entry => entry.customer_types?.name === selectedCustomerType);
     }
+
 
     // Date filter
     if (dateFilter !== 'all') {
@@ -1198,9 +1157,9 @@ export const ReportsPanel = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All {labels.category}</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
+                  {categoryOptions.map(name => (
+                    <SelectItem key={name} value={name}>
+                      {name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1215,9 +1174,9 @@ export const ReportsPanel = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All {labels.size}</SelectItem>
-                  {sizes.map(size => (
-                    <SelectItem key={size.id} value={size.id}>
-                      {size.size}
+                  {sizeOptions.map(name => (
+                    <SelectItem key={name} value={name}>
+                      {name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1232,11 +1191,12 @@ export const ReportsPanel = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All {labels.customer_type}</SelectItem>
-                  {customerTypes.map(type => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
+                  {customerTypeOptions.map(name => (
+                    <SelectItem key={name} value={name}>
+                      {name}
                     </SelectItem>
                   ))}
+
                 </SelectContent>
               </Select>
             </div>
