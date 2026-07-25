@@ -27,9 +27,6 @@ interface GDEntry {
   id: string;
   created_at: string;
   shop_id: string;
-  category_id: string;
-  size_id: string;
-  customer_type_id: string | null;
   notes: string;
   shops: { name: string } | null;
   categories: { name: string } | null;
@@ -38,6 +35,7 @@ interface GDEntry {
   voice_note_url?: string | null;
   gd_entry_images?: Array<{ id: string; image_url: string; image_name?: string }>;
 }
+
 
 export const Dashboard = () => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
