@@ -206,20 +206,21 @@ export const ReportsPanel = () => {
       filtered = filtered.filter(entry => entry.shop_id === selectedShop);
     }
 
-    // Category filter
+    // Category filter (custom field value)
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(entry => entry.category_id === selectedCategory);
+      filtered = filtered.filter(entry => entry.categories?.name === selectedCategory);
     }
 
-    // Size filter
+    // Size filter (custom field value)
     if (selectedSize !== 'all') {
-      filtered = filtered.filter(entry => entry.size_id === selectedSize);
+      filtered = filtered.filter(entry => entry.sizes?.size === selectedSize);
     }
 
-    // Customer type filter
+    // Customer type filter (custom field value)
     if (selectedCustomerType !== 'all') {
-      filtered = filtered.filter(entry => entry.customer_type_id === selectedCustomerType);
+      filtered = filtered.filter(entry => entry.customer_types?.name === selectedCustomerType);
     }
+
 
     // Date filter
     if (dateFilter !== 'all') {
