@@ -27,6 +27,7 @@ import * as XLSX from 'xlsx';
 import { exportToPDFViaHTML, exportMultiSectionPDFViaHTML, makeImageCell, type CellContent } from '@/utils/htmlPdfExport';
 import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
+import { fetchCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
 
 interface CustomFieldDef {
   id: string;
@@ -46,13 +47,10 @@ type GoodsEntry = Database['public']['Tables']['goods_damaged_entries']['Row'] &
     image_name?: string;
   }>;
   voice_note_url?: string | null;
-  customFieldValues?: Record<string, string>; // fieldId -> option value text
+  customFieldValues?: Record<string, string>; // fieldId -> value text
 };
 
 type Shop = Database['public']['Tables']['shops']['Row'];
-type Category = Database['public']['Tables']['categories']['Row'];
-type Size = Database['public']['Tables']['sizes']['Row'];
-type CustomerType = Database['public']['Tables']['customer_types']['Row'];
 
 export const ReportsPanel = () => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
@@ -62,9 +60,10 @@ export const ReportsPanel = () => {
   const [entries, setEntries] = useState<GoodsEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<GoodsEntry[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [sizes, setSizes] = useState<Size[]>([]);
-  const [customerTypes, setCustomerTypes] = useState<CustomerType[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [sizeOptions, setSizeOptions] = useState<string[]>([]);
+  const [customerTypeOptions, setCustomerTypeOptions] = useState<string[]>([]);
+
   const [customFields, setCustomFields] = useState<CustomFieldDef[]>([]);
 
   // Filter states - default to "today"
