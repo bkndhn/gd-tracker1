@@ -165,12 +165,24 @@ export const DamagedGoodsForm = () => {
     return signedData?.signedUrl || data.path;
   };
 
+  /** Fields ordered by the admin's export field order, then any remaining fields. */
+  const orderedFieldsForShare = () => {
+    const byId = new Map(customFields.map(f => [f.id, f]));
+    const ordered = exportOrder.map(id => byId.get(id)).filter(Boolean) as CustomField[];
+    const rest = customFields.filter(f => !exportOrder.includes(f.id));
+    return [...ordered, ...rest];
+  };
+
   const buildWhatsAppMessage = () => {
     let msg = `📋 *GD Report*\n`;
     msg += `👤 ${profile?.name || ''}\n`;
-    const shopName = userShop?.name || shops.find(s => s.id === profile?.shop_id)?.name || '';
-    if (shopName) msg += `🏪 ${shopName}\n`;
-    customFields.forEach(field => {
+    const shopField = customFields.find(f => f.is_standard && f.standard_key === 'shop');
+    const hasShopCustomField = Boolean(shopField && customFieldValues[shopField.id]);
+    if (!hasShopCustomField) {
+      const shopName = userShop?.name || shops.find(s => s.id === profile?.shop_id)?.name || '';
+      if (shopName) msg += `🏪 ${shopName}\n`;
+    }
+    orderedFieldsForShare().forEach(field => {
       const val = customFieldValues[field.id];
       if (!val) return;
       const type = field.field_type || 'dropdown';
@@ -185,6 +197,35 @@ export const DamagedGoodsForm = () => {
     if (notes.trim()) msg += `📝 ${notes.trim()}\n`;
     msg += `📅 ${new Date().toLocaleDateString()}`;
     return encodeURIComponent(msg);
+  };
+
+  /** Mirrors the server-side validate_gd_entry_custom_value trigger rules. */
+  const validateField = (field: CustomField, raw: string | undefined): string | null => {
+    const type = field.field_type || 'dropdown';
+    const value = (raw ?? '').trim();
+
+    if (type === 'dropdown' || type === 'radio') {
+      if (!value) return field.is_mandatory ? `${field.name} requires a selection` : null;
+      const exists = (customFieldOptions[field.id] || []).some(o => o.id === value);
+      return exists ? null : `Invalid option selected for ${field.name}`;
+    }
+
+    if (!value) return field.is_mandatory ? `${field.name} is required` : null;
+    if (value.length > 2000) return `${field.name} must be 2000 characters or fewer`;
+    if (type === 'number' && !/^-?[0-9]+(\.[0-9]+)?$/.test(value)) return `${field.name} must be a number`;
+    if (type === 'date' && Number.isNaN(new Date(value).getTime())) return `${field.name} must be a valid date`;
+    if (type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return `${field.name} must be a valid email`;
+    if (type === 'phone' && !/^[+0-9()\-\s]{6,20}$/.test(value)) return `${field.name} must be a valid phone number`;
+    return null;
+  };
+
+  const validateAll = (): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    customFields.forEach(f => {
+      const msg = validateField(f, customFieldValues[f.id]);
+      if (msg) errs[f.id] = msg;
+    });
+    return errs;
   };
 
   // Resolve a standard field selection back to its legacy UUID (for backward-compat columns)
@@ -206,11 +247,15 @@ export const DamagedGoodsForm = () => {
       return;
     }
 
-    const missing = customFields.filter(f => f.is_mandatory && !customFieldValues[f.id]).map(f => f.name);
-    if (missing.length > 0) {
-      toast.error(`Please fill in: ${missing.join(', ')}`);
+    const errs = validateAll();
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      toast.error(Object.values(errs)[0]);
+      const firstId = Object.keys(errs)[0];
+      document.getElementById(`cf-wrap-${firstId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+
 
     const effectiveShopId = profile.shop_id || resolveLegacyId('shop') || (shopFallbackId !== 'none' ? shopFallbackId : null);
     if (!effectiveShopId) {
