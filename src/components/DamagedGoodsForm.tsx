@@ -72,6 +72,16 @@ export const DamagedGoodsForm = () => {
         setWhatsappEnabled(val.enabled ?? false);
       }
 
+      const exportRes = await supabase
+        .from('app_settings').select('value')
+        .eq('key', 'export_field_config').eq('admin_id', adminId).maybeSingle();
+      if (exportRes.data) {
+        const val = exportRes.data.value as { pdf?: string[]; excel?: string[] };
+        const order = (Array.isArray(val?.pdf) && val.pdf.length ? val.pdf : val?.excel) || [];
+        setExportOrder(order);
+      }
+
+
       const { data: adminProfile } = await supabase
         .from('profiles')
         .select('max_entries, max_images_per_entry, max_images_total')
