@@ -429,14 +429,36 @@ export const DamagedGoodsForm = () => {
             const type = field.field_type || 'dropdown';
             const fieldOptions = customFieldOptions[field.id] || [];
             const value = customFieldValues[field.id] || '';
-            const setValue = (v: string) => setCustomFieldValues(prev => ({ ...prev, [field.id]: v }));
+            const error = fieldErrors[field.id];
+            const setValue = (v: string) => {
+              setCustomFieldValues(prev => ({ ...prev, [field.id]: v }));
+              setFieldErrors(prev => {
+                const msg = validateField(field, v);
+                const next = { ...prev };
+                if (msg) next[field.id] = msg; else delete next[field.id];
+                return next;
+              });
+            };
+            const onBlur = () => {
+              const msg = validateField(field, customFieldValues[field.id]);
+              setFieldErrors(prev => {
+                const next = { ...prev };
+                if (msg) next[field.id] = msg; else delete next[field.id];
+                return next;
+              });
+            };
+            const errorClass = error ? 'border-destructive focus-visible:ring-destructive' : 'border-input';
             if ((type === 'dropdown' || type === 'radio') && fieldOptions.length === 0) return null;
             return (
-              <div key={field.id} className="space-y-2">
-                <Label>{field.name} {field.is_mandatory && '*'}</Label>
+              <div key={field.id} id={`cf-wrap-${field.id}`} className="space-y-2">
+                <Label className={error ? 'text-destructive' : undefined}>
+                  {field.name} {field.is_mandatory && '*'}
+                </Label>
                 {type === 'dropdown' && (
                   <Select value={value} onValueChange={setValue}>
-                    <SelectTrigger><SelectValue placeholder={`Select ${field.name.toLowerCase()}`} /></SelectTrigger>
+                    <SelectTrigger className={error ? 'border-destructive' : undefined} aria-invalid={!!error}>
+                      <SelectValue placeholder={`Select ${field.name.toLowerCase()}`} />
+                    </SelectTrigger>
                     <SelectContent>
                       {fieldOptions.map((opt) => (
                         <SelectItem key={opt.id} value={opt.id}>{opt.value}</SelectItem>
@@ -447,7 +469,7 @@ export const DamagedGoodsForm = () => {
                 {type === 'radio' && (
                   <RadioGroup value={value} onValueChange={setValue} className="flex flex-wrap gap-3">
                     {fieldOptions.map((opt) => (
-                      <div key={opt.id} className="flex items-center space-x-2 border rounded-md px-3 py-2 hover:bg-accent">
+                      <div key={opt.id} className={`flex items-center space-x-2 border rounded-md px-3 py-2 hover:bg-accent ${error ? 'border-destructive' : ''}`}>
                         <RadioGroupItem value={opt.id} id={`cf-${field.id}-${opt.id}`} />
                         <Label htmlFor={`cf-${field.id}-${opt.id}`} className="font-normal cursor-pointer">{opt.value}</Label>
                       </div>
@@ -456,22 +478,26 @@ export const DamagedGoodsForm = () => {
                 )}
                 {type === 'textarea' && (
                   <textarea
-                    className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={value} onChange={(e) => setValue(e.target.value)}
+                    className={`w-full min-h-[80px] rounded-md border bg-background px-3 py-2 text-sm ${errorClass}`}
+                    value={value} onChange={(e) => setValue(e.target.value)} onBlur={onBlur}
+                    aria-invalid={!!error}
                     placeholder={`Enter ${field.name.toLowerCase()}`}
                   />
                 )}
                 {type !== 'dropdown' && type !== 'radio' && type !== 'textarea' && (
                   <input
                     type={type === 'number' ? 'number' : type === 'date' ? 'date' : type === 'email' ? 'email' : type === 'phone' ? 'tel' : 'text'}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={value} onChange={(e) => setValue(e.target.value)}
+                    className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ${errorClass}`}
+                    value={value} onChange={(e) => setValue(e.target.value)} onBlur={onBlur}
+                    aria-invalid={!!error}
                     placeholder={`Enter ${field.name.toLowerCase()}`}
                   />
                 )}
+                {error && <p className="text-xs text-destructive">{error}</p>}
               </div>
             );
           })}
+
 
           <div className="space-y-2">
             <Label>Notes / Voice / Images {!voiceNoteFile && !notes.trim() && '*'}</Label>
