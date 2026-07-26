@@ -367,6 +367,8 @@ export const DamagedGoodsForm = () => {
     setVoiceNoteFile(null);
     setCustomFieldValues({});
     setShopFallbackId('none');
+    setFieldErrors({});
+
     setFormKey(k => k + 1);
     document.querySelectorAll<HTMLInputElement>('input[type="file"]').forEach(el => { try { el.value = ''; } catch {} });
     setTimeout(() => {
