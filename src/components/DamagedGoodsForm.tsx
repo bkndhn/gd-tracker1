@@ -55,8 +55,11 @@ export const DamagedGoodsForm = () => {
   const [notes, setNotes] = useState('');
   const [formKey, setFormKey] = useState(0);
   const [shopFallbackId, setShopFallbackId] = useState<string>('none');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [exportOrder, setExportOrder] = useState<string[]>([]);
 
   const adminId = (profile as any)?.admin_id || profile?.id;
+
 
   const fetchSettings = useCallback(async () => {
     if (!adminId) return;
