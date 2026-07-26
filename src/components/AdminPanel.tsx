@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Database } from '@/types/database';
-import { ShopManagement } from '@/components/admin/ShopManagement';
+
 import { UserManagement } from '@/components/admin/UserManagement';
 import { WhatsAppSettings } from '@/components/admin/WhatsAppSettings';
 import { CustomFieldManagement } from '@/components/admin/CustomFieldManagement';
