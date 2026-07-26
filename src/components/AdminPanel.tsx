@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Database } from '@/types/database';
-import { ShopManagement } from '@/components/admin/ShopManagement';
+
 import { UserManagement } from '@/components/admin/UserManagement';
 import { WhatsAppSettings } from '@/components/admin/WhatsAppSettings';
 import { CustomFieldManagement } from '@/components/admin/CustomFieldManagement';
@@ -49,10 +49,8 @@ export const AdminPanel = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <WhatsAppSettings />
-        <ShopManagement shops={shops} onRefresh={fetchData} />
-      </div>
+      <WhatsAppSettings />
+
 
       <UserManagement shops={shops} profiles={profiles} onRefresh={fetchData} />
 
