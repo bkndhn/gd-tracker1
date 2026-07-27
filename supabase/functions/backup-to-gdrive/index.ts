@@ -79,29 +79,53 @@ Deno.serve(async (req) => {
     }
 
     const started = Date.now();
-    const dump = await dumpAllTables(supabase);
     const ts = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `gd-backup-${ts}.json`;
-    const payload = JSON.stringify({
-      generated_at: new Date().toISOString(),
-      version: 1,
-      note: 'Full metadata backup. Image files remain in Supabase storage buckets (gd-entry-images, gd-voice-notes).',
-      tables: dump,
-    }, null, 2);
 
-    const uploaded = await uploadJsonToDrive(filename, payload);
+    try {
+      const dump = await dumpAllTables(supabase);
+      const payload = JSON.stringify({
+        generated_at: new Date().toISOString(),
+        version: 1,
+        note: 'Full metadata backup. Image files remain in Supabase storage buckets (gd-entry-images, gd-voice-notes).',
+        tables: dump,
+      }, null, 2);
 
-    const took = Date.now() - started;
-    return new Response(JSON.stringify({
-      ok: true,
-      filename,
-      driveFileId: uploaded.id,
-      sizeBytes: payload.length,
-      tookMs: took,
-      trigger: isCron ? 'cron' : 'manual',
-    }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      const uploaded = await uploadJsonToDrive(filename, payload);
+      const took = Date.now() - started;
+
+      await supabase.from('backup_logs').insert({
+        status: 'success',
+        filename,
+        drive_file_id: uploaded.id,
+        drive_web_link: uploaded.webViewLink ?? null,
+        size_bytes: payload.length,
+        took_ms: took,
+        trigger_source: isCron ? 'cron' : 'manual',
+      });
+
+      return new Response(JSON.stringify({
+        ok: true,
+        filename,
+        driveFileId: uploaded.id,
+        driveWebLink: uploaded.webViewLink ?? null,
+        sizeBytes: payload.length,
+        tookMs: took,
+        trigger: isCron ? 'cron' : 'manual',
+      }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (inner: any) {
+      await supabase.from('backup_logs').insert({
+        status: 'failed',
+        filename,
+        took_ms: Date.now() - started,
+        trigger_source: isCron ? 'cron' : 'manual',
+        error_message: String(inner?.message || inner).slice(0, 1000),
+      });
+      throw inner;
+    }
+
   } catch (e: any) {
     console.error('backup-to-gdrive error', e);
     return new Response(JSON.stringify({ error: e?.message || 'Unknown error' }), {
