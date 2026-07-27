@@ -43,7 +43,7 @@ async function uploadJsonToDrive(filename: string, content: string) {
     content + `\r\n` +
     `--${boundary}--`;
 
-  const res = await fetch(`${GATEWAY}/upload/drive/v3/files?uploadType=multipart`, {
+  const res = await fetch(`${GATEWAY}/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${LOVABLE_API_KEY}`,
