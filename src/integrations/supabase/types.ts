@@ -68,6 +68,45 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_logs: {
+        Row: {
+          created_at: string
+          drive_file_id: string | null
+          drive_web_link: string | null
+          error_message: string | null
+          filename: string | null
+          id: string
+          size_bytes: number | null
+          status: string
+          took_ms: number | null
+          trigger_source: string
+        }
+        Insert: {
+          created_at?: string
+          drive_file_id?: string | null
+          drive_web_link?: string | null
+          error_message?: string | null
+          filename?: string | null
+          id?: string
+          size_bytes?: number | null
+          status?: string
+          took_ms?: number | null
+          trigger_source?: string
+        }
+        Update: {
+          created_at?: string
+          drive_file_id?: string | null
+          drive_web_link?: string | null
+          error_message?: string | null
+          filename?: string | null
+          id?: string
+          size_bytes?: number | null
+          status?: string
+          took_ms?: number | null
+          trigger_source?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           admin_id: string | null
