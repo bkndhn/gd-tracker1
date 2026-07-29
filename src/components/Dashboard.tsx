@@ -799,215 +799,67 @@ export const Dashboard = () => {
             </Card>
           )}
 
-          {/* Time-based Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold text-primary">Today</CardTitle>
-                <Calendar className="h-5 w-5 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{summary?.today || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">Today's entries</p>
-                {showComparison && summary && summary.prevToday !== undefined && (
-                  <p className="text-xs mt-1 flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    {calculateChange(summary.today, summary.prevToday)}% vs yesterday
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative bg-gradient-to-br from-card to-card/80">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold text-foreground">This Week</CardTitle>
-                <CalendarDays className="h-5 w-5 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">{summary?.thisWeek || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">Last 7 days</p>
-                {showComparison && summary && summary.prevWeek !== undefined && (
-                  <p className="text-xs mt-1 flex items-center gap-1 text-muted-foreground">
-                    <TrendingUp className="h-3 w-3" />
-                    {calculateChange(summary.thisWeek, summary.prevWeek)}% vs last week
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative bg-gradient-to-br from-card to-card/80">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold text-foreground">This Month</CardTitle>
-                <Package className="h-5 w-5 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">{summary?.thisMonth || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">Current month</p>
-                {showComparison && summary && summary.prevMonth !== undefined && (
-                  <p className="text-xs mt-1 flex items-center gap-1 text-muted-foreground">
-                    <TrendingUp className="h-3 w-3" />
-                    {calculateChange(summary.thisMonth, summary.prevMonth)}% vs last month
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-xl border-2 border-muted-foreground/20 hover:border-muted-foreground/40 transition-all duration-300 cursor-pointer overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-muted-foreground/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold">Total</CardTitle>
-                <Sparkles className="h-5 w-5" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{summary?.total || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">All time entries</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Analytics Charts */}
-          {showCharts && allEntries && allEntries.length > 0 && (
-            <div className="mt-6">
-              <AnalyticsCharts entries={allEntries} />
+          {/* Time-based Stats (order & visibility from layout editor) */}
+          {visibleKpis.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {visibleKpis.map(id => <div key={id}>{kpiNodes[id]}</div>)}
             </div>
           )}
 
-          {/* AI Insights */}
-          {summary && (
-            <div className="mt-6">
-              <AIInsightsPanel context="dashboard" data={summary} />
+          {/* Widgets: charts / AI insights */}
+          {visibleSections.map(id => (
+            <div key={id}>{sectionNodes[id]}</div>
+          ))}
+
+          {/* Breakdown cards */}
+          {visibleBreakdowns.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+              {visibleBreakdowns.map(id => {
+                const cfg = breakdownConfig.find(c => c.id === id);
+                if (!cfg) return null;
+                const entriesList = Object.entries(cfg.data).sort(([, a], [, b]) => b - a);
+                return (
+                  <Card key={id} className="hover:shadow-lg transition-shadow bg-card/95">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <div className={`h-1 w-8 bg-gradient-to-r ${cfg.accentBar} rounded-full`} />
+                        {cfg.gradientTitle ? (
+                          <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{cfg.title}</span>
+                        ) : (
+                          <span className="font-semibold text-foreground">{cfg.title}</span>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {entriesList.length > 0 ? (
+                        entriesList.map(([name, count], idx) => (
+                          <div
+                            key={name}
+                            onClick={() => handleItemClick(cfg.filterType, name)}
+                            className="flex justify-between items-center p-3 rounded-lg bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-primary/40 cursor-pointer active:scale-[0.98]"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className={`text-xs font-bold ${cfg.accentText} w-6 text-center`}>{idx + 1}</span>
+                              <span className="font-medium truncate text-foreground">{name}</span>
+                            </div>
+                            <span className={`font-bold ${cfg.countClass} text-lg ml-2`}>{count}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-sm text-center py-4">{cfg.emptyText}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
 
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-            {/* By Shop */}
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-primary to-primary/50 rounded-full" />
-                  <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">By Shop</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {summary && Object.keys(summary.byShop).length > 0 ? (
-                  Object.entries(summary.byShop)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([name, count], idx) => (
-                      <div
-                        key={name}
-                        onClick={() => handleItemClick('shop', name)}
-                        className="flex justify-between items-center p-3 rounded-lg bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-primary/40 cursor-pointer active:scale-[0.98]"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xs font-bold text-primary/60 w-6 text-center">{idx + 1}</span>
-                          <span className="font-medium truncate text-foreground">{name}</span>
-                        </div>
-                        <span className="font-bold text-primary text-lg ml-2">{count}</span>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-muted-foreground text-sm text-center py-4">No shop data</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* By Category */}
-            <Card className="hover:shadow-lg transition-shadow bg-card/95">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full" />
-                  <span className="font-semibold text-foreground">By Category</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {summary && Object.keys(summary.byCategory).length > 0 ? (
-                  Object.entries(summary.byCategory)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([name, count], idx) => (
-                      <div
-                        key={name}
-                        onClick={() => handleItemClick('category', name)}
-                        className="flex justify-between items-center p-3 rounded-lg bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-primary/40 cursor-pointer active:scale-[0.98]"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xs font-bold text-orange-500/80 w-6 text-center">{idx + 1}</span>
-                          <span className="font-medium truncate text-foreground">{name}</span>
-                        </div>
-                        <span className="font-bold text-orange-500 text-lg ml-2">{count}</span>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-muted-foreground text-sm text-center py-4">No category data</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* By Size */}
-            <Card className="hover:shadow-lg transition-shadow bg-card/95">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full" />
-                  <span className="font-semibold text-foreground">By Size</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {summary && Object.keys(summary.bySize).length > 0 ? (
-                  Object.entries(summary.bySize)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([name, count], idx) => (
-                      <div
-                        key={name}
-                        onClick={() => handleItemClick('size', name)}
-                        className="flex justify-between items-center p-3 rounded-lg bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-primary/40 cursor-pointer active:scale-[0.98]"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xs font-bold text-cyan-500/80 w-6 text-center">{idx + 1}</span>
-                          <span className="font-medium truncate text-foreground">{name}</span>
-                        </div>
-                        <span className="font-bold text-cyan-500 text-lg ml-2">{count}</span>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-muted-foreground text-sm text-center py-4">No size data</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* By Customer Type */}
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-primary to-primary/50 rounded-full" />
-                  <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">By Customer Type</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {summary && Object.keys(summary.byCustomerType).length > 0 ? (
-                  Object.entries(summary.byCustomerType)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([name, count], idx) => (
-                      <div
-                        key={name}
-                        onClick={() => handleItemClick('customer_type', name)}
-                        className="flex justify-between items-center p-3 rounded-lg bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-primary/40 cursor-pointer active:scale-[0.98]"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xs font-bold text-primary/60 w-6 text-center">{idx + 1}</span>
-                          <span className="font-medium truncate text-foreground">{name}</span>
-                        </div>
-                        <span className="font-bold text-primary text-lg ml-2">{count}</span>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-muted-foreground text-sm text-center py-4">No customer type data</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <DashboardLayoutEditor
+            open={layoutEditorOpen}
+            onOpenChange={setLayoutEditorOpen}
+            controller={layoutController}
+          />
 
           {/* Detail Modal */}
           <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
