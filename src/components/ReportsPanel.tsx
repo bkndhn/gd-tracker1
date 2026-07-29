@@ -25,6 +25,7 @@ import { format } from 'date-fns';
 import { Database } from '@/types/database';
 import * as XLSX from 'xlsx';
 import { exportToPDFViaHTML, exportMultiSectionPDFViaHTML, makeImageCell, type CellContent } from '@/utils/htmlPdfExport';
+import { useExportJobs } from '@/hooks/useExportJobs';
 import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { fetchCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
