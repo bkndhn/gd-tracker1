@@ -43,6 +43,9 @@ export const Dashboard = () => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
   const { isOnline, pendingCount } = useOfflineSync();
   const { labels } = useFieldLabels();
+  const layoutController = useDashboardLayout();
+  const { orderedVisible } = layoutController;
+  const [layoutEditorOpen, setLayoutEditorOpen] = useState(false);
 
   // Filter states
   const [selectedShop, setSelectedShop] = useState<string>('all');
