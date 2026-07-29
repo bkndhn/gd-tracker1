@@ -638,6 +638,15 @@ export const Dashboard = () => {
                 Filters
                 {hasActiveFilters && <span className="ml-1 bg-background/80 text-foreground rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-xs font-bold">!</span>}
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLayoutEditorOpen(true)}
+                className="gap-1 sm:gap-2 text-xs sm:text-sm"
+              >
+                <LayoutGrid className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Customize</span>
+              </Button>
             </div>
           </div>
 
