@@ -56,7 +56,7 @@ export const ExportJobsProvider = ({ children }: { children: ReactNode }) => {
   const startJob: ExportJobsValue['startJob'] = useCallback((label, kind, run) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setJobs(prev => [
-      { id, label, kind, status: 'queued', progress: 0, startedAt: Date.now() },
+      { id, label, kind, status: 'queued' as ExportJobStatus, progress: 0, startedAt: Date.now() },
       ...prev,
     ].slice(0, 8));
 
