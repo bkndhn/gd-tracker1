@@ -25,6 +25,7 @@ import { format } from 'date-fns';
 import { Database } from '@/types/database';
 import * as XLSX from 'xlsx';
 import { exportToPDFViaHTML, exportMultiSectionPDFViaHTML, makeImageCell, type CellContent } from '@/utils/htmlPdfExport';
+import { useExportJobs } from '@/hooks/useExportJobs';
 import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { fetchCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
@@ -56,6 +57,7 @@ export const ReportsPanel = () => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
   const { isOnline, pendingCount } = useOfflineSync();
   const { labels } = useFieldLabels();
+  const { startJob } = useExportJobs();
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<GoodsEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<GoodsEntry[]>([]);
@@ -608,90 +610,128 @@ export const ReportsPanel = () => {
     }
   };
 
-  // Export table data to Excel
+  // Export table data to Excel — runs as a background job with progress
   const exportTableExcel = () => {
     if (tableFilteredEntries.length === 0) {
       toast.error('No data to export');
       return;
     }
 
-    const exportData = tableFilteredEntries.map((entry, index) => {
-      const base: Record<string, any> = {
-        'S.NO': index + 1,
-        'SHOP': entry.shops.name,
-        'CATEGORY': entry.categories.name,
-        'SIZE': entry.sizes.size,
-        'CUSTOMER TYPE': entry.customer_types?.name || 'N/A',
-      };
-      customFields.forEach(cf => {
-        base[cf.name.toUpperCase()] = entry.customFieldValues?.[cf.id] || 'N/A';
+    const entries = [...tableFilteredEntries];
+    const fields = [...customFields];
+
+    startJob(`Excel export · ${entries.length} rows`, 'excel', async ({ setProgress, tick }) => {
+      const exportData: Record<string, any>[] = [];
+      for (let index = 0; index < entries.length; index++) {
+        const entry = entries[index];
+        const base: Record<string, any> = {
+          'S.NO': index + 1,
+          'SHOP': entry.shops.name,
+          'CATEGORY': entry.categories.name,
+          'SIZE': entry.sizes.size,
+          'CUSTOMER TYPE': entry.customer_types?.name || 'N/A',
+        };
+        fields.forEach(cf => {
+          base[cf.name.toUpperCase()] = entry.customFieldValues?.[cf.id] || 'N/A';
+        });
+        base['NOTES'] = entry.notes || '';
+        base['DATE AND TIME'] = formatDateTime(entry.created_at!);
+        exportData.push(base);
+
+        if (index % 250 === 0) {
+          setProgress((index / entries.length) * 80, `Processing ${index + 1} of ${entries.length}…`);
+          await tick();
+        }
+      }
+
+      setProgress(85, 'Building workbook…');
+      await tick();
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      ws['!cols'] = [
+        { wch: 6 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 18 },
+        ...fields.map(() => ({ wch: 15 })),
+        { wch: 40 }, { wch: 20 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'GD Reports');
+
+      setProgress(95, 'Packaging file…');
+      await tick();
+
+      const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([out], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
-      base['NOTES'] = entry.notes || '';
-      base['DATE AND TIME'] = formatDateTime(entry.created_at!);
-      return base;
+
+      return {
+        blob,
+        fileName: `gd-reports-table-${format(new Date(), 'yyyy-MM-dd-HHmm')}.xlsx`,
+        message: `${entries.length} rows ready to download`,
+      };
     });
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-
-    // Auto-fit columns
-    const colWidths = [
-      { wch: 6 },  // S.NO
-      { wch: 15 }, // SHOP
-      { wch: 15 }, // CATEGORY
-      { wch: 10 }, // SIZE
-      { wch: 18 }, // CUSTOMER TYPE
-      ...customFields.map(() => ({ wch: 15 })),
-      { wch: 40 }, // NOTES
-      { wch: 20 }, // DATE AND TIME
-    ];
-    ws['!cols'] = colWidths;
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'GD Reports');
-
-    const fileName = `gd-reports-table-${format(new Date(), 'yyyy-MM-dd-HHmm')}.xlsx`;
-    XLSX.writeFile(wb, fileName);
-    toast.success('Excel exported successfully');
+    toast.success('Excel export started — track progress in the corner');
   };
 
-  // Export table data to PDF using HTML print method (supports Tamil + images)
+  // Export table data to PDF (HTML print method, supports Tamil + images) as a background job
   const exportTablePDF = () => {
     if (tableFilteredEntries.length === 0) {
       toast.error('No data to export');
       return;
     }
 
-    const rows: CellContent[][] = tableFilteredEntries.map((entry, index) => [
-      String(index + 1),
-      entry.shops.name,
-      entry.categories.name,
-      entry.sizes.size,
-      entry.customer_types?.name || 'N/A',
-      ...customFields.map(cf => entry.customFieldValues?.[cf.id] || 'N/A'),
-      entry.notes || '',
-      makeImageCell((entry.gd_entry_images || []).map(img => img.image_url)),
-      formatDateTime(entry.created_at!)
-    ]);
+    const entries = [...tableFilteredEntries];
+    const fields = [...customFields];
 
-    exportToPDFViaHTML({
-      title: 'GD Reports',
-      subtitle: `Generated: ${format(new Date(), 'dd-MM-yyyy HH:mm')}`,
-      columns: [
-        { header: 'S.NO', width: '40px', align: 'center' },
-        { header: 'SHOP', width: '10%' },
-        { header: 'CATEGORY', width: '10%' },
-        { header: 'SIZE', width: '6%', align: 'center' },
-        { header: 'CUSTOMER TYPE', width: '10%' },
-        ...customFields.map(cf => ({ header: cf.name.toUpperCase(), width: '8%' })),
-        { header: 'NOTES' },
-        { header: 'IMAGE', width: '12%', align: 'center' as const },
-        { header: 'DATE AND TIME', width: '11%' }
-      ],
-      rows,
-      orientation: 'landscape',
+    startJob(`PDF export · ${entries.length} rows`, 'pdf', async ({ setProgress, tick }) => {
+      const rows: CellContent[][] = [];
+      for (let index = 0; index < entries.length; index++) {
+        const entry = entries[index];
+        rows.push([
+          String(index + 1),
+          entry.shops.name,
+          entry.categories.name,
+          entry.sizes.size,
+          entry.customer_types?.name || 'N/A',
+          ...fields.map(cf => entry.customFieldValues?.[cf.id] || 'N/A'),
+          entry.notes || '',
+          makeImageCell((entry.gd_entry_images || []).map(img => img.image_url)),
+          formatDateTime(entry.created_at!),
+        ]);
+        if (index % 200 === 0) {
+          setProgress((index / entries.length) * 90, `Rendering ${index + 1} of ${entries.length}…`);
+          await tick();
+        }
+      }
+
+      setProgress(95, 'Preparing document…');
+      await tick();
+
+      const openPdf = () => exportToPDFViaHTML({
+        title: 'GD Reports',
+        subtitle: `Generated: ${format(new Date(), 'dd-MM-yyyy HH:mm')}`,
+        columns: [
+          { header: 'S.NO', width: '40px', align: 'center' },
+          { header: 'SHOP', width: '10%' },
+          { header: 'CATEGORY', width: '10%' },
+          { header: 'SIZE', width: '6%', align: 'center' },
+          { header: 'CUSTOMER TYPE', width: '10%' },
+          ...fields.map(cf => ({ header: cf.name.toUpperCase(), width: '8%' })),
+          { header: 'NOTES' },
+          { header: 'IMAGE', width: '12%', align: 'center' as const },
+          { header: 'DATE AND TIME', width: '11%' },
+        ],
+        rows,
+        orientation: 'landscape',
+      });
+
+      openPdf();
+
+      return { openAction: openPdf, message: 'PDF ready — reopen anytime' };
     });
 
-    toast.success('PDF export opened');
+    toast.success('PDF export started — track progress in the corner');
   };
 
   const formatTime12Hour = (date: Date) => {

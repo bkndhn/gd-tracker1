@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { TrendingUp, Package, Calendar, CalendarDays, Sparkles, Filter, X, ArrowUpDown, BarChart3, FileDown, FileSpreadsheet, LineChart } from 'lucide-react';
+import { TrendingUp, Package, Calendar, CalendarDays, Sparkles, Filter, X, ArrowUpDown, BarChart3, FileDown, FileSpreadsheet, LineChart, LayoutGrid } from 'lucide-react';
 import { exportToPDFViaHTML, makeImageCell } from '@/utils/htmlPdfExport';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
@@ -23,6 +23,8 @@ import { AnalyticsCharts } from './AnalyticsCharts';
 import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { useCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
+import { useDashboardLayout } from '@/hooks/useDashboardLayout';
+import { DashboardLayoutEditor } from './DashboardLayoutEditor';
 
 
 interface GDEntry {
@@ -43,6 +45,9 @@ export const Dashboard = () => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
   const { isOnline, pendingCount } = useOfflineSync();
   const { labels } = useFieldLabels();
+  const layoutController = useDashboardLayout();
+  const { orderedVisible } = layoutController;
+  const [layoutEditorOpen, setLayoutEditorOpen] = useState(false);
 
   // Filter states
   const [selectedShop, setSelectedShop] = useState<string>('all');
@@ -476,6 +481,109 @@ export const Dashboard = () => {
   const hasNoData = !allEntries || allEntries.length === 0;
   const hasNoFilteredData = summary && summary.total === 0 && !hasNoData;
 
+  const breakdownConfig: Array<{
+    id: 'by_shop' | 'by_category' | 'by_size' | 'by_customer_type';
+    title: string;
+    accentBar: string;
+    accentText: string;
+    countClass: string;
+    data: Record<string, number>;
+    filterType: 'shop' | 'category' | 'size' | 'customer_type';
+    emptyText: string;
+    gradientTitle?: boolean;
+  }> = [
+    { id: 'by_shop', title: 'By Shop', accentBar: 'from-primary to-primary/50', accentText: 'text-primary/60', countClass: 'text-primary', data: summary?.byShop || {}, filterType: 'shop', emptyText: 'No shop data', gradientTitle: true },
+    { id: 'by_category', title: 'By Category', accentBar: 'from-orange-500 to-orange-400', accentText: 'text-orange-500/80', countClass: 'text-orange-500', data: summary?.byCategory || {}, filterType: 'category', emptyText: 'No category data' },
+    { id: 'by_size', title: 'By Size', accentBar: 'from-cyan-500 to-cyan-400', accentText: 'text-cyan-500/80', countClass: 'text-cyan-500', data: summary?.bySize || {}, filterType: 'size', emptyText: 'No size data' },
+    { id: 'by_customer_type', title: 'By Customer Type', accentBar: 'from-primary to-primary/50', accentText: 'text-primary/60', countClass: 'text-primary', data: summary?.byCustomerType || {}, filterType: 'customer_type', emptyText: 'No customer type data', gradientTitle: true },
+  ];
+
+  const kpiNodes: Record<string, JSX.Element> = {
+    kpi_today: (
+      <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-semibold text-primary">Today</CardTitle>
+          <Calendar className="h-5 w-5 text-primary" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{summary?.today || 0}</div>
+          <p className="text-xs text-muted-foreground mt-1">Today's entries</p>
+          {showComparison && summary && summary.prevToday !== undefined && (
+            <p className="text-xs mt-1 flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" />
+              {calculateChange(summary.today, summary.prevToday)}% vs yesterday
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    kpi_week: (
+      <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative bg-gradient-to-br from-card to-card/80">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-semibold text-foreground">This Week</CardTitle>
+          <CalendarDays className="h-5 w-5 text-primary" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold text-foreground">{summary?.thisWeek || 0}</div>
+          <p className="text-xs text-muted-foreground mt-1">Last 7 days</p>
+          {showComparison && summary && summary.prevWeek !== undefined && (
+            <p className="text-xs mt-1 flex items-center gap-1 text-muted-foreground">
+              <TrendingUp className="h-3 w-3" />
+              {calculateChange(summary.thisWeek, summary.prevWeek)}% vs last week
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    kpi_month: (
+      <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative bg-gradient-to-br from-card to-card/80">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-semibold text-foreground">This Month</CardTitle>
+          <Package className="h-5 w-5 text-primary" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold text-foreground">{summary?.thisMonth || 0}</div>
+          <p className="text-xs text-muted-foreground mt-1">Current month</p>
+          {showComparison && summary && summary.prevMonth !== undefined && (
+            <p className="text-xs mt-1 flex items-center gap-1 text-muted-foreground">
+              <TrendingUp className="h-3 w-3" />
+              {calculateChange(summary.thisMonth, summary.prevMonth)}% vs last month
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    kpi_total: (
+      <Card className="group hover:shadow-xl border-2 border-muted-foreground/20 hover:border-muted-foreground/40 transition-all duration-300 cursor-pointer overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-muted-foreground/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-semibold">Total</CardTitle>
+          <Sparkles className="h-5 w-5" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold">{summary?.total || 0}</div>
+          <p className="text-xs text-muted-foreground mt-1">All time entries</p>
+        </CardContent>
+      </Card>
+    ),
+  };
+
+  const sectionNodes: Record<string, JSX.Element | null> = {
+    charts: showCharts && allEntries && allEntries.length > 0 ? (
+      <div className="mt-6"><AnalyticsCharts entries={allEntries} /></div>
+    ) : null,
+    ai: summary ? (
+      <div className="mt-6"><AIInsightsPanel context="dashboard" data={summary} /></div>
+    ) : null,
+  };
+
+  const visibleKpis = orderedVisible('kpi');
+  const visibleSections = orderedVisible('section');
+  const visibleBreakdowns = orderedVisible('breakdown');
+
   return (
     <div className="space-y-6 pb-6">
       {hasNoData ? (
@@ -529,6 +637,15 @@ export const Dashboard = () => {
                 <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
                 Filters
                 {hasActiveFilters && <span className="ml-1 bg-background/80 text-foreground rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-xs font-bold">!</span>}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLayoutEditorOpen(true)}
+                className="gap-1 sm:gap-2 text-xs sm:text-sm"
+              >
+                <LayoutGrid className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Customize</span>
               </Button>
             </div>
           </div>
@@ -691,215 +808,67 @@ export const Dashboard = () => {
             </Card>
           )}
 
-          {/* Time-based Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold text-primary">Today</CardTitle>
-                <Calendar className="h-5 w-5 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{summary?.today || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">Today's entries</p>
-                {showComparison && summary && summary.prevToday !== undefined && (
-                  <p className="text-xs mt-1 flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    {calculateChange(summary.today, summary.prevToday)}% vs yesterday
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative bg-gradient-to-br from-card to-card/80">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold text-foreground">This Week</CardTitle>
-                <CalendarDays className="h-5 w-5 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">{summary?.thisWeek || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">Last 7 days</p>
-                {showComparison && summary && summary.prevWeek !== undefined && (
-                  <p className="text-xs mt-1 flex items-center gap-1 text-muted-foreground">
-                    <TrendingUp className="h-3 w-3" />
-                    {calculateChange(summary.thisWeek, summary.prevWeek)}% vs last week
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative bg-gradient-to-br from-card to-card/80">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold text-foreground">This Month</CardTitle>
-                <Package className="h-5 w-5 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">{summary?.thisMonth || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">Current month</p>
-                {showComparison && summary && summary.prevMonth !== undefined && (
-                  <p className="text-xs mt-1 flex items-center gap-1 text-muted-foreground">
-                    <TrendingUp className="h-3 w-3" />
-                    {calculateChange(summary.thisMonth, summary.prevMonth)}% vs last month
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-xl border-2 border-muted-foreground/20 hover:border-muted-foreground/40 transition-all duration-300 cursor-pointer overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-muted-foreground/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold">Total</CardTitle>
-                <Sparkles className="h-5 w-5" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{summary?.total || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">All time entries</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Analytics Charts */}
-          {showCharts && allEntries && allEntries.length > 0 && (
-            <div className="mt-6">
-              <AnalyticsCharts entries={allEntries} />
+          {/* Time-based Stats (order & visibility from layout editor) */}
+          {visibleKpis.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {visibleKpis.map(id => <div key={id}>{kpiNodes[id]}</div>)}
             </div>
           )}
 
-          {/* AI Insights */}
-          {summary && (
-            <div className="mt-6">
-              <AIInsightsPanel context="dashboard" data={summary} />
+          {/* Widgets: charts / AI insights */}
+          {visibleSections.map(id => (
+            <div key={id}>{sectionNodes[id]}</div>
+          ))}
+
+          {/* Breakdown cards */}
+          {visibleBreakdowns.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+              {visibleBreakdowns.map(id => {
+                const cfg = breakdownConfig.find(c => c.id === id);
+                if (!cfg) return null;
+                const entriesList = Object.entries(cfg.data).sort(([, a], [, b]) => b - a);
+                return (
+                  <Card key={id} className="hover:shadow-lg transition-shadow bg-card/95">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <div className={`h-1 w-8 bg-gradient-to-r ${cfg.accentBar} rounded-full`} />
+                        {cfg.gradientTitle ? (
+                          <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{cfg.title}</span>
+                        ) : (
+                          <span className="font-semibold text-foreground">{cfg.title}</span>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {entriesList.length > 0 ? (
+                        entriesList.map(([name, count], idx) => (
+                          <div
+                            key={name}
+                            onClick={() => handleItemClick(cfg.filterType, name)}
+                            className="flex justify-between items-center p-3 rounded-lg bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-primary/40 cursor-pointer active:scale-[0.98]"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className={`text-xs font-bold ${cfg.accentText} w-6 text-center`}>{idx + 1}</span>
+                              <span className="font-medium truncate text-foreground">{name}</span>
+                            </div>
+                            <span className={`font-bold ${cfg.countClass} text-lg ml-2`}>{count}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-sm text-center py-4">{cfg.emptyText}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
 
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-            {/* By Shop */}
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-primary to-primary/50 rounded-full" />
-                  <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">By Shop</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {summary && Object.keys(summary.byShop).length > 0 ? (
-                  Object.entries(summary.byShop)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([name, count], idx) => (
-                      <div
-                        key={name}
-                        onClick={() => handleItemClick('shop', name)}
-                        className="flex justify-between items-center p-3 rounded-lg bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-primary/40 cursor-pointer active:scale-[0.98]"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xs font-bold text-primary/60 w-6 text-center">{idx + 1}</span>
-                          <span className="font-medium truncate text-foreground">{name}</span>
-                        </div>
-                        <span className="font-bold text-primary text-lg ml-2">{count}</span>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-muted-foreground text-sm text-center py-4">No shop data</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* By Category */}
-            <Card className="hover:shadow-lg transition-shadow bg-card/95">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full" />
-                  <span className="font-semibold text-foreground">By Category</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {summary && Object.keys(summary.byCategory).length > 0 ? (
-                  Object.entries(summary.byCategory)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([name, count], idx) => (
-                      <div
-                        key={name}
-                        onClick={() => handleItemClick('category', name)}
-                        className="flex justify-between items-center p-3 rounded-lg bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-primary/40 cursor-pointer active:scale-[0.98]"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xs font-bold text-orange-500/80 w-6 text-center">{idx + 1}</span>
-                          <span className="font-medium truncate text-foreground">{name}</span>
-                        </div>
-                        <span className="font-bold text-orange-500 text-lg ml-2">{count}</span>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-muted-foreground text-sm text-center py-4">No category data</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* By Size */}
-            <Card className="hover:shadow-lg transition-shadow bg-card/95">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full" />
-                  <span className="font-semibold text-foreground">By Size</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {summary && Object.keys(summary.bySize).length > 0 ? (
-                  Object.entries(summary.bySize)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([name, count], idx) => (
-                      <div
-                        key={name}
-                        onClick={() => handleItemClick('size', name)}
-                        className="flex justify-between items-center p-3 rounded-lg bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-primary/40 cursor-pointer active:scale-[0.98]"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xs font-bold text-cyan-500/80 w-6 text-center">{idx + 1}</span>
-                          <span className="font-medium truncate text-foreground">{name}</span>
-                        </div>
-                        <span className="font-bold text-cyan-500 text-lg ml-2">{count}</span>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-muted-foreground text-sm text-center py-4">No size data</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* By Customer Type */}
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <div className="h-1 w-8 bg-gradient-to-r from-primary to-primary/50 rounded-full" />
-                  <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">By Customer Type</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {summary && Object.keys(summary.byCustomerType).length > 0 ? (
-                  Object.entries(summary.byCustomerType)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([name, count], idx) => (
-                      <div
-                        key={name}
-                        onClick={() => handleItemClick('customer_type', name)}
-                        className="flex justify-between items-center p-3 rounded-lg bg-card hover:bg-muted transition-all duration-200 border border-border hover:border-primary/40 cursor-pointer active:scale-[0.98]"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xs font-bold text-primary/60 w-6 text-center">{idx + 1}</span>
-                          <span className="font-medium truncate text-foreground">{name}</span>
-                        </div>
-                        <span className="font-bold text-primary text-lg ml-2">{count}</span>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-muted-foreground text-sm text-center py-4">No customer type data</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <DashboardLayoutEditor
+            open={layoutEditorOpen}
+            onOpenChange={setLayoutEditorOpen}
+            controller={layoutController}
+          />
 
           {/* Detail Modal */}
           <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
