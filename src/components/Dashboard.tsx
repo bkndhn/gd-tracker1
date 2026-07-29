@@ -476,6 +476,109 @@ export const Dashboard = () => {
   const hasNoData = !allEntries || allEntries.length === 0;
   const hasNoFilteredData = summary && summary.total === 0 && !hasNoData;
 
+  const breakdownConfig: Array<{
+    id: 'by_shop' | 'by_category' | 'by_size' | 'by_customer_type';
+    title: string;
+    accentBar: string;
+    accentText: string;
+    countClass: string;
+    data: Record<string, number>;
+    filterType: 'shop' | 'category' | 'size' | 'customer_type';
+    emptyText: string;
+    gradientTitle?: boolean;
+  }> = [
+    { id: 'by_shop', title: 'By Shop', accentBar: 'from-primary to-primary/50', accentText: 'text-primary/60', countClass: 'text-primary', data: summary?.byShop || {}, filterType: 'shop', emptyText: 'No shop data', gradientTitle: true },
+    { id: 'by_category', title: 'By Category', accentBar: 'from-orange-500 to-orange-400', accentText: 'text-orange-500/80', countClass: 'text-orange-500', data: summary?.byCategory || {}, filterType: 'category', emptyText: 'No category data' },
+    { id: 'by_size', title: 'By Size', accentBar: 'from-cyan-500 to-cyan-400', accentText: 'text-cyan-500/80', countClass: 'text-cyan-500', data: summary?.bySize || {}, filterType: 'size', emptyText: 'No size data' },
+    { id: 'by_customer_type', title: 'By Customer Type', accentBar: 'from-primary to-primary/50', accentText: 'text-primary/60', countClass: 'text-primary', data: summary?.byCustomerType || {}, filterType: 'customer_type', emptyText: 'No customer type data', gradientTitle: true },
+  ];
+
+  const kpiNodes: Record<string, JSX.Element> = {
+    kpi_today: (
+      <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-semibold text-primary">Today</CardTitle>
+          <Calendar className="h-5 w-5 text-primary" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{summary?.today || 0}</div>
+          <p className="text-xs text-muted-foreground mt-1">Today's entries</p>
+          {showComparison && summary && summary.prevToday !== undefined && (
+            <p className="text-xs mt-1 flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" />
+              {calculateChange(summary.today, summary.prevToday)}% vs yesterday
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    kpi_week: (
+      <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative bg-gradient-to-br from-card to-card/80">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-semibold text-foreground">This Week</CardTitle>
+          <CalendarDays className="h-5 w-5 text-primary" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold text-foreground">{summary?.thisWeek || 0}</div>
+          <p className="text-xs text-muted-foreground mt-1">Last 7 days</p>
+          {showComparison && summary && summary.prevWeek !== undefined && (
+            <p className="text-xs mt-1 flex items-center gap-1 text-muted-foreground">
+              <TrendingUp className="h-3 w-3" />
+              {calculateChange(summary.thisWeek, summary.prevWeek)}% vs last week
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    kpi_month: (
+      <Card className="group hover:shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden relative bg-gradient-to-br from-card to-card/80">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-semibold text-foreground">This Month</CardTitle>
+          <Package className="h-5 w-5 text-primary" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold text-foreground">{summary?.thisMonth || 0}</div>
+          <p className="text-xs text-muted-foreground mt-1">Current month</p>
+          {showComparison && summary && summary.prevMonth !== undefined && (
+            <p className="text-xs mt-1 flex items-center gap-1 text-muted-foreground">
+              <TrendingUp className="h-3 w-3" />
+              {calculateChange(summary.thisMonth, summary.prevMonth)}% vs last month
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    kpi_total: (
+      <Card className="group hover:shadow-xl border-2 border-muted-foreground/20 hover:border-muted-foreground/40 transition-all duration-300 cursor-pointer overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-muted-foreground/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-semibold">Total</CardTitle>
+          <Sparkles className="h-5 w-5" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold">{summary?.total || 0}</div>
+          <p className="text-xs text-muted-foreground mt-1">All time entries</p>
+        </CardContent>
+      </Card>
+    ),
+  };
+
+  const sectionNodes: Record<string, JSX.Element | null> = {
+    charts: showCharts && allEntries && allEntries.length > 0 ? (
+      <div className="mt-6"><AnalyticsCharts entries={allEntries} /></div>
+    ) : null,
+    ai: summary ? (
+      <div className="mt-6"><AIInsightsPanel context="dashboard" data={summary} /></div>
+    ) : null,
+  };
+
+  const visibleKpis = orderedVisible('kpi');
+  const visibleSections = orderedVisible('section');
+  const visibleBreakdowns = orderedVisible('breakdown');
+
   return (
     <div className="space-y-6 pb-6">
       {hasNoData ? (
