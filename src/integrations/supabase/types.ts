@@ -41,6 +41,57 @@ export type Database = {
         }
         Relationships: []
       }
+      app_sessions: {
+        Row: {
+          admin_id: string | null
+          crashed: boolean
+          created_at: string
+          duration_ms: number
+          environment: string
+          errored: boolean
+          id: string
+          last_seen_at: string
+          release: string
+          session_id: string
+          started_at: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          crashed?: boolean
+          created_at?: string
+          duration_ms?: number
+          environment?: string
+          errored?: boolean
+          id?: string
+          last_seen_at?: string
+          release?: string
+          session_id: string
+          started_at?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          crashed?: boolean
+          created_at?: string
+          duration_ms?: number
+          environment?: string
+          errored?: boolean
+          id?: string
+          last_seen_at?: string
+          release?: string
+          session_id?: string
+          started_at?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           admin_id: string | null
@@ -131,6 +182,63 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      client_errors: {
+        Row: {
+          admin_id: string | null
+          breadcrumbs: Json
+          component_stack: string | null
+          created_at: string
+          environment: string
+          fingerprint: string
+          id: string
+          kind: string
+          level: string
+          message: string
+          release: string
+          session_id: string | null
+          stack: string | null
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          breadcrumbs?: Json
+          component_stack?: string | null
+          created_at?: string
+          environment?: string
+          fingerprint?: string
+          id?: string
+          kind?: string
+          level?: string
+          message: string
+          release?: string
+          session_id?: string | null
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          breadcrumbs?: Json
+          component_stack?: string | null
+          created_at?: string
+          environment?: string
+          fingerprint?: string
+          id?: string
+          kind?: string
+          level?: string
+          message?: string
+          release?: string
+          session_id?: string | null
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
