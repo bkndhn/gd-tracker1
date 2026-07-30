@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ReleaseHealthPanel } from '@/components/admin/ReleaseHealthPanel';
+import { HeartPulse } from 'lucide-react';
 import { toast } from 'sonner';
 import { Play, Pause, Trash2, Settings, Users, Building, Shield, Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity, UserPlus, Sparkles } from 'lucide-react';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
@@ -323,10 +325,11 @@ export const SuperAdminDashboard = () => {
 
   return (
     <Tabs defaultValue="tenants" className="space-y-6">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="tenants" className="flex items-center gap-1"><Shield className="h-4 w-4" /> Tenants</TabsTrigger>
         <TabsTrigger value="settings" className="flex items-center gap-1"><Settings className="h-4 w-4" /> Settings</TabsTrigger>
         <TabsTrigger value="audit" className="flex items-center gap-1"><Activity className="h-4 w-4" /> Audit Logs</TabsTrigger>
+        <TabsTrigger value="health" className="flex items-center gap-1"><HeartPulse className="h-4 w-4" /> Health</TabsTrigger>
       </TabsList>
 
       <TabsContent value="tenants">
@@ -572,6 +575,10 @@ export const SuperAdminDashboard = () => {
 
       <TabsContent value="audit">
         <AuditLogViewer />
+      </TabsContent>
+
+      <TabsContent value="health">
+        <ReleaseHealthPanel />
       </TabsContent>
     </Tabs>
   );

@@ -1,1 +1,5 @@
+
 project_id = "jlmkvvhmtpuplnpunbhc"
+
+[functions.export-report-email]
+verify_jwt = true

@@ -4,6 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { useSignedImageUrls } from '@/hooks/useSignedUrl';
+import { LazyImage } from '@/components/LazyImage';
 
 interface ImageDisplayProps {
   images: Array<{
@@ -59,16 +60,22 @@ export const ImageDisplay = ({ images, className = "" }: ImageDisplayProps) => {
   const renderThumbnails = () => {
     if (resolvedImages.length === 1) {
       return (
-        <img src={resolvedImages[0].image_url} alt="GD Entry"
-          className="w-16 h-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={() => setIsOpen(true)} />
+        <LazyImage
+          src={resolvedImages[0].image_url}
+          alt="GD Entry"
+          wrapperClassName="w-16 h-16 rounded hover:opacity-80 transition-opacity"
+          onClick={() => setIsOpen(true)}
+        />
       );
     }
     return (
       <div className="flex gap-1">
-        <img src={resolvedImages[0].image_url} alt="GD Entry"
-          className="w-16 h-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={() => setIsOpen(true)} />
+        <LazyImage
+          src={resolvedImages[0].image_url}
+          alt="GD Entry"
+          wrapperClassName="w-16 h-16 rounded hover:opacity-80 transition-opacity"
+          onClick={() => setIsOpen(true)}
+        />
         {resolvedImages.length > 1 && (
           <div className="w-16 h-16 bg-muted rounded flex items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors text-xs font-medium"
             onClick={() => setIsOpen(true)}>+{resolvedImages.length - 1}</div>
@@ -91,8 +98,8 @@ export const ImageDisplay = ({ images, className = "" }: ImageDisplayProps) => {
               className="absolute top-4 right-16 z-50 text-white/70 hover:text-white hover:bg-white/10 rounded-full"
               onClick={handleDownload} title="Download Image"><Download className="h-6 w-6" /></Button>
             <div className="relative w-full h-full flex items-center justify-center p-4">
-              <img src={resolvedImages[selectedImageIndex]?.image_url} alt={`Image ${selectedImageIndex + 1}`}
-                className="max-h-full max-w-full object-contain" />
+              <LazyImage src={resolvedImages[selectedImageIndex]?.image_url} alt={`Image ${selectedImageIndex + 1}`}
+                fit="contain" eager wrapperClassName="w-full h-full bg-transparent" />
               {resolvedImages.length > 1 && (
                 <>
                   <Button variant="ghost" size="icon"
@@ -113,8 +120,8 @@ export const ImageDisplay = ({ images, className = "" }: ImageDisplayProps) => {
           {resolvedImages.length > 1 && (
             <div className="flex gap-2 p-4 justify-center overflow-x-auto bg-black/90">
               {resolvedImages.map((image, index) => (
-                <img key={image.id} src={image.image_url} alt={`Thumbnail ${index + 1}`}
-                  className={`w-12 h-12 object-cover rounded cursor-pointer transition-all ${index === selectedImageIndex ? 'ring-2 ring-primary opacity-100' : 'opacity-50 hover:opacity-80'}`}
+                <LazyImage key={image.id} src={image.image_url} alt={`Thumbnail ${index + 1}`}
+                  wrapperClassName={`w-12 h-12 rounded transition-all ${index === selectedImageIndex ? 'ring-2 ring-primary opacity-100' : 'opacity-50 hover:opacity-80'}`}
                   onClick={() => setSelectedImageIndex(index)} />
               ))}
             </div>
