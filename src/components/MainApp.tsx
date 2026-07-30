@@ -9,6 +9,10 @@ import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Plus, Settings, FileText, Shield } from 'lucide-react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { OnboardingWizard, hasCompletedOnboarding } from '@/components/OnboardingWizard';
+import { identifySession, addBreadcrumb } from '@/lib/errorTracking';
+import { supabase } from '@/integrations/supabase/client';
 
 // Lazy load heavy components with prefetch helpers for instant nav
 const importDashboard = () => import('@/components/Dashboard').then(m => ({ default: m.Dashboard }));
@@ -29,6 +33,7 @@ export const MainApp = () => {
     isSuperAdmin ? 'super_admin' : (isAdmin || isManager) ? 'dashboard' : 'gd'
   );
   const notesInputRef = useRef<HTMLTextAreaElement>(null);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
 
   // Force logout handler
   const { handleProfileDeleted, handleProfilePaused } = useForceLogoutOnDelete(user?.id, adminId, signOut);
@@ -40,6 +45,27 @@ export const MainApp = () => {
     onProfilePaused: handleProfilePaused,
     enabled: !!user,
   });
+
+  // Bind crash reports + release-health sessions to the signed-in user
+  useEffect(() => {
+    if (user?.id) void identifySession(user.id, adminId || null);
+  }, [user?.id, adminId]);
+
+  // First-run setup: offer the wizard to admins whose tenant has no options yet
+  useEffect(() => {
+    if (!isAdmin || isSuperAdmin || !user?.id) return;
+    if (hasCompletedOnboarding(user.id)) return;
+    let cancelled = false;
+
+    (async () => {
+      const { count, error } = await (supabase.from('custom_field_options') as any)
+        .select('id', { count: 'exact', head: true })
+        .is('deleted_at', null);
+      if (!cancelled && !error && (count ?? 0) === 0) setOnboardingOpen(true);
+    })();
+
+    return () => { cancelled = true; };
+  }, [isAdmin, isSuperAdmin, user?.id]);
 
   // Update active tab when user role changes
   useEffect(() => {
@@ -58,6 +84,7 @@ export const MainApp = () => {
 
   // Auto-focus notes input when switching to GD tab
   useEffect(() => {
+    addBreadcrumb('navigation', `tab:${activeTab}`);
     if (activeTab === 'gd') {
       setTimeout(() => {
         const notesInput = document.querySelector('textarea#notes') as HTMLTextAreaElement;
@@ -87,26 +114,26 @@ export const MainApp = () => {
     switch (activeTab) {
       case 'super_admin':
         return isSuperAdmin ? (
-          <Suspense fallback={<LoadingSpinner />}><SuperAdminDashboard /></Suspense>
+          <ErrorBoundary boundary="SuperAdminDashboard"><Suspense fallback={<LoadingSpinner />}><SuperAdminDashboard /></Suspense></ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'gd':
-        return !isSuperAdmin ? <DamagedGoodsForm /> : <div className="text-center text-muted-foreground">Access denied</div>;
+        return !isSuperAdmin ? <ErrorBoundary boundary="gd-form"><DamagedGoodsForm /></ErrorBoundary> : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'dashboard':
         return (isAdmin || isManager) && !isSuperAdmin ? (
-          <Suspense fallback={<LoadingSpinner />}><Dashboard /></Suspense>
+          <ErrorBoundary boundary="Dashboard"><Suspense fallback={<LoadingSpinner />}><Dashboard /></Suspense></ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'admin':
         return isAdmin && !isSuperAdmin ? (
-          <Suspense fallback={<LoadingSpinner />}><AdminPanel /></Suspense>
+          <ErrorBoundary boundary="AdminPanel"><Suspense fallback={<LoadingSpinner />}><AdminPanel /></Suspense></ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'reports':
         return (isAdmin || isManager) && !isSuperAdmin ? (
-          <Suspense fallback={<LoadingSpinner />}><ReportsPanel /></Suspense>
+          <ErrorBoundary boundary="ReportsPanel"><Suspense fallback={<LoadingSpinner />}><ReportsPanel /></Suspense></ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       default:
         return isSuperAdmin ? (
-          <Suspense fallback={<LoadingSpinner />}><SuperAdminDashboard /></Suspense>
-        ) : <DamagedGoodsForm />;
+          <ErrorBoundary boundary="SuperAdminDashboard"><Suspense fallback={<LoadingSpinner />}><SuperAdminDashboard /></Suspense></ErrorBoundary>
+        ) : <ErrorBoundary boundary="gd-form"><DamagedGoodsForm /></ErrorBoundary>;
     }
   };
 
@@ -115,6 +142,7 @@ export const MainApp = () => {
   return (
     <>
       <PWAInstallPrompt />
+      <OnboardingWizard open={onboardingOpen} onOpenChange={setOnboardingOpen} />
       <Layout>
         <div className="space-y-4 sm:space-y-6 pb-20 md:pb-6 w-full min-w-0">
           {/* Desktop Navigation */}

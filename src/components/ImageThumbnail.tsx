@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSignedImageUrls } from '@/hooks/useSignedUrl';
+import { LazyImage } from '@/components/LazyImage';
 
 interface ImageThumbnailProps {
   images: Array<{
@@ -15,7 +16,7 @@ interface ImageThumbnailProps {
 
 export const ImageThumbnail = ({ images, maxDisplay = 1 }: ImageThumbnailProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [imageError, setImageError] = useState<Record<string, boolean>>({});
+  const [open, setOpen] = useState(false);
   const resolvedImages = useSignedImageUrls(images);
 
   if (!resolvedImages || resolvedImages.length === 0) {
@@ -29,21 +30,16 @@ export const ImageThumbnail = ({ images, maxDisplay = 1 }: ImageThumbnailProps) 
   const handleNext = () => setCurrentIndex((prev) => (prev < resolvedImages.length - 1 ? prev + 1 : 0));
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button className="flex items-center gap-1 hover:opacity-80 transition-opacity">
           {displayImages.map((img) => (
-            <div key={img.id} className="relative">
-              {imageError[img.id] ? (
-                <div className="w-8 h-8 rounded border border-border flex items-center justify-center bg-muted">
-                  <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                </div>
-              ) : (
-                <img src={img.image_url} alt={img.image_name || 'GD Image'}
-                  className="w-8 h-8 object-cover rounded border border-border"
-                  onError={() => setImageError(prev => ({ ...prev, [img.id]: true }))} />
-              )}
-            </div>
+            <LazyImage
+              key={img.id}
+              src={img.image_url}
+              alt={img.image_name || 'GD Image'}
+              wrapperClassName="w-8 h-8 rounded border border-border"
+            />
           ))}
           {remainingCount > 0 && (
             <span className="text-xs text-primary font-medium ml-0.5">+{remainingCount}</span>
@@ -53,16 +49,13 @@ export const ImageThumbnail = ({ images, maxDisplay = 1 }: ImageThumbnailProps) 
       <DialogContent className="max-w-3xl p-0 overflow-hidden">
         <div className="relative">
           <div className="relative aspect-video bg-black flex items-center justify-center">
-            {imageError[resolvedImages[currentIndex]?.id] ? (
-              <div className="flex flex-col items-center gap-2 text-white/60">
-                <ImageIcon className="h-16 w-16" /><span>Image not available</span>
-              </div>
-            ) : (
-              <img src={resolvedImages[currentIndex]?.image_url}
-                alt={resolvedImages[currentIndex]?.image_name || 'GD Image'}
-                className="max-w-full max-h-full object-contain"
-                onError={() => setImageError(prev => ({ ...prev, [resolvedImages[currentIndex]?.id]: true }))} />
-            )}
+            <LazyImage
+              src={resolvedImages[currentIndex]?.image_url}
+              alt={resolvedImages[currentIndex]?.image_name || 'GD Image'}
+              fit="contain"
+              eager
+              wrapperClassName="w-full h-full bg-black"
+            />
           </div>
           {resolvedImages.length > 1 && (
             <>
@@ -85,12 +78,7 @@ export const ImageThumbnail = ({ images, maxDisplay = 1 }: ImageThumbnailProps) 
             {resolvedImages.map((img, idx) => (
               <button key={img.id} onClick={() => setCurrentIndex(idx)}
                 className={`shrink-0 w-16 h-16 rounded overflow-hidden border-2 transition-all ${idx === currentIndex ? 'border-primary' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                {imageError[img.id] ? (
-                  <div className="w-full h-full flex items-center justify-center bg-muted"><ImageIcon className="h-6 w-6 text-muted-foreground" /></div>
-                ) : (
-                  <img src={img.image_url} alt="" className="w-full h-full object-cover"
-                    onError={() => setImageError(prev => ({ ...prev, [img.id]: true }))} />
-                )}
+                <LazyImage src={img.image_url} alt="" wrapperClassName="w-full h-full" />
               </button>
             ))}
           </div>
