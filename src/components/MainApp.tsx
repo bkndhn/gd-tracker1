@@ -93,6 +93,29 @@ export const MainApp = () => {
     }
   }, [activeTab]);
 
+  // Android hardware/gesture back button moves between tabs instead of leaving the app
+  const homeTab: ActiveTab = isSuperAdmin ? 'super_admin' : (isAdmin || isManager) ? 'dashboard' : 'gd';
+  const suppressHistory = useRef(false);
+
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      const tab = (e.state?.tab as ActiveTab | undefined) ?? homeTab;
+      suppressHistory.current = true;
+      setActiveTab(tab);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [homeTab]);
+
+  useEffect(() => {
+    if (suppressHistory.current) {
+      suppressHistory.current = false;
+      return;
+    }
+    if (window.history.state?.tab === activeTab) return;
+    window.history.pushState({ tab: activeTab }, '');
+  }, [activeTab]);
+
   // Prefetch all heavy panels right after first paint so tab clicks are instant
   useEffect(() => {
     const idle = (cb: () => void) => (window as any).requestIdleCallback?.(cb) ?? setTimeout(cb, 600);
@@ -103,6 +126,7 @@ export const MainApp = () => {
       if (isSuperAdmin) importSuperAdmin();
     });
   }, [isAdmin, isSuperAdmin]);
+
 
   const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
