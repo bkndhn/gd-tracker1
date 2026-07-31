@@ -191,7 +191,7 @@ export const MainApp = () => {
             )}
           </div>
 
-          <div className="w-full min-w-0">{renderContent()}</div>
+          <div key={activeTab} className="w-full min-w-0 md-page-enter">{renderContent()}</div>
         </div>
 
         <MobileBottomNav
