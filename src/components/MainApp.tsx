@@ -144,7 +144,7 @@ export const MainApp = () => {
       <PWAInstallPrompt />
       <OnboardingWizard open={onboardingOpen} onOpenChange={setOnboardingOpen} />
       <Layout>
-        <div className="space-y-4 sm:space-y-6 pb-20 md:pb-6 w-full min-w-0">
+        <div className="space-y-4 sm:space-y-6 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-6 w-full min-w-0">
           {/* Desktop Navigation */}
           <div className="hidden md:flex flex-wrap gap-1 p-1 rounded-xl border border-border/60 bg-card/60 backdrop-blur-sm shadow-sm overflow-x-auto">
             {/* Super Admin: only SA tab, no profile */}
