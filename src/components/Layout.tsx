@@ -47,7 +47,8 @@ export const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background w-full overflow-x-hidden">
-      <nav className="sticky top-0 z-40 border-b border-border/60 bg-card/80 backdrop-blur-md supports-[backdrop-filter]:bg-card/70 w-full shadow-[0_1px_0_0_hsl(var(--border))]">
+      {/* Material 3 top app bar */}
+      <nav className="sticky top-0 z-40 border-b border-border/50 md:border-border/60 bg-card/90 backdrop-blur-xl supports-[backdrop-filter]:bg-card/80 w-full elev-1 md:elev-0 md:shadow-[0_1px_0_0_hsl(var(--border))] pt-safe">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16 min-w-0">
             <div className="flex items-center min-w-0 flex-shrink-0">
@@ -80,7 +81,8 @@ export const Layout = ({ children }: LayoutProps) => {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowLogoutConfirm(true)}
-                className="flex items-center gap-1 sm:gap-2 flex-shrink-0 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 transition-colors"
+                data-icon-btn
+                className="md-ripple flex items-center gap-1 sm:gap-2 flex-shrink-0 rounded-full sm:rounded-md hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 transition-colors active:scale-95 md-emphasized"
               >
                 <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Sign Out</span>
@@ -91,9 +93,10 @@ export const Layout = ({ children }: LayoutProps) => {
         <div className="h-[2px] w-full bg-gradient-to-r from-primary via-accent to-secondary opacity-70" />
       </nav>
       
-      <main className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-4 lg:px-8 w-full min-w-0">
+      <main data-scroll className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-4 lg:px-8 w-full min-w-0">
         {children}
       </main>
+
 
       <DeleteConfirmationDialog
         open={showLogoutConfirm}
