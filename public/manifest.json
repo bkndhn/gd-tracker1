@@ -1,12 +1,13 @@
+
 {
   "name": "GD Insights",
   "short_name": "GD",
   "description": "Damaged Goods Management System",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f7f7ff",
-  "theme_color": "#7c3aed",
-  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/lovable-uploads/d9731f6e-4026-4be4-aaf0-1a401d8ba7be.png",
@@ -21,14 +22,7 @@
       "purpose": "maskable any"
     }
   ],
-  "categories": [
-    "business",
-    "productivity"
-  ],
+  "categories": ["business", "productivity"],
   "lang": "en",
-  "dir": "ltr",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ]
+  "dir": "ltr"
 }
