@@ -282,6 +282,11 @@ All colors MUST be HSL.
 
   /* Material touch ripple */
   .md-ripple { position: relative; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+  /* Never override explicit positioning utilities (e.g. absolute icon buttons) */
+  .md-ripple.absolute { position: absolute; }
+  .md-ripple.fixed { position: fixed; }
+  .md-ripple.sticky { position: sticky; }
+  .md-ripple.static { position: static; }
   .md-ripple::after {
     content: '';
     position: absolute;
