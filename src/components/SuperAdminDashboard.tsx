@@ -13,7 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReleaseHealthPanel } from '@/components/admin/ReleaseHealthPanel';
 import { HeartPulse } from 'lucide-react';
 import { toast } from 'sonner';
-import { Play, Pause, Trash2, Settings, Users, Building, Shield, Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity, UserPlus, Sparkles } from 'lucide-react';
+import { Play, Pause, Trash2, Settings, Users, Building, Shield, Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity, UserPlus, Sparkles, RefreshCw, MoreHorizontal, ArrowUpDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { GoogleDriveBackupPanel } from './admin/GoogleDriveBackupPanel';
 import { AuditLogViewer } from './AuditLogViewer';
