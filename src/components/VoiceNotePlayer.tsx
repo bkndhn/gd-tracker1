@@ -1,7 +1,14 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Mic, Loader2 } from 'lucide-react';
+import { Play, Pause, Mic, Loader2, RotateCcw, RotateCw } from 'lucide-react';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+import {
+  getResumePosition,
+  setResumePosition,
+  clearResumePosition,
+  loadPeaks,
+  pseudoPeaks,
+} from '@/lib/voicePlayback';
 
 interface VoiceNotePlayerProps {
   voiceUrl: string;
@@ -27,47 +34,60 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [progressPercent, setProgressPercent] = useState(0);
   const [displayTime, setDisplayTime] = useState(0);
+  const [bufferedPercent, setBufferedPercent] = useState(0);
+  const [hoverPercent, setHoverPercent] = useState<number | null>(null);
+  const [showRemaining, setShowRemaining] = useState(false);
+  const [peaks, setPeaks] = useState<number[] | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const waveformRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const isPlayingRef = useRef(false);
   const isDraggingRef = useRef(false);
+  const durationRef = useRef(0);
   const instanceIdRef = useRef<string>(Math.random().toString(36).slice(2));
 
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
   useEffect(() => { isDraggingRef.current = isDragging; }, [isDragging]);
+  useEffect(() => { durationRef.current = duration; }, [duration]);
 
   const numBars = compact ? 32 : 46;
+  const fallbackBars = useMemo(() => pseudoPeaks(voiceUrl, numBars), [voiceUrl, numBars]);
+  const waveformBars = peaks ?? fallbackBars;
 
-  const waveformBars = useMemo(() => {
-    const bars: number[] = [];
-    let hash = 0;
-    for (let i = 0; i < voiceUrl.length; i++) {
-      hash = ((hash << 5) - hash) + voiceUrl.charCodeAt(i);
-      hash |= 0;
-    }
-    for (let i = 0; i < numBars; i++) {
-      const seed = Math.abs(Math.sin(hash * (i + 1)) * 10000);
-      // Give a natural voice-envelope: taller in middle, softer at ends
-      const envelope = 0.55 + 0.45 * Math.sin((i / numBars) * Math.PI);
-      const raw = 0.25 + (seed % 75) / 100;
-      bars.push(Math.min(1, raw * envelope + 0.15));
-    }
-    return bars;
-  }, [voiceUrl, numBars]);
+  // Real amplitude peaks (decoded once per note, cached)
+  useEffect(() => {
+    if (!resolvedUrl) return;
+    let cancelled = false;
+    loadPeaks(voiceUrl, resolvedUrl, numBars).then((p) => {
+      if (!cancelled && p) setPeaks(p);
+    });
+    return () => { cancelled = true; };
+  }, [resolvedUrl, voiceUrl, numBars]);
+
+  const persist = useCallback((time: number) => {
+    setResumePosition(voiceUrl, time);
+  }, [voiceUrl]);
 
   const updateProgressFrame = useCallback(() => {
-    if (audioRef.current && !isDraggingRef.current) {
-      const currentTime = audioRef.current.currentTime;
-      const audioDuration = audioRef.current.duration || 1;
-      setProgressPercent((currentTime / audioDuration) * 100);
+    const audio = audioRef.current;
+    if (audio && !isDraggingRef.current) {
+      const currentTime = audio.currentTime;
+      const audioDuration = durationRef.current || audio.duration || 1;
+      setProgressPercent(Math.min(100, (currentTime / audioDuration) * 100));
       setDisplayTime(currentTime);
+      setResumePosition(voiceUrl, currentTime);
+      try {
+        if (audio.buffered.length) {
+          const end = audio.buffered.end(audio.buffered.length - 1);
+          setBufferedPercent(Math.min(100, (end / audioDuration) * 100));
+        }
+      } catch { /* noop */ }
     }
     if (isPlayingRef.current && !isDraggingRef.current) {
       animationFrameRef.current = requestAnimationFrame(updateProgressFrame);
     }
-  }, []);
+  }, [voiceUrl]);
 
   const startAnimationLoop = useCallback(() => {
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
@@ -81,11 +101,12 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
     }
   }, []);
 
-  // Pause when another player starts
+  // Pause when another player starts (keeping this one's resume position)
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as string;
       if (detail !== instanceIdRef.current && audioRef.current && isPlayingRef.current) {
+        persist(audioRef.current.currentTime);
         audioRef.current.pause();
         setIsPlaying(false);
         isPlayingRef.current = false;
@@ -94,15 +115,18 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
     };
     window.addEventListener(VOICE_PLAY_EVENT, handler);
     return () => window.removeEventListener(VOICE_PLAY_EVENT, handler);
-  }, [stopAnimationLoop]);
+  }, [stopAnimationLoop, persist]);
 
   useEffect(() => {
     return () => {
       stopAnimationLoop();
-      if (audioRef.current) audioRef.current.pause();
+      const audio = audioRef.current;
+      if (audio) {
+        setResumePosition(voiceUrl, audio.currentTime);
+        audio.pause();
+      }
     };
-  }, [stopAnimationLoop]);
-
+  }, [stopAnimationLoop, voiceUrl]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = playbackSpeed;
@@ -111,56 +135,71 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
   const cyclePlaybackSpeed = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     const currentIndex = PLAYBACK_SPEEDS.indexOf(playbackSpeed);
-    const nextIndex = (currentIndex + 1) % PLAYBACK_SPEEDS.length;
-    setPlaybackSpeed(PLAYBACK_SPEEDS[nextIndex]);
+    setPlaybackSpeed(PLAYBACK_SPEEDS[(currentIndex + 1) % PLAYBACK_SPEEDS.length]);
   }, [playbackSpeed]);
 
   const togglePlay = useCallback(() => {
-    if (!audioRef.current) return;
+    const audio = audioRef.current;
+    if (!audio) return;
     if (isPlayingRef.current) {
-      audioRef.current.pause();
+      persist(audio.currentTime);
+      audio.pause();
       setIsPlaying(false);
       isPlayingRef.current = false;
       stopAnimationLoop();
     } else {
       window.dispatchEvent(new CustomEvent(VOICE_PLAY_EVENT, { detail: instanceIdRef.current }));
-      audioRef.current.play().then(() => {
+      const resume = getResumePosition(voiceUrl);
+      if (resume > 0 && Math.abs(audio.currentTime - resume) > 0.2 && (!durationRef.current || resume < durationRef.current - 0.3)) {
+        try { audio.currentTime = resume; } catch { /* noop */ }
+      }
+      audio.play().then(() => {
         setIsPlaying(true);
         isPlayingRef.current = true;
         startAnimationLoop();
       }).catch(() => {});
     }
-  }, [startAnimationLoop, stopAnimationLoop]);
+  }, [startAnimationLoop, stopAnimationLoop, persist, voiceUrl]);
 
   const handleLoadedMetadata = useCallback(() => {
-    if (audioRef.current) {
-      let d = audioRef.current.duration;
-      // Fallback: some webm blobs report Infinity — seek trick
-      if (!isFinite(d)) {
-        audioRef.current.currentTime = 1e9;
-        setTimeout(() => {
-          if (audioRef.current) {
-            audioRef.current.currentTime = 0;
-            d = audioRef.current.duration;
-            if (isFinite(d)) setDuration(d);
-          }
-        }, 100);
-      } else {
-        setDuration(d);
-      }
-      setIsLoaded(true);
-      audioRef.current.playbackRate = playbackSpeed;
+    const audio = audioRef.current;
+    if (!audio) return;
+    let d = audio.duration;
+    if (!isFinite(d)) {
+      // Some webm blobs report Infinity — seek trick to force duration
+      audio.currentTime = 1e9;
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          d = audioRef.current.duration;
+          if (isFinite(d)) setDuration(d);
+        }
+      }, 100);
+    } else {
+      setDuration(d);
     }
-  }, [playbackSpeed]);
+    setIsLoaded(true);
+    audio.playbackRate = playbackSpeed;
+    // Restore resume position across remounts
+    const resume = getResumePosition(voiceUrl);
+    if (resume > 0 && (!isFinite(d) || resume < d - 0.3)) {
+      try {
+        audio.currentTime = resume;
+        setDisplayTime(resume);
+        if (isFinite(d) && d > 0) setProgressPercent((resume / d) * 100);
+      } catch { /* noop */ }
+    }
+  }, [playbackSpeed, voiceUrl]);
 
   const handleEnded = useCallback(() => {
     setIsPlaying(false);
     isPlayingRef.current = false;
     stopAnimationLoop();
     if (audioRef.current) audioRef.current.currentTime = 0;
+    clearResumePosition(voiceUrl);
     setProgressPercent(0);
     setDisplayTime(0);
-  }, [stopAnimationLoop]);
+  }, [stopAnimationLoop, voiceUrl]);
 
   const getTimeFromPosition = useCallback((clientX: number): number => {
     const ref = waveformRef.current;
@@ -176,8 +215,13 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
       audioRef.current.currentTime = clampedTime;
       setProgressPercent((clampedTime / duration) * 100);
       setDisplayTime(clampedTime);
+      persist(clampedTime);
     }
-  }, [duration]);
+  }, [duration, persist]);
+
+  const skip = useCallback((delta: number) => {
+    seekTo((audioRef.current?.currentTime ?? 0) + delta);
+  }, [seekTo]);
 
   // Media Session API — lockscreen / background controls
   useEffect(() => {
@@ -185,50 +229,47 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
     const ms: any = (navigator as any).mediaSession;
     try {
       ms.metadata = new (window as any).MediaMetadata({ title: 'Voice Note', artist: 'GD Tracker' });
-      const setAction = (a: string, cb: any) => { try { ms.setActionHandler(a, cb); } catch {} };
+      const setAction = (a: string, cb: any) => { try { ms.setActionHandler(a, cb); } catch { /* noop */ } };
       setAction('play', () => { if (audioRef.current && !isPlayingRef.current) togglePlay(); });
       setAction('pause', () => { if (audioRef.current && isPlayingRef.current) togglePlay(); });
       setAction('seekbackward', (d: any) => seekTo((audioRef.current?.currentTime ?? 0) - (d?.seekOffset || 5)));
       setAction('seekforward', (d: any) => seekTo((audioRef.current?.currentTime ?? 0) + (d?.seekOffset || 5)));
       setAction('seekto', (d: any) => { if (typeof d?.seekTime === 'number') seekTo(d.seekTime); });
-      return () => { ['play','pause','seekbackward','seekforward','seekto'].forEach(a => setAction(a, null)); };
-    } catch {}
+      return () => { ['play', 'pause', 'seekbackward', 'seekforward', 'seekto'].forEach(a => setAction(a, null)); };
+    } catch { /* noop */ }
   }, [isPlaying, togglePlay, seekTo]);
 
-  const handlePointerDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+  // Unified pointer events (mouse / touch / pen)
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (!isLoaded || !duration) return;
     e.preventDefault();
     e.stopPropagation();
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     setIsDragging(true);
     isDraggingRef.current = true;
     stopAnimationLoop();
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    seekTo(getTimeFromPosition(clientX));
+    seekTo(getTimeFromPosition(e.clientX));
   }, [isLoaded, duration, getTimeFromPosition, seekTo, stopAnimationLoop]);
 
-  useEffect(() => {
-    if (!isDragging) return;
-    const handleMove = (e: MouseEvent | TouchEvent) => {
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!duration) return;
+    const rect = waveformRef.current?.getBoundingClientRect();
+    if (rect) setHoverPercent(Math.max(0, Math.min(((e.clientX - rect.left) / rect.width) * 100, 100)));
+    if (isDraggingRef.current) {
       e.preventDefault();
-      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
-      seekTo(getTimeFromPosition(clientX));
-    };
-    const handleUp = () => {
-      setIsDragging(false);
-      isDraggingRef.current = false;
-      if (isPlayingRef.current) startAnimationLoop();
-    };
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleUp);
-    window.addEventListener('touchmove', handleMove, { passive: false });
-    window.addEventListener('touchend', handleUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleUp);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleUp);
-    };
-  }, [isDragging, getTimeFromPosition, seekTo, startAnimationLoop]);
+      seekTo(getTimeFromPosition(e.clientX));
+    }
+  }, [duration, getTimeFromPosition, seekTo]);
+
+  const endDrag = useCallback((e?: React.PointerEvent) => {
+    if (e) {
+      try { (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId); } catch { /* noop */ }
+    }
+    if (!isDraggingRef.current) return;
+    setIsDragging(false);
+    isDraggingRef.current = false;
+    if (isPlayingRef.current) startAnimationLoop();
+  }, [startAnimationLoop]);
 
   // Sizes
   const btnSize = compact ? 'h-8 w-8' : 'h-10 w-10';
@@ -236,6 +277,10 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
   const waveH = compact ? 'h-8' : 'h-10';
   const knobSize = compact ? 'w-3 h-3' : 'w-3.5 h-3.5';
   const timeCls = compact ? 'text-[10px]' : 'text-xs';
+
+  const timeLabel = showRemaining && duration
+    ? `-${formatTime(Math.max(0, duration - displayTime))}`
+    : (isPlaying || displayTime > 0 ? formatTime(displayTime) : formatTime(duration));
 
   return (
     <div
@@ -267,6 +312,19 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
         </div>
       )}
 
+      {/* Skip back */}
+      {!compact && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); skip(-5); }}
+          disabled={!isLoaded}
+          aria-label="Back 5 seconds"
+          className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors disabled:opacity-40"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </button>
+      )}
+
       {/* Play/Pause */}
       <Button
         type="button"
@@ -292,13 +350,29 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
         )}
       </Button>
 
+      {/* Skip forward */}
+      {!compact && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); skip(5); }}
+          disabled={!isLoaded}
+          aria-label="Forward 5 seconds"
+          className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors disabled:opacity-40"
+        >
+          <RotateCw className="h-3.5 w-3.5" />
+        </button>
+      )}
+
       {/* Waveform */}
       <div
         ref={waveformRef}
         tabIndex={0}
-        className={`flex-1 min-w-0 ${waveH} cursor-pointer relative select-none overflow-hidden touch-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full`}
-        onMouseDown={handlePointerDown}
-        onTouchStart={handlePointerDown}
+        className={`flex-1 min-w-0 ${waveH} cursor-pointer relative select-none overflow-visible touch-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onPointerLeave={(e) => { setHoverPercent(null); endDrag(e); }}
         onKeyDown={(e) => {
           if (!isLoaded || !duration) return;
           const cur = audioRef.current?.currentTime ?? 0;
@@ -311,14 +385,22 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
         }}
         role="slider"
         aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(progressPercent)}
+        aria-valuemax={Math.round(duration) || 100}
+        aria-valuenow={Math.round(displayTime)}
+        aria-valuetext={`${formatTime(displayTime)} of ${formatTime(duration)}`}
         aria-label="Voice note progress. Space to play, arrows to seek."
       >
+        {/* Buffered range */}
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-muted-foreground/10 pointer-events-none transition-[width] duration-300"
+          style={{ width: `${bufferedPercent}%` }}
+        />
+
         <div className="absolute inset-0 flex items-center gap-[2px] pointer-events-none">
           {waveformBars.map((height, index) => {
             const barPercent = ((index + 0.5) / waveformBars.length) * 100;
             const isPlayed = barPercent <= progressPercent;
+            const isHovered = hoverPercent !== null && barPercent <= hoverPercent && !isPlayed;
             const isEdge = isPlaying && Math.abs(barPercent - progressPercent) < (100 / waveformBars.length) * 1.2;
             return (
               <div
@@ -330,14 +412,27 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
                   maxWidth: compact ? '3px' : '4px',
                   background: isPlayed
                     ? 'linear-gradient(to top, hsl(var(--primary)), hsl(var(--primary-glow)))'
-                    : 'hsl(var(--muted-foreground) / 0.35)',
-                  transform: isEdge ? 'scaleY(1.15)' : 'scaleY(1)',
+                    : isHovered
+                      ? 'hsl(var(--primary) / 0.35)'
+                      : 'hsl(var(--muted-foreground) / 0.35)',
+                  transform: isEdge ? 'scaleY(1.18)' : 'scaleY(1)',
                   boxShadow: isPlayed ? '0 0 4px hsl(var(--primary) / 0.35)' : 'none',
                 }}
               />
             );
           })}
         </div>
+
+        {/* Hover scrub tooltip */}
+        {hoverPercent !== null && duration > 0 && (
+          <div
+            className="absolute -top-6 z-30 pointer-events-none px-1.5 py-0.5 rounded-md bg-foreground text-background text-[10px] font-medium tabular-nums shadow-md"
+            style={{ left: `${hoverPercent}%`, transform: 'translateX(-50%)' }}
+          >
+            {formatTime((hoverPercent / 100) * duration)}
+          </div>
+        )}
+
         {/* Scrubber knob */}
         <div
           className="absolute top-1/2 z-20 pointer-events-none"
@@ -348,15 +443,20 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
           }}
         >
           <div
-            className={`${knobSize} rounded-full bg-gradient-to-br from-primary to-primary-glow border-2 border-background shadow-md ${isPlaying ? 'ring-2 ring-primary/30' : ''}`}
+            className={`${knobSize} rounded-full bg-gradient-to-br from-primary to-primary-glow border-2 border-background shadow-md ${isPlaying ? 'ring-2 ring-primary/30' : ''} ${isDragging ? 'scale-125' : ''} transition-transform`}
           />
         </div>
       </div>
 
-      {/* Time */}
-      <span className={`${timeCls} text-muted-foreground tabular-nums shrink-0 min-w-[32px] text-right font-medium`}>
-        {isPlaying || displayTime > 0 ? formatTime(displayTime) : formatTime(duration)}
-      </span>
+      {/* Time (tap to toggle elapsed / remaining) */}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setShowRemaining((v) => !v); }}
+        aria-label="Toggle remaining time"
+        className={`${timeCls} text-muted-foreground hover:text-foreground transition-colors tabular-nums shrink-0 min-w-[36px] text-right font-medium`}
+      >
+        {timeLabel}
+      </button>
 
       {/* Speed */}
       <button
