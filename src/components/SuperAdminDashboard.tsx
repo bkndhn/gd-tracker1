@@ -174,11 +174,43 @@ export const SuperAdminDashboard = () => {
   const activeAdmins = useMemo(() => admins.filter(a => a.status === 'active'), [admins]);
   const pausedAdmins = useMemo(() => admins.filter(a => a.status === 'paused'), [admins]);
 
-  const filteredAdmins = useMemo(() => admins.filter(a =>
-    !searchQuery ||
-    a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (a.email || '').toLowerCase().includes(searchQuery.toLowerCase())
-  ), [admins, searchQuery]);
+  const filteredAdmins = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    const rows = admins.filter(a =>
+      (statusFilter === 'all' || a.status === statusFilter) &&
+      (!q || a.name.toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q))
+    );
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      if (sortKey === 'entries') return ((entryCounts[a.id] || 0) - (entryCounts[b.id] || 0)) * dir;
+      if (sortKey === 'name') return a.name.localeCompare(b.name) * dir;
+      const av = new Date(a[sortKey] || 0).getTime();
+      const bv = new Date(b[sortKey] || 0).getTime();
+      return (av - bv) * dir;
+    });
+  }, [admins, searchQuery, statusFilter, sortKey, sortDir, entryCounts]);
+
+  const toggleSort = useCallback((key: typeof sortKey) => {
+    setSortKey(prev => {
+      if (prev === key) { setSortDir(d => (d === 'asc' ? 'desc' : 'asc')); return prev; }
+      setSortDir('asc');
+      return key;
+    });
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+    toast.success('Refreshed');
+  }, [fetchData]);
+
+  const totalEntries = useMemo(() => Object.values(entryCounts).reduce((a, b) => a + b, 0), [entryCounts]);
+  const totalSubUsers = useMemo(
+    () => allProfiles.filter(p => p.role !== 'admin' && p.role !== 'super_admin').length,
+    [allProfiles]
+  );
+
 
   const getSubUsers = useCallback((adminId: string) =>
     allProfiles.filter(p => p.admin_id === adminId && p.id !== adminId), [allProfiles]);
