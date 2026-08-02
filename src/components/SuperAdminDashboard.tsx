@@ -716,17 +716,27 @@ const AdminRow = ({
       <TableCell><span className="flex items-center gap-1 text-sm"><Users className="h-3 w-3" /> {stats.userCount}/{admin.max_users ?? '∞'}</span></TableCell>
       <TableCell><span className="text-sm">{entryCount}/{admin.max_entries ?? '∞'}</span></TableCell>
       <TableCell><span className="flex items-center gap-1 text-sm"><Image className="h-3 w-3" /> {imageCount}/{admin.max_images_total ?? '∞'}</span></TableCell>
-      <TableCell onClick={(e) => e.stopPropagation()}>
-        <div className="flex gap-1">
-          {admin.status === 'paused' ? (
-            <Button size="sm" variant="outline" onClick={() => onActivate(admin)} title="Activate"><Play className="h-3 w-3" /></Button>
-          ) : (
-            <Button size="sm" variant="outline" onClick={() => onPause(admin)} title="Pause"><Pause className="h-3 w-3" /></Button>
-          )}
-          <Button size="sm" variant="outline" onClick={() => onLimits(admin)} title="Set limits"><Settings className="h-3 w-3" /></Button>
-          <Button size="sm" variant="destructive" onClick={() => onDelete(admin)} title="Delete"><Trash2 className="h-3 w-3" /></Button>
-        </div>
+      <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label={`Actions for ${admin.name}`}>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            {admin.status === 'paused' ? (
+              <DropdownMenuItem onClick={() => onActivate(admin)}><Play className="h-3.5 w-3.5 mr-2" /> Activate</DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => onPause(admin)}><Pause className="h-3.5 w-3.5 mr-2" /> Pause</DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={() => onLimits(admin)}><Settings className="h-3.5 w-3.5 mr-2" /> Set limits</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(admin)}>
+              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete tenant
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </TableCell>
+
     </TableRow>
     {isExpanded && subUsers.map(sub => (
       <TableRow key={sub.id} className="bg-muted/20">
