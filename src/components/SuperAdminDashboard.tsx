@@ -63,7 +63,12 @@ export const SuperAdminDashboard = () => {
   const [aiMonthly, setAiMonthly] = useState<number | ''>('');
   const [aiLifetime, setAiLifetime] = useState<number | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused'>('all');
+  const [sortKey, setSortKey] = useState<'name' | 'created_at' | 'last_login_at' | 'entries'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [refreshing, setRefreshing] = useState(false);
   const [expandedAdmins, setExpandedAdmins] = useState<Set<string>>(new Set());
+
   // Confirmation state for pause/activate actions
   const [pauseTarget, setPauseTarget] = useState<AdminProfile | null>(null);
   const [activateTarget, setActivateTarget] = useState<AdminProfile | null>(null);
