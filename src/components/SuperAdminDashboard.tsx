@@ -356,65 +356,100 @@ export const SuperAdminDashboard = () => {
     setLimitsDialogOpen(true);
   }, []);
 
+  const kpis = [
+    { label: 'Tenants', value: admins.length, icon: Shield, tone: 'text-foreground' },
+    { label: 'Active', value: activeAdmins.length, icon: CheckCircle, tone: 'text-primary' },
+    { label: 'Paused', value: pausedAdmins.length, icon: XCircle, tone: 'text-destructive' },
+    { label: 'Sub-users', value: totalSubUsers, icon: Users, tone: 'text-foreground' },
+    { label: 'Shops', value: allShops.length, icon: Building, tone: 'text-foreground' },
+    { label: 'Entries', value: totalEntries, icon: Activity, tone: 'text-foreground' },
+  ];
+
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading admin management...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="h-10 w-64 rounded-lg bg-muted animate-pulse" />
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
+          ))}
+        </div>
+        <div className="h-72 rounded-xl bg-muted animate-pulse" />
+      </div>
+    );
   }
 
   return (
     <Tabs defaultValue="tenants" className="space-y-6">
-      <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="tenants" className="flex items-center gap-1"><Shield className="h-4 w-4" /> Tenants</TabsTrigger>
-        <TabsTrigger value="settings" className="flex items-center gap-1"><Settings className="h-4 w-4" /> Settings</TabsTrigger>
-        <TabsTrigger value="audit" className="flex items-center gap-1"><Activity className="h-4 w-4" /> Audit Logs</TabsTrigger>
-        <TabsTrigger value="health" className="flex items-center gap-1"><HeartPulse className="h-4 w-4" /> Health</TabsTrigger>
-      </TabsList>
+      {/* Sticky page header */}
+      <div className="sticky top-0 z-20 -mx-2 px-2 py-3 bg-background/80 backdrop-blur-md border-b border-border/60 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2 truncate">
+              <Shield className="h-5 w-5 text-primary shrink-0" /> Super Admin
+            </h1>
+            <p className="text-xs text-muted-foreground truncate">Global tenant, limit and platform controls</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant="outline" className="hidden sm:inline-flex text-[10px]">
+              {import.meta.env.DEV ? 'Development' : 'Production'}
+            </Badge>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="gap-1">
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
+            </Button>
+          </div>
+        </div>
+
+        <TabsList className="w-full flex sm:grid sm:grid-cols-4 gap-1 overflow-x-auto no-scrollbar justify-start">
+          <TabsTrigger value="tenants" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><Shield className="h-4 w-4" /> Tenants</TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><Settings className="h-4 w-4" /> Settings</TabsTrigger>
+          <TabsTrigger value="audit" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><Activity className="h-4 w-4" /> Audit</TabsTrigger>
+          <TabsTrigger value="health" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><HeartPulse className="h-4 w-4" /> Health</TabsTrigger>
+        </TabsList>
+      </div>
 
       <TabsContent value="tenants">
     <div className="space-y-6">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search by name or email..." value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        {kpis.map(({ label, value, icon: Icon, tone }) => (
+          <Card key={label} className="premium-card">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">{label}</span>
+                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <div className={`text-2xl font-bold mt-1 ${tone}`}>{value}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Summary Stats with active/paused counts */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold">{admins.length}</div>
-          <div className="text-sm text-muted-foreground">Total Admins</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold text-primary">{activeAdmins.length}</div>
-          <div className="text-sm text-muted-foreground flex items-center justify-center gap-1"><CheckCircle className="h-3 w-3" /> Active</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold text-destructive">{pausedAdmins.length}</div>
-          <div className="text-sm text-muted-foreground flex items-center justify-center gap-1"><XCircle className="h-3 w-3" /> Paused</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold">{allProfiles.filter(p => p.role !== 'admin' && p.role !== 'super_admin').length}</div>
-          <div className="text-sm text-muted-foreground">Total Sub-Users</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold">{allShops.length}</div>
-          <div className="text-sm text-muted-foreground">Total Shops</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold">{Object.values(entryCounts).reduce((a, b) => a + b, 0)}</div>
-          <div className="text-sm text-muted-foreground">Total Entries</div>
-        </CardContent></Card>
+      {/* Search + filters + bulk actions */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name or email..." value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+          <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="active">Active only</SelectItem>
+            <SelectItem value="paused">Paused only</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setBulkAction('activate')} className="flex items-center gap-1 flex-1 sm:flex-none">
+            <Play className="h-3 w-3" /> Activate all
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setBulkAction('pause')} className="flex items-center gap-1 flex-1 sm:flex-none">
+            <Pause className="h-3 w-3" /> Pause all
+          </Button>
+        </div>
       </div>
 
-      {/* Bulk Actions */}
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={() => setBulkAction('activate')} className="flex items-center gap-1">
-          <Play className="h-3 w-3" /> Activate All
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setBulkAction('pause')} className="flex items-center gap-1">
-          <Pause className="h-3 w-3" /> Pause All
-        </Button>
-      </div>
 
       {/* Tenant Admin Table */}
       <Card>
