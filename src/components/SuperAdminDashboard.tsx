@@ -13,7 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReleaseHealthPanel } from '@/components/admin/ReleaseHealthPanel';
 import { HeartPulse } from 'lucide-react';
 import { toast } from 'sonner';
-import { Play, Pause, Trash2, Settings, Users, Building, Shield, Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity, UserPlus, Sparkles } from 'lucide-react';
+import { Play, Pause, Trash2, Settings, Users, Building, Shield, Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity, UserPlus, Sparkles, RefreshCw, MoreHorizontal, ArrowUpDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { GoogleDriveBackupPanel } from './admin/GoogleDriveBackupPanel';
 import { AuditLogViewer } from './AuditLogViewer';
@@ -63,7 +65,12 @@ export const SuperAdminDashboard = () => {
   const [aiMonthly, setAiMonthly] = useState<number | ''>('');
   const [aiLifetime, setAiLifetime] = useState<number | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused'>('all');
+  const [sortKey, setSortKey] = useState<'name' | 'created_at' | 'last_login_at' | 'entries'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [refreshing, setRefreshing] = useState(false);
   const [expandedAdmins, setExpandedAdmins] = useState<Set<string>>(new Set());
+
   // Confirmation state for pause/activate actions
   const [pauseTarget, setPauseTarget] = useState<AdminProfile | null>(null);
   const [activateTarget, setActivateTarget] = useState<AdminProfile | null>(null);
@@ -169,11 +176,43 @@ export const SuperAdminDashboard = () => {
   const activeAdmins = useMemo(() => admins.filter(a => a.status === 'active'), [admins]);
   const pausedAdmins = useMemo(() => admins.filter(a => a.status === 'paused'), [admins]);
 
-  const filteredAdmins = useMemo(() => admins.filter(a =>
-    !searchQuery ||
-    a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (a.email || '').toLowerCase().includes(searchQuery.toLowerCase())
-  ), [admins, searchQuery]);
+  const filteredAdmins = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    const rows = admins.filter(a =>
+      (statusFilter === 'all' || a.status === statusFilter) &&
+      (!q || a.name.toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q))
+    );
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      if (sortKey === 'entries') return ((entryCounts[a.id] || 0) - (entryCounts[b.id] || 0)) * dir;
+      if (sortKey === 'name') return a.name.localeCompare(b.name) * dir;
+      const av = new Date(a[sortKey] || 0).getTime();
+      const bv = new Date(b[sortKey] || 0).getTime();
+      return (av - bv) * dir;
+    });
+  }, [admins, searchQuery, statusFilter, sortKey, sortDir, entryCounts]);
+
+  const toggleSort = useCallback((key: typeof sortKey) => {
+    setSortKey(prev => {
+      if (prev === key) { setSortDir(d => (d === 'asc' ? 'desc' : 'asc')); return prev; }
+      setSortDir('asc');
+      return key;
+    });
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+    toast.success('Refreshed');
+  }, [fetchData]);
+
+  const totalEntries = useMemo(() => Object.values(entryCounts).reduce((a, b) => a + b, 0), [entryCounts]);
+  const totalSubUsers = useMemo(
+    () => allProfiles.filter(p => p.role !== 'admin' && p.role !== 'super_admin').length,
+    [allProfiles]
+  );
+
 
   const getSubUsers = useCallback((adminId: string) =>
     allProfiles.filter(p => p.admin_id === adminId && p.id !== adminId), [allProfiles]);
@@ -319,65 +358,100 @@ export const SuperAdminDashboard = () => {
     setLimitsDialogOpen(true);
   }, []);
 
+  const kpis = [
+    { label: 'Tenants', value: admins.length, icon: Shield, tone: 'text-foreground' },
+    { label: 'Active', value: activeAdmins.length, icon: CheckCircle, tone: 'text-primary' },
+    { label: 'Paused', value: pausedAdmins.length, icon: XCircle, tone: 'text-destructive' },
+    { label: 'Sub-users', value: totalSubUsers, icon: Users, tone: 'text-foreground' },
+    { label: 'Shops', value: allShops.length, icon: Building, tone: 'text-foreground' },
+    { label: 'Entries', value: totalEntries, icon: Activity, tone: 'text-foreground' },
+  ];
+
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading admin management...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="h-10 w-64 rounded-lg bg-muted animate-pulse" />
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
+          ))}
+        </div>
+        <div className="h-72 rounded-xl bg-muted animate-pulse" />
+      </div>
+    );
   }
 
   return (
     <Tabs defaultValue="tenants" className="space-y-6">
-      <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="tenants" className="flex items-center gap-1"><Shield className="h-4 w-4" /> Tenants</TabsTrigger>
-        <TabsTrigger value="settings" className="flex items-center gap-1"><Settings className="h-4 w-4" /> Settings</TabsTrigger>
-        <TabsTrigger value="audit" className="flex items-center gap-1"><Activity className="h-4 w-4" /> Audit Logs</TabsTrigger>
-        <TabsTrigger value="health" className="flex items-center gap-1"><HeartPulse className="h-4 w-4" /> Health</TabsTrigger>
-      </TabsList>
+      {/* Sticky page header */}
+      <div className="sticky top-0 z-20 -mx-2 px-2 py-3 bg-background/80 backdrop-blur-md border-b border-border/60 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2 truncate">
+              <Shield className="h-5 w-5 text-primary shrink-0" /> Super Admin
+            </h1>
+            <p className="text-xs text-muted-foreground truncate">Global tenant, limit and platform controls</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant="outline" className="hidden sm:inline-flex text-[10px]">
+              {import.meta.env.DEV ? 'Development' : 'Production'}
+            </Badge>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="gap-1">
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
+            </Button>
+          </div>
+        </div>
+
+        <TabsList className="w-full flex sm:grid sm:grid-cols-4 gap-1 overflow-x-auto no-scrollbar justify-start">
+          <TabsTrigger value="tenants" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><Shield className="h-4 w-4" /> Tenants</TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><Settings className="h-4 w-4" /> Settings</TabsTrigger>
+          <TabsTrigger value="audit" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><Activity className="h-4 w-4" /> Audit</TabsTrigger>
+          <TabsTrigger value="health" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><HeartPulse className="h-4 w-4" /> Health</TabsTrigger>
+        </TabsList>
+      </div>
 
       <TabsContent value="tenants">
     <div className="space-y-6">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search by name or email..." value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        {kpis.map(({ label, value, icon: Icon, tone }) => (
+          <Card key={label} className="premium-card">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">{label}</span>
+                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <div className={`text-2xl font-bold mt-1 ${tone}`}>{value}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Summary Stats with active/paused counts */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold">{admins.length}</div>
-          <div className="text-sm text-muted-foreground">Total Admins</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold text-primary">{activeAdmins.length}</div>
-          <div className="text-sm text-muted-foreground flex items-center justify-center gap-1"><CheckCircle className="h-3 w-3" /> Active</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold text-destructive">{pausedAdmins.length}</div>
-          <div className="text-sm text-muted-foreground flex items-center justify-center gap-1"><XCircle className="h-3 w-3" /> Paused</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold">{allProfiles.filter(p => p.role !== 'admin' && p.role !== 'super_admin').length}</div>
-          <div className="text-sm text-muted-foreground">Total Sub-Users</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold">{allShops.length}</div>
-          <div className="text-sm text-muted-foreground">Total Shops</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <div className="text-2xl font-bold">{Object.values(entryCounts).reduce((a, b) => a + b, 0)}</div>
-          <div className="text-sm text-muted-foreground">Total Entries</div>
-        </CardContent></Card>
+      {/* Search + filters + bulk actions */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name or email..." value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+          <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="active">Active only</SelectItem>
+            <SelectItem value="paused">Paused only</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setBulkAction('activate')} className="flex items-center gap-1 flex-1 sm:flex-none">
+            <Play className="h-3 w-3" /> Activate all
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setBulkAction('pause')} className="flex items-center gap-1 flex-1 sm:flex-none">
+            <Pause className="h-3 w-3" /> Pause all
+          </Button>
+        </div>
       </div>
 
-      {/* Bulk Actions */}
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={() => setBulkAction('activate')} className="flex items-center gap-1">
-          <Play className="h-3 w-3" /> Activate All
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setBulkAction('pause')} className="flex items-center gap-1">
-          <Pause className="h-3 w-3" /> Pause All
-        </Button>
-      </div>
 
       {/* Tenant Admin Table */}
       <Card>
@@ -391,16 +465,32 @@ export const SuperAdminDashboard = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8"></TableHead>
-                  <TableHead>Name</TableHead>
+                  <TableHead>
+                    <button type="button" onClick={() => toggleSort('name')} className="inline-flex items-center gap-1 hover:text-foreground">
+                      Name <ArrowUpDown className="h-3 w-3 opacity-60" />
+                    </button>
+                  </TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Signup</TableHead>
-                  <TableHead>Last Login</TableHead>
+                  <TableHead>
+                    <button type="button" onClick={() => toggleSort('created_at')} className="inline-flex items-center gap-1 hover:text-foreground">
+                      Signup <ArrowUpDown className="h-3 w-3 opacity-60" />
+                    </button>
+                  </TableHead>
+                  <TableHead>
+                    <button type="button" onClick={() => toggleSort('last_login_at')} className="inline-flex items-center gap-1 hover:text-foreground">
+                      Last Login <ArrowUpDown className="h-3 w-3 opacity-60" />
+                    </button>
+                  </TableHead>
                   <TableHead>Shops</TableHead>
                   <TableHead>Users</TableHead>
-                  <TableHead>Entries</TableHead>
+                  <TableHead>
+                    <button type="button" onClick={() => toggleSort('entries')} className="inline-flex items-center gap-1 hover:text-foreground">
+                      Entries <ArrowUpDown className="h-3 w-3 opacity-60" />
+                    </button>
+                  </TableHead>
                   <TableHead>Images</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -420,9 +510,16 @@ export const SuperAdminDashboard = () => {
                   );
                 })}
                 {filteredAdmins.length === 0 && (
-                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">No admins found.</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell colSpan={11} className="text-center py-10">
+                      <Shield className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                      <p className="text-sm font-medium">No tenants match your filters</p>
+                      <p className="text-xs text-muted-foreground">Try clearing the search or status filter.</p>
+                    </TableCell>
+                  </TableRow>
                 )}
               </TableBody>
+
             </Table>
           </div>
         </CardContent>
@@ -619,17 +716,27 @@ const AdminRow = ({
       <TableCell><span className="flex items-center gap-1 text-sm"><Users className="h-3 w-3" /> {stats.userCount}/{admin.max_users ?? '∞'}</span></TableCell>
       <TableCell><span className="text-sm">{entryCount}/{admin.max_entries ?? '∞'}</span></TableCell>
       <TableCell><span className="flex items-center gap-1 text-sm"><Image className="h-3 w-3" /> {imageCount}/{admin.max_images_total ?? '∞'}</span></TableCell>
-      <TableCell onClick={(e) => e.stopPropagation()}>
-        <div className="flex gap-1">
-          {admin.status === 'paused' ? (
-            <Button size="sm" variant="outline" onClick={() => onActivate(admin)} title="Activate"><Play className="h-3 w-3" /></Button>
-          ) : (
-            <Button size="sm" variant="outline" onClick={() => onPause(admin)} title="Pause"><Pause className="h-3 w-3" /></Button>
-          )}
-          <Button size="sm" variant="outline" onClick={() => onLimits(admin)} title="Set limits"><Settings className="h-3 w-3" /></Button>
-          <Button size="sm" variant="destructive" onClick={() => onDelete(admin)} title="Delete"><Trash2 className="h-3 w-3" /></Button>
-        </div>
+      <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label={`Actions for ${admin.name}`}>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            {admin.status === 'paused' ? (
+              <DropdownMenuItem onClick={() => onActivate(admin)}><Play className="h-3.5 w-3.5 mr-2" /> Activate</DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => onPause(admin)}><Pause className="h-3.5 w-3.5 mr-2" /> Pause</DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={() => onLimits(admin)}><Settings className="h-3.5 w-3.5 mr-2" /> Set limits</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(admin)}>
+              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete tenant
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </TableCell>
+
     </TableRow>
     {isExpanded && subUsers.map(sub => (
       <TableRow key={sub.id} className="bg-muted/20">

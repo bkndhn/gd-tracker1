@@ -201,6 +201,17 @@ All colors MUST be HSL.
     box-shadow: 0 8px 24px -12px hsl(var(--primary) / 0.25);
   }
 
+  /* Hide scrollbars on horizontally scrollable tab rows */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+
+
   /* Smoother focus rings across the app */
   :where(button, a, input, textarea, select, [role="button"]):focus-visible {
     outline: none;
