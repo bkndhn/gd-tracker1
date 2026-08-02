@@ -465,16 +465,32 @@ export const SuperAdminDashboard = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8"></TableHead>
-                  <TableHead>Name</TableHead>
+                  <TableHead>
+                    <button type="button" onClick={() => toggleSort('name')} className="inline-flex items-center gap-1 hover:text-foreground">
+                      Name <ArrowUpDown className="h-3 w-3 opacity-60" />
+                    </button>
+                  </TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Signup</TableHead>
-                  <TableHead>Last Login</TableHead>
+                  <TableHead>
+                    <button type="button" onClick={() => toggleSort('created_at')} className="inline-flex items-center gap-1 hover:text-foreground">
+                      Signup <ArrowUpDown className="h-3 w-3 opacity-60" />
+                    </button>
+                  </TableHead>
+                  <TableHead>
+                    <button type="button" onClick={() => toggleSort('last_login_at')} className="inline-flex items-center gap-1 hover:text-foreground">
+                      Last Login <ArrowUpDown className="h-3 w-3 opacity-60" />
+                    </button>
+                  </TableHead>
                   <TableHead>Shops</TableHead>
                   <TableHead>Users</TableHead>
-                  <TableHead>Entries</TableHead>
+                  <TableHead>
+                    <button type="button" onClick={() => toggleSort('entries')} className="inline-flex items-center gap-1 hover:text-foreground">
+                      Entries <ArrowUpDown className="h-3 w-3 opacity-60" />
+                    </button>
+                  </TableHead>
                   <TableHead>Images</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -494,9 +510,16 @@ export const SuperAdminDashboard = () => {
                   );
                 })}
                 {filteredAdmins.length === 0 && (
-                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">No admins found.</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell colSpan={11} className="text-center py-10">
+                      <Shield className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                      <p className="text-sm font-medium">No tenants match your filters</p>
+                      <p className="text-xs text-muted-foreground">Try clearing the search or status filter.</p>
+                    </TableCell>
+                  </TableRow>
                 )}
               </TableBody>
+
             </Table>
           </div>
         </CardContent>
