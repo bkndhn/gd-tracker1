@@ -1141,9 +1141,8 @@ export const ReportsPanel = () => {
                 )}
               </Button>
             </div>
-
-            </div>
           </div>
+
         </CardHeader>
         {showFilters && (
         <CardContent className="space-y-4 pt-4">
