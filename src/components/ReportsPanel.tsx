@@ -653,13 +653,17 @@ export const ReportsPanel = () => {
       await tick();
 
       const ws = XLSX.utils.json_to_sheet(exportData);
+      const headerCount = 5 + fields.length + 2;
       ws['!cols'] = [
-        { wch: 6 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 18 },
-        ...fields.map(() => ({ wch: 15 })),
-        { wch: 40 }, { wch: 20 },
+        { wch: 5 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 14 },
+        ...fields.map(() => ({ wch: 12 })),
+        { wch: 30 }, { wch: 16 },
       ];
+      ws['!freeze'] = { xSplit: 0, ySplit: 1 } as any;
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: exportData.length, c: headerCount - 1 } }) };
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'GD Reports');
+
 
       setProgress(95, 'Packaging file…');
       await tick();
