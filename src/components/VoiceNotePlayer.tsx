@@ -51,9 +51,26 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
   useEffect(() => { isDraggingRef.current = isDragging; }, [isDragging]);
   useEffect(() => { durationRef.current = duration; }, [duration]);
 
-  const numBars = compact ? 32 : 46;
+  // Bar count adapts to the actual rendered width so bars never overflow
+  // into the time / speed controls (tables, mobile, narrow cells).
+  const [waveWidth, setWaveWidth] = useState(0);
+  useEffect(() => {
+    const el = waveformRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      setWaveWidth(Math.round(w));
+    });
+    ro.observe(el);
+    setWaveWidth(Math.round(el.getBoundingClientRect().width));
+    return () => ro.disconnect();
+  }, []);
+
+  const barPitch = compact ? 4 : 5; // px per bar incl. gap
+  const numBars = Math.max(12, Math.min(compact ? 40 : 64, Math.floor((waveWidth || 140) / barPitch)));
   const fallbackBars = useMemo(() => pseudoPeaks(voiceUrl, numBars), [voiceUrl, numBars]);
   const waveformBars = peaks ?? fallbackBars;
+
 
   // Real amplitude peaks (decoded once per note, cached)
   useEffect(() => {
