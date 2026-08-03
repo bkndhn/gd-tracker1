@@ -19,16 +19,82 @@ export const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
 
-  // Auto-detect mode based on URL hash
+  // Detect recovery mode. Supabase may deliver the session as:
+  //  - hash tokens (#access_token=...), possibly already consumed by detectSessionInUrl
+  //  - a PKCE code (?code=...)
+  //  - a token_hash / OTP link (?token_hash=...&type=recovery)
   useEffect(() => {
-    const hash = window.location.hash;
-    const hasAccessToken = hash && hash.includes('access_token');
-    setIsRecovery(hasAccessToken);
+    let cancelled = false;
 
-    if (hasAccessToken) {
-      // Set session from URL tokens
-      setupSessionFromHash(hash);
-    }
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (cancelled) return;
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        setIsRecovery(true);
+        setSessionReady(true);
+        setError('');
+      }
+    });
+
+    const init = async () => {
+      const hash = window.location.hash || '';
+      const search = new URLSearchParams(window.location.search);
+
+      const errDesc = search.get('error_description') || new URLSearchParams(hash.replace('#', '')).get('error_description');
+      if (errDesc) {
+        setIsRecovery(true);
+        setError(decodeURIComponent(errDesc).includes('expired')
+          ? 'Reset link expired. Please request a new one.'
+          : 'Reset link is invalid. Please request a new one.');
+        return;
+      }
+
+      if (hash.includes('access_token')) {
+        setIsRecovery(true);
+        await setupSessionFromHash(hash);
+        return;
+      }
+
+      const code = search.get('code');
+      if (code) {
+        setIsRecovery(true);
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (cancelled) return;
+        if (error) {
+          setError('Reset link is invalid or expired. Please request a new one.');
+          return;
+        }
+        window.history.replaceState(null, '', window.location.pathname);
+        setSessionReady(true);
+        return;
+      }
+
+      const tokenHash = search.get('token_hash');
+      if (tokenHash) {
+        setIsRecovery(true);
+        const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash });
+        if (cancelled) return;
+        if (error) {
+          setError('Reset link is invalid or expired. Please request a new one.');
+          return;
+        }
+        window.history.replaceState(null, '', window.location.pathname);
+        setSessionReady(true);
+        return;
+      }
+
+      // Hash may already have been consumed by the Supabase client on load.
+      const { data } = await supabase.auth.getSession();
+      if (!cancelled && data.session) {
+        setIsRecovery(true);
+        setSessionReady(true);
+      }
+    };
+
+    init();
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const setupSessionFromHash = async (hash: string) => {
@@ -56,12 +122,14 @@ export const ResetPassword = () => {
         return;
       }
 
+      window.history.replaceState(null, '', window.location.pathname);
       setSessionReady(true);
     } catch (err) {
       if (import.meta.env.DEV) console.error('Error setting up session:', err);
       setError('Reset link is invalid. Please request a new one.');
     }
   };
+
 
   // Handle Forgot Password - send reset email
   const handleForgotPassword = async (e: React.FormEvent) => {

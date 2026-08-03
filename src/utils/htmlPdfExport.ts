@@ -34,10 +34,10 @@ export function exportToPDFViaHTML({
     .map(
       (col) =>
         `<th style="
-          padding: 8px 10px;
+          padding: 4px 6px;
           text-align: ${col.align || 'left'};
           font-weight: 700;
-          font-size: 11px;
+          font-size: 9px;
           color: #fff;
           background: #7c3aed;
           border: 1px solid #6d28d9;
@@ -56,12 +56,12 @@ export function exportToPDFViaHTML({
               (cell, colIdx) => {
                 const cellContent = typeof cell === 'string' ? escapeHtml(cell) : cell.html;
                 return `<td style="
-                  padding: 6px 10px;
-                  font-size: 11px;
+                  padding: 3px 6px;
+                  font-size: 9px;
                   border: 1px solid #e5e7eb;
                   text-align: ${columns[colIdx]?.align || 'left'};
                   word-wrap: break-word;
-                  max-width: 300px;
+                  max-width: 220px;
                   vertical-align: middle;
                 ">${cellContent}</td>`;
               }
@@ -88,27 +88,27 @@ export function exportToPDFViaHTML({
 
     body {
       font-family: 'Noto Sans Tamil', 'Latha', 'Tamil Sangam MN', Arial, sans-serif;
-      padding: 20px;
+      padding: 12px;
       color: #1a1a2e;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
     .report-header {
-      margin-bottom: 16px;
-      padding-bottom: 12px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
       border-bottom: 2px solid #7c3aed;
     }
 
     .report-title {
-      font-size: 20px;
+      font-size: 15px;
       font-weight: 700;
       color: #7c3aed;
       margin-bottom: 4px;
     }
 
     .report-subtitle {
-      font-size: 12px;
+      font-size: 9px;
       color: #64748b;
     }
 
@@ -120,7 +120,7 @@ export function exportToPDFViaHTML({
     }
 
     .entry-count {
-      font-size: 12px;
+      font-size: 9px;
       color: #64748b;
       font-weight: 600;
     }
@@ -133,12 +133,12 @@ export function exportToPDFViaHTML({
 
     @media print {
       body {
-        padding: 10px;
+        padding: 0;
       }
 
       @page {
         size: ${orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'};
-        margin: 10mm;
+        margin: 8mm;
       }
 
       .no-print {
@@ -239,10 +239,10 @@ export function exportMultiSectionPDFViaHTML({
       .map(
         (col) =>
           `<th style="
-            padding: 8px 10px;
+            padding: 4px 6px;
             text-align: ${col.align || 'left'};
             font-weight: 700;
-            font-size: 11px;
+            font-size: 9px;
             color: #fff;
             background: #7c3aed;
             border: 1px solid #6d28d9;
@@ -261,12 +261,12 @@ export function exportMultiSectionPDFViaHTML({
                 (cell, colIdx) => {
                   const cellContent = typeof cell === 'string' ? escapeHtml(cell) : cell.html;
                   return `<td style="
-                    padding: 6px 10px;
-                    font-size: 11px;
+                    padding: 3px 6px;
+                    font-size: 9px;
                     border: 1px solid #e5e7eb;
                     text-align: ${columns[colIdx]?.align || 'left'};
                     word-wrap: break-word;
-                    max-width: 300px;
+                    max-width: 220px;
                     vertical-align: middle;
                   ">${cellContent}</td>`;
                 }
@@ -286,7 +286,7 @@ export function exportMultiSectionPDFViaHTML({
     .map(
       (section, idx) =>
         `<div style="${idx > 0 ? 'page-break-before: always;' : ''}margin-bottom:20px;">
-          <h2 style="font-size:16px;font-weight:700;color:#7c3aed;margin:12px 0 8px 0;">
+          <h2 style="font-size:12px;font-weight:700;color:#7c3aed;margin:12px 0 8px 0;">
             ${escapeHtml(section.title)} (${section.rows.length} entries)
           </h2>
           ${buildTable(section.rows)}
@@ -304,17 +304,17 @@ export function exportMultiSectionPDFViaHTML({
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Noto Sans Tamil','Latha','Tamil Sangam MN',Arial,sans-serif;
-      padding: 20px; color: #1a1a2e;
+      padding: 12px; color: #1a1a2e;
       -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
-    .report-header { margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid #7c3aed; }
-    .report-title { font-size:20px; font-weight:700; color:#7c3aed; margin-bottom:4px; }
-    .report-subtitle { font-size:12px; color:#64748b; }
-    .entry-count { font-size:12px; color:#64748b; font-weight:600; }
+    .report-header { margin-bottom:8px; padding-bottom:6px; border-bottom:2px solid #7c3aed; }
+    .report-title { font-size:15px; font-weight:700; color:#7c3aed; margin-bottom:4px; }
+    .report-subtitle { font-size:9px; color:#64748b; }
+    .entry-count { font-size:9px; color:#64748b; font-weight:600; }
     .report-meta { display:flex; justify-content:space-between; align-items:center; }
     @media print {
-      body { padding:10px; }
-      @page { size: ${orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'}; margin:10mm; }
+      body { padding:0; }
+      @page { size: ${orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'}; margin:8mm; }
       .no-print { display:none !important; }
       table { page-break-inside:auto; }
       tr { page-break-inside:avoid; }
@@ -374,7 +374,7 @@ export function makeImageCell(imageUrls: string[]): CellContent {
   }
   const imgs = imageUrls.slice(0, 3).map(
     (url) =>
-      `<img src="${url}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb;" onerror="this.style.display='none'" />`
+      `<img src="${url}" style="width:32px;height:32px;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb;" onerror="this.style.display='none'" />`
   ).join(' ');
   return { html: `<div style="display:flex;gap:4px;align-items:center;justify-content:center;">${imgs}</div>` };
 }

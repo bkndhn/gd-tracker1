@@ -51,9 +51,26 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
   useEffect(() => { isDraggingRef.current = isDragging; }, [isDragging]);
   useEffect(() => { durationRef.current = duration; }, [duration]);
 
-  const numBars = compact ? 32 : 46;
+  // Bar count adapts to the actual rendered width so bars never overflow
+  // into the time / speed controls (tables, mobile, narrow cells).
+  const [waveWidth, setWaveWidth] = useState(0);
+  useEffect(() => {
+    const el = waveformRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      setWaveWidth(Math.round(w));
+    });
+    ro.observe(el);
+    setWaveWidth(Math.round(el.getBoundingClientRect().width));
+    return () => ro.disconnect();
+  }, []);
+
+  const barPitch = compact ? 4 : 5; // px per bar incl. gap
+  const numBars = Math.max(12, Math.min(compact ? 40 : 64, Math.floor((waveWidth || 140) / barPitch)));
   const fallbackBars = useMemo(() => pseudoPeaks(voiceUrl, numBars), [voiceUrl, numBars]);
   const waveformBars = peaks ?? fallbackBars;
+
 
   // Real amplitude peaks (decoded once per note, cached)
   useEffect(() => {
@@ -367,7 +384,7 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
       <div
         ref={waveformRef}
         tabIndex={0}
-        className={`flex-1 min-w-0 ${waveH} cursor-pointer relative select-none overflow-visible touch-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full`}
+        className={`flex-1 basis-0 min-w-[56px] ${waveH} cursor-pointer relative select-none overflow-visible touch-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
@@ -396,32 +413,34 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
           style={{ width: `${bufferedPercent}%` }}
         />
 
-        <div className="absolute inset-0 flex items-center gap-[2px] pointer-events-none">
-          {waveformBars.map((height, index) => {
-            const barPercent = ((index + 0.5) / waveformBars.length) * 100;
-            const isPlayed = barPercent <= progressPercent;
-            const isHovered = hoverPercent !== null && barPercent <= hoverPercent && !isPlayed;
-            const isEdge = isPlaying && Math.abs(barPercent - progressPercent) < (100 / waveformBars.length) * 1.2;
-            return (
-              <div
-                key={index}
-                className="flex-1 rounded-full transition-all duration-150"
-                style={{
-                  height: `${height * 100}%`,
-                  minWidth: '2px',
-                  maxWidth: compact ? '3px' : '4px',
-                  background: isPlayed
-                    ? 'linear-gradient(to top, hsl(var(--primary)), hsl(var(--primary-glow)))'
-                    : isHovered
-                      ? 'hsl(var(--primary) / 0.35)'
-                      : 'hsl(var(--muted-foreground) / 0.35)',
-                  transform: isEdge ? 'scaleY(1.18)' : 'scaleY(1)',
-                  boxShadow: isPlayed ? '0 0 4px hsl(var(--primary) / 0.35)' : 'none',
-                }}
-              />
-            );
-          })}
+        <div className="absolute inset-0 overflow-hidden rounded-full">
+          <div className="absolute inset-0 flex items-center gap-[1px] pointer-events-none">
+            {waveformBars.map((height, index) => {
+              const barPercent = ((index + 0.5) / waveformBars.length) * 100;
+              const isPlayed = barPercent <= progressPercent;
+              const isHovered = hoverPercent !== null && barPercent <= hoverPercent && !isPlayed;
+              const isEdge = isPlaying && Math.abs(barPercent - progressPercent) < (100 / waveformBars.length) * 1.2;
+              return (
+                <div
+                  key={index}
+                  className="flex-1 min-w-0 rounded-full transition-all duration-150"
+                  style={{
+                    height: `${Math.max(0.18, height) * 100}%`,
+                    maxWidth: compact ? '3px' : '4px',
+                    background: isPlayed
+                      ? 'linear-gradient(to top, hsl(var(--primary)), hsl(var(--primary-glow)))'
+                      : isHovered
+                        ? 'hsl(var(--primary) / 0.35)'
+                        : 'hsl(var(--muted-foreground) / 0.35)',
+                    transform: isEdge ? 'scaleY(1.18)' : 'scaleY(1)',
+                    boxShadow: isPlayed ? '0 0 4px hsl(var(--primary) / 0.35)' : 'none',
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
+
 
         {/* Hover scrub tooltip */}
         {hoverPercent !== null && duration > 0 && (
@@ -448,32 +467,34 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
         </div>
       </div>
 
-      {/* Time (tap to toggle elapsed / remaining) */}
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); setShowRemaining((v) => !v); }}
-        aria-label="Toggle remaining time"
-        className={`${timeCls} text-muted-foreground hover:text-foreground transition-colors tabular-nums shrink-0 min-w-[36px] text-right font-medium`}
-      >
-        {timeLabel}
-      </button>
+      {/* Right cluster: time + speed, always aligned and never overlapped */}
+      <div className="shrink-0 flex items-center gap-1.5 pl-1">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setShowRemaining((v) => !v); }}
+          aria-label="Toggle remaining time"
+          className={`${timeCls} text-muted-foreground hover:text-foreground transition-colors tabular-nums min-w-[34px] text-right font-medium leading-none`}
+        >
+          {timeLabel}
+        </button>
 
-      {/* Speed */}
-      <button
-        type="button"
-        onClick={cyclePlaybackSpeed}
-        className={[
-          'shrink-0 rounded-full font-semibold tabular-nums',
-          'transition-colors border',
-          playbackSpeed === 1
-            ? 'text-muted-foreground border-transparent hover:text-foreground'
-            : 'text-primary border-primary/30 bg-primary/5',
-          compact ? 'text-[9px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5',
-        ].join(' ')}
-        aria-label={`Playback speed ${playbackSpeed}x`}
-      >
-        {playbackSpeed}×
-      </button>
+        <button
+          type="button"
+          onClick={cyclePlaybackSpeed}
+          className={[
+            'rounded-full font-semibold tabular-nums leading-none',
+            'transition-colors border',
+            playbackSpeed === 1
+              ? 'text-muted-foreground border-border/60 hover:text-foreground'
+              : 'text-primary border-primary/30 bg-primary/5',
+            compact ? 'text-[9px] px-1.5 py-[3px]' : 'text-[10px] px-2 py-1',
+          ].join(' ')}
+          aria-label={`Playback speed ${playbackSpeed}x`}
+        >
+          {playbackSpeed}×
+        </button>
+      </div>
+
     </div>
   );
 };

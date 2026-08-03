@@ -548,12 +548,13 @@ export const SuperAdminDashboard = () => {
 
       {/* Limits Dialog */}
       <Dialog open={limitsDialogOpen} onOpenChange={setLimitsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-h-[85dvh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
             <DialogTitle>Set Limits for {selectedAdmin?.name}</DialogTitle>
             <DialogDescription>Configure resource limits for this admin tenant.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto px-6 py-4 flex-1 min-h-0 overscroll-contain">
+
             <div className="space-y-2">
               <Label>Maximum Shops</Label>
               <Input type="number" min={1} value={maxShops} onChange={e => setMaxShops(Number(e.target.value))} />
@@ -605,12 +606,13 @@ export const SuperAdminDashboard = () => {
                 <p className="text-xs text-muted-foreground col-span-3">Blank = unlimited. Counters reset at midnight (daily) and on the 1st (monthly).</p>
               </div>
             )}
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setLimitsDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSetLimits}>Save Limits</Button>
-            </div>
+          </div>
+          <div className="flex gap-2 justify-end border-t px-6 py-3 shrink-0 bg-background">
+            <Button variant="outline" onClick={() => setLimitsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSetLimits}>Save Limits</Button>
           </div>
         </DialogContent>
+
       </Dialog>
 
       {/* Delete Confirmation */}

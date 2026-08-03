@@ -13,7 +13,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ServerExportDialog } from '@/components/ServerExportDialog';
 import { ImageDisplay } from '@/components/ImageDisplay';
 import { ImageThumbnail } from '@/components/ImageThumbnail';
 import { VoiceNotePlayer } from '@/components/VoiceNotePlayer';
@@ -79,6 +78,11 @@ export const ReportsPanel = () => {
   const [customDateTo, setCustomDateTo] = useState<Date>();
   const [reporterSearch, setReporterSearch] = useState<string>('');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [showFilters, setShowFilters] = useState(false);
+  const hasActiveFilters =
+    selectedShop !== 'all' || selectedCategory !== 'all' || selectedSize !== 'all' ||
+    selectedCustomerType !== 'all' || dateFilter !== 'today' || reporterSearch.trim() !== '';
+
 
   // Table column filters (Excel-like)
   const [tableShopFilters, setTableShopFilters] = useState<string[]>([]);
@@ -649,13 +653,17 @@ export const ReportsPanel = () => {
       await tick();
 
       const ws = XLSX.utils.json_to_sheet(exportData);
+      const headerCount = 5 + fields.length + 2;
       ws['!cols'] = [
-        { wch: 6 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 18 },
-        ...fields.map(() => ({ wch: 15 })),
-        { wch: 40 }, { wch: 20 },
+        { wch: 5 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 14 },
+        ...fields.map(() => ({ wch: 12 })),
+        { wch: 30 }, { wch: 16 },
       ];
+      ws['!freeze'] = { xSplit: 0, ySplit: 1 } as any;
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: exportData.length, c: headerCount - 1 } }) };
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'GD Reports');
+
 
       setProgress(95, 'Packaging file…');
       await tick();
@@ -1098,55 +1106,46 @@ export const ReportsPanel = () => {
     <div className="space-y-6 w-full min-w-0">
       {summary && <AIInsightsPanel context="reports" data={summary} />}
       <Card className="w-full">
-        {/* Header content was already replaced correctly above, just need to ensure surrounding structure is valid */}
-        {/* ... checking previous edit ... */}
-        {/* The previous edit seems to have replaced CardHeader content but maybe messed up braces if not careful */}
-        {/* Re-applying the header section cleanly to be safe */}
-        <CardHeader className="rounded-t-2xl border-b bg-gradient-to-r from-background to-muted/20">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <CardTitle className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80 flex items-center gap-2">
+        <CardHeader className="rounded-t-2xl border-b bg-gradient-to-r from-background to-muted/20 py-3 px-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <CardTitle className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
                 GD Reports
                 {!isOnline && (
-                  <span className="text-xs font-normal text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100 flex items-center gap-1.5 shadow-sm">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-                    </span>
-                    Offline Mode
+                  <span className="text-[10px] font-normal text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full border border-orange-100">
+                    Offline
                   </span>
                 )}
                 {pendingCount > 0 && (
-                  <span className="text-xs font-normal text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100 shadow-sm">
+                  <span className="text-[10px] font-normal text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-100">
                     {pendingCount} pending
                   </span>
                 )}
               </CardTitle>
-              <CardDescription className="text-muted-foreground/90">
-                Generated report for {entries.length} goods damaged entries
+              <CardDescription className="text-xs">
+                {entries.length} entries
               </CardDescription>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              {/* Re-adding export buttons if they were lost or just ensuring closure */}
-              <Button onClick={exportTableExcel} variant="outline" size="sm" className="h-9 gap-2">
-                <FileSpreadsheet className="h-4 w-4" />
-                <span className="hidden sm:inline">Excel</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={hasActiveFilters ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowFilters(v => !v)}
+                className="h-8 gap-1.5 text-xs"
+              >
+                <Filter className="h-3.5 w-3.5" />
+                Filters
+                {hasActiveFilters && (
+                  <span className="ml-0.5 rounded-full bg-background/80 text-foreground w-4 h-4 flex items-center justify-center text-[10px] font-bold">!</span>
+                )}
               </Button>
-              <Button onClick={exportTablePDF} variant="outline" size="sm" className="h-9 gap-2">
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">PDF</span>
-              </Button>
-              <ServerExportDialog
-                from={customDateFrom ? customDateFrom.toISOString() : undefined}
-                to={customDateTo ? customDateTo.toISOString() : undefined}
-                fieldIds={customFields.map(cf => cf.id)}
-                rowCount={filteredEntries.length}
-              />
             </div>
           </div>
+
         </CardHeader>
-        <CardContent className="space-y-4">
+        {showFilters && (
+        <CardContent className="space-y-4 pt-4">
           {/* Global search across all columns */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Search</Label>
@@ -1161,6 +1160,7 @@ export const ReportsPanel = () => {
 
           {/* Mobile-friendly grid layout */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+
             <div className="space-y-2 min-w-0">
               <Label className="text-sm font-medium">Date Range</Label>
               <Select value={dateFilter} onValueChange={setDateFilter}>
@@ -1317,6 +1317,8 @@ export const ReportsPanel = () => {
             </Button>
           </div>
         </CardContent>
+        )}
+
       </Card>
 
       <Card className="w-full">
