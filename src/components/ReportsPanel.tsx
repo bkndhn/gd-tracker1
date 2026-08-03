@@ -1098,55 +1098,53 @@ export const ReportsPanel = () => {
     <div className="space-y-6 w-full min-w-0">
       {summary && <AIInsightsPanel context="reports" data={summary} />}
       <Card className="w-full">
-        {/* Header content was already replaced correctly above, just need to ensure surrounding structure is valid */}
-        {/* ... checking previous edit ... */}
-        {/* The previous edit seems to have replaced CardHeader content but maybe messed up braces if not careful */}
-        {/* Re-applying the header section cleanly to be safe */}
-        <CardHeader className="rounded-t-2xl border-b bg-gradient-to-r from-background to-muted/20">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <CardTitle className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80 flex items-center gap-2">
+        <CardHeader className="rounded-t-2xl border-b bg-gradient-to-r from-background to-muted/20 py-3 px-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <CardTitle className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
                 GD Reports
                 {!isOnline && (
-                  <span className="text-xs font-normal text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100 flex items-center gap-1.5 shadow-sm">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-                    </span>
-                    Offline Mode
+                  <span className="text-[10px] font-normal text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full border border-orange-100">
+                    Offline
                   </span>
                 )}
                 {pendingCount > 0 && (
-                  <span className="text-xs font-normal text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100 shadow-sm">
+                  <span className="text-[10px] font-normal text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-100">
                     {pendingCount} pending
                   </span>
                 )}
               </CardTitle>
-              <CardDescription className="text-muted-foreground/90">
-                Generated report for {entries.length} goods damaged entries
+              <CardDescription className="text-xs">
+                {entries.length} entries
               </CardDescription>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              {/* Re-adding export buttons if they were lost or just ensuring closure */}
-              <Button onClick={exportTableExcel} variant="outline" size="sm" className="h-9 gap-2">
-                <FileSpreadsheet className="h-4 w-4" />
+            <div className="flex items-center gap-2">
+              <Button
+                variant={hasActiveFilters ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowFilters(v => !v)}
+                className="h-8 gap-1.5 text-xs"
+              >
+                <Filter className="h-3.5 w-3.5" />
+                Filters
+                {hasActiveFilters && (
+                  <span className="ml-0.5 rounded-full bg-background/80 text-foreground w-4 h-4 flex items-center justify-center text-[10px] font-bold">!</span>
+                )}
+              </Button>
+              <Button onClick={exportTableExcel} variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                <FileSpreadsheet className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Excel</span>
               </Button>
-              <Button onClick={exportTablePDF} variant="outline" size="sm" className="h-9 gap-2">
-                <FileText className="h-4 w-4" />
+              <Button onClick={exportTablePDF} variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                <FileText className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">PDF</span>
               </Button>
-              <ServerExportDialog
-                from={customDateFrom ? customDateFrom.toISOString() : undefined}
-                to={customDateTo ? customDateTo.toISOString() : undefined}
-                fieldIds={customFields.map(cf => cf.id)}
-                rowCount={filteredEntries.length}
-              />
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        {showFilters && (
+        <CardContent className="space-y-4 pt-4">
           {/* Global search across all columns */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Search</Label>
@@ -1161,6 +1159,7 @@ export const ReportsPanel = () => {
 
           {/* Mobile-friendly grid layout */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+
             <div className="space-y-2 min-w-0">
               <Label className="text-sm font-medium">Date Range</Label>
               <Select value={dateFilter} onValueChange={setDateFilter}>
