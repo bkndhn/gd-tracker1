@@ -467,32 +467,34 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
         </div>
       </div>
 
-      {/* Time (tap to toggle elapsed / remaining) */}
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); setShowRemaining((v) => !v); }}
-        aria-label="Toggle remaining time"
-        className={`${timeCls} text-muted-foreground hover:text-foreground transition-colors tabular-nums shrink-0 min-w-[36px] text-right font-medium`}
-      >
-        {timeLabel}
-      </button>
+      {/* Right cluster: time + speed, always aligned and never overlapped */}
+      <div className="shrink-0 flex items-center gap-1.5 pl-1">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setShowRemaining((v) => !v); }}
+          aria-label="Toggle remaining time"
+          className={`${timeCls} text-muted-foreground hover:text-foreground transition-colors tabular-nums min-w-[34px] text-right font-medium leading-none`}
+        >
+          {timeLabel}
+        </button>
 
-      {/* Speed */}
-      <button
-        type="button"
-        onClick={cyclePlaybackSpeed}
-        className={[
-          'shrink-0 rounded-full font-semibold tabular-nums',
-          'transition-colors border',
-          playbackSpeed === 1
-            ? 'text-muted-foreground border-transparent hover:text-foreground'
-            : 'text-primary border-primary/30 bg-primary/5',
-          compact ? 'text-[9px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5',
-        ].join(' ')}
-        aria-label={`Playback speed ${playbackSpeed}x`}
-      >
-        {playbackSpeed}×
-      </button>
+        <button
+          type="button"
+          onClick={cyclePlaybackSpeed}
+          className={[
+            'rounded-full font-semibold tabular-nums leading-none',
+            'transition-colors border',
+            playbackSpeed === 1
+              ? 'text-muted-foreground border-border/60 hover:text-foreground'
+              : 'text-primary border-primary/30 bg-primary/5',
+            compact ? 'text-[9px] px-1.5 py-[3px]' : 'text-[10px] px-2 py-1',
+          ].join(' ')}
+          aria-label={`Playback speed ${playbackSpeed}x`}
+        >
+          {playbackSpeed}×
+        </button>
+      </div>
+
     </div>
   );
 };
