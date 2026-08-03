@@ -606,12 +606,13 @@ export const SuperAdminDashboard = () => {
                 <p className="text-xs text-muted-foreground col-span-3">Blank = unlimited. Counters reset at midnight (daily) and on the 1st (monthly).</p>
               </div>
             )}
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setLimitsDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSetLimits}>Save Limits</Button>
-            </div>
+          </div>
+          <div className="flex gap-2 justify-end border-t px-6 py-3 shrink-0 bg-background">
+            <Button variant="outline" onClick={() => setLimitsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSetLimits}>Save Limits</Button>
           </div>
         </DialogContent>
+
       </Dialog>
 
       {/* Delete Confirmation */}
