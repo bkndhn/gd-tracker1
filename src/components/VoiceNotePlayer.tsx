@@ -384,7 +384,7 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
       <div
         ref={waveformRef}
         tabIndex={0}
-        className={`flex-1 min-w-0 ${waveH} cursor-pointer relative select-none overflow-visible touch-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full`}
+        className={`flex-1 basis-0 min-w-[56px] ${waveH} cursor-pointer relative select-none overflow-visible touch-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
