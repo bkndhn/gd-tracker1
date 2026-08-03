@@ -1316,6 +1316,8 @@ export const ReportsPanel = () => {
             </Button>
           </div>
         </CardContent>
+        )}
+
       </Card>
 
       <Card className="w-full">
