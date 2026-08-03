@@ -1140,15 +1140,8 @@ export const ReportsPanel = () => {
                   <span className="ml-0.5 rounded-full bg-background/80 text-foreground w-4 h-4 flex items-center justify-center text-[10px] font-bold">!</span>
                 )}
               </Button>
-              <Button onClick={exportTableExcel} variant="outline" size="sm" className="h-8 gap-1.5 text-xs hidden">
+            </div>
 
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Excel</span>
-              </Button>
-              <Button onClick={exportTablePDF} variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-                <FileText className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">PDF</span>
-              </Button>
             </div>
           </div>
         </CardHeader>
