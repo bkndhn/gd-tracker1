@@ -548,12 +548,13 @@ export const SuperAdminDashboard = () => {
 
       {/* Limits Dialog */}
       <Dialog open={limitsDialogOpen} onOpenChange={setLimitsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-h-[85dvh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
             <DialogTitle>Set Limits for {selectedAdmin?.name}</DialogTitle>
             <DialogDescription>Configure resource limits for this admin tenant.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto px-6 py-4 flex-1 min-h-0 overscroll-contain">
+
             <div className="space-y-2">
               <Label>Maximum Shops</Label>
               <Input type="number" min={1} value={maxShops} onChange={e => setMaxShops(Number(e.target.value))} />
