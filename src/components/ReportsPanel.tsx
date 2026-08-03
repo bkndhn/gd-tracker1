@@ -79,6 +79,11 @@ export const ReportsPanel = () => {
   const [customDateTo, setCustomDateTo] = useState<Date>();
   const [reporterSearch, setReporterSearch] = useState<string>('');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [showFilters, setShowFilters] = useState(false);
+  const hasActiveFilters =
+    selectedShop !== 'all' || selectedCategory !== 'all' || selectedSize !== 'all' ||
+    selectedCustomerType !== 'all' || dateFilter !== 'today' || reporterSearch.trim() !== '';
+
 
   // Table column filters (Excel-like)
   const [tableShopFilters, setTableShopFilters] = useState<string[]>([]);
