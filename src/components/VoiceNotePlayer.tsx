@@ -413,32 +413,34 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
           style={{ width: `${bufferedPercent}%` }}
         />
 
-        <div className="absolute inset-0 flex items-center gap-[2px] pointer-events-none">
-          {waveformBars.map((height, index) => {
-            const barPercent = ((index + 0.5) / waveformBars.length) * 100;
-            const isPlayed = barPercent <= progressPercent;
-            const isHovered = hoverPercent !== null && barPercent <= hoverPercent && !isPlayed;
-            const isEdge = isPlaying && Math.abs(barPercent - progressPercent) < (100 / waveformBars.length) * 1.2;
-            return (
-              <div
-                key={index}
-                className="flex-1 rounded-full transition-all duration-150"
-                style={{
-                  height: `${height * 100}%`,
-                  minWidth: '2px',
-                  maxWidth: compact ? '3px' : '4px',
-                  background: isPlayed
-                    ? 'linear-gradient(to top, hsl(var(--primary)), hsl(var(--primary-glow)))'
-                    : isHovered
-                      ? 'hsl(var(--primary) / 0.35)'
-                      : 'hsl(var(--muted-foreground) / 0.35)',
-                  transform: isEdge ? 'scaleY(1.18)' : 'scaleY(1)',
-                  boxShadow: isPlayed ? '0 0 4px hsl(var(--primary) / 0.35)' : 'none',
-                }}
-              />
-            );
-          })}
+        <div className="absolute inset-0 overflow-hidden rounded-full">
+          <div className="absolute inset-0 flex items-center gap-[1px] pointer-events-none">
+            {waveformBars.map((height, index) => {
+              const barPercent = ((index + 0.5) / waveformBars.length) * 100;
+              const isPlayed = barPercent <= progressPercent;
+              const isHovered = hoverPercent !== null && barPercent <= hoverPercent && !isPlayed;
+              const isEdge = isPlaying && Math.abs(barPercent - progressPercent) < (100 / waveformBars.length) * 1.2;
+              return (
+                <div
+                  key={index}
+                  className="flex-1 min-w-0 rounded-full transition-all duration-150"
+                  style={{
+                    height: `${Math.max(0.18, height) * 100}%`,
+                    maxWidth: compact ? '3px' : '4px',
+                    background: isPlayed
+                      ? 'linear-gradient(to top, hsl(var(--primary)), hsl(var(--primary-glow)))'
+                      : isHovered
+                        ? 'hsl(var(--primary) / 0.35)'
+                        : 'hsl(var(--muted-foreground) / 0.35)',
+                    transform: isEdge ? 'scaleY(1.18)' : 'scaleY(1)',
+                    boxShadow: isPlayed ? '0 0 4px hsl(var(--primary) / 0.35)' : 'none',
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
+
 
         {/* Hover scrub tooltip */}
         {hoverPercent !== null && duration > 0 && (
