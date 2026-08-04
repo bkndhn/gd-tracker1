@@ -6,6 +6,8 @@ import { useRealtimeSync, useForceLogoutOnDelete } from '@/hooks/useRealtimeSync
 import { Layout } from '@/components/Layout';
 import { DamagedGoodsForm } from '@/components/DamagedGoodsForm';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { OfflineStatusBar } from '@/components/OfflineStatusBar';
+
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Plus, Settings, FileText, Shield } from 'lucide-react';
