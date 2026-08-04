@@ -6,6 +6,8 @@ import { useRealtimeSync, useForceLogoutOnDelete } from '@/hooks/useRealtimeSync
 import { Layout } from '@/components/Layout';
 import { DamagedGoodsForm } from '@/components/DamagedGoodsForm';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { OfflineStatusBar } from '@/components/OfflineStatusBar';
+
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Plus, Settings, FileText, Shield } from 'lucide-react';
@@ -143,8 +145,10 @@ export const MainApp = () => {
     <>
       <PWAInstallPrompt />
       <OnboardingWizard open={onboardingOpen} onOpenChange={setOnboardingOpen} />
+      <div className="sticky top-0 z-40"><OfflineStatusBar /></div>
       <Layout>
         <div className="space-y-4 sm:space-y-6 pb-20 md:pb-6 w-full min-w-0">
+
           {/* Desktop Navigation */}
           <div className="hidden md:flex flex-wrap gap-1 p-1 rounded-xl border border-border/60 bg-card/60 backdrop-blur-sm shadow-sm overflow-x-auto">
             {/* Super Admin: only SA tab, no profile */}

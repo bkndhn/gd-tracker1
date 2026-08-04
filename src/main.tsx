@@ -3,9 +3,12 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { initErrorTracking, captureException } from './lib/errorTracking';
+import { registerServiceWorker } from './lib/registerServiceWorker';
 
 // Start crash reporting before React mounts so boot failures are captured too
 initErrorTracking();
+registerServiceWorker();
+
 
 const container = document.getElementById("root");
 if (!container) {
