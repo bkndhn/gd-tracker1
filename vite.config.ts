@@ -43,9 +43,10 @@ export default defineConfig(({ mode }) => ({
           {
             // Hashed build assets are immutable
             urlPattern: ({ url, request }) =>
-              url.origin === self.location.origin &&
+              url.origin === globalThis.location.origin &&
               url.pathname.startsWith('/assets/') &&
               ['script', 'style', 'font', 'image'].includes(request.destination),
+
             handler: 'CacheFirst',
             options: {
               cacheName: 'static-assets',
