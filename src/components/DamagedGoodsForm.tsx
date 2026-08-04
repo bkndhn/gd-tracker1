@@ -292,10 +292,28 @@ export const DamagedGoodsForm = () => {
 
     try {
       if (!isOnline) {
-        const saved = await saveOfflineEntry(entryData, selectedImages);
-        if (saved) resetForm();
+        const offlineCustomValues = Object.entries(customFieldValues)
+          .filter(([, v]) => v !== undefined && v !== null && v !== '')
+          .map(([fieldId, v]) => {
+            const field = customFields.find(f => f.id === fieldId);
+            const type = field?.field_type || 'dropdown';
+            return type === 'dropdown' || type === 'radio'
+              ? { custom_field_id: fieldId, custom_field_option_id: v }
+              : { custom_field_id: fieldId, value: v };
+          });
+
+        await saveOfflineEntry({
+          entry: entryData,
+          customValues: offlineCustomValues,
+          images: selectedImages,
+          voiceNote: voiceNoteFile,
+          label: sanitizedNotes || 'Voice note entry',
+        });
+        toast.success('Saved on this device. It will send automatically when you are back online.');
+        resetForm();
         return;
       }
+
 
       const { data: createdEntry, error: entryError } = await supabase
         .from('goods_damaged_entries').insert(entryData).select().single();
