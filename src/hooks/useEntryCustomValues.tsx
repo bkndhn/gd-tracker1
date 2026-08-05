@@ -145,7 +145,22 @@ export function useCustomValueIndex(entryIds: string[], enabled = true) {
   const key = entryIds.length ? `${entryIds.length}:${entryIds[0]}:${entryIds[entryIds.length - 1]}` : 'none';
   return useQuery({
     queryKey: ['custom-value-index', key],
-    queryFn: () => fetchCustomValueIndex(entryIds),
+    queryFn: async () => {
+      // Offline / failed fetch: fall back to the last good index so labels still render
+      if (!navigator.onLine) {
+        const cached = await cacheGet<CustomValueIndex>(CV_INDEX_CACHE_KEY);
+        if (cached) return cached.value;
+      }
+      try {
+        const index = await fetchCustomValueIndex(entryIds);
+        void cacheSet(CV_INDEX_CACHE_KEY, index);
+        return index;
+      } catch (err) {
+        const cached = await cacheGet<CustomValueIndex>(CV_INDEX_CACHE_KEY);
+        if (cached) return cached.value;
+        throw err;
+      }
+    },
     enabled,
     staleTime: 1000 * 60,
   });
