@@ -1,6 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { cacheGet, cacheSet } from '@/lib/offlineDb';
+
+const IDB_KEY = 'reference:lookups';
 
 interface CachedData {
   categories: any[];
@@ -39,6 +42,18 @@ export const useCachedData = () => {
         }
       }
 
+      // Offline: serve the durable IndexedDB copy
+      if (!navigator.onLine) {
+        const offline = await cacheGet<CachedData>(IDB_KEY);
+        if (offline) {
+          setCategories(offline.value.categories);
+          setSizes(offline.value.sizes);
+          setShops(offline.value.shops);
+          setLoading(false);
+          return;
+        }
+      }
+
       // Fetch from Supabase if cache is expired or doesn't exist
       const [categoriesRes, sizesRes, shopsRes] = await Promise.all([
         supabase.from('categories').select('*').order('name'),
@@ -59,12 +74,19 @@ export const useCachedData = () => {
 
       // Cache the data
       localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
+      void cacheSet(IDB_KEY, newData);
 
       setCategories(categoriesRes.data);
       setSizes(sizesRes.data);
       setShops(shopsRes.data);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error loading data:', error);
+      const offline = await cacheGet<CachedData>(IDB_KEY);
+      if (offline) {
+        setCategories(offline.value.categories);
+        setSizes(offline.value.sizes);
+        setShops(offline.value.shops);
+      }
     } finally {
       setLoading(false);
     }

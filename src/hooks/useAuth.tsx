@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { cacheClear } from '@/lib/offlineDb';
 import { Database } from '@/types/database';
 import { toast } from 'sonner';
 import { logAudit } from '@/utils/auditLog';
@@ -202,6 +203,7 @@ export const useAuth = () => {
     await logAudit({ action: 'logout' });
     localStorage.removeItem(PROFILE_CACHE_KEY);
     localStorage.removeItem('gd_app_data');
+    void cacheClear();
     const { error } = await supabase.auth.signOut();
     return { error };
   };
