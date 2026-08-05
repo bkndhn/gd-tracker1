@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { cacheGet, cacheSet } from '@/lib/offlineDb';
+
+const CV_INDEX_CACHE_KEY = 'custom-value-index';
 
 export type StandardKey = 'shop' | 'category' | 'size' | 'customer_type';
 
