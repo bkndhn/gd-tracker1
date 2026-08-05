@@ -29,6 +29,18 @@ import { useExportJobs } from '@/hooks/useExportJobs';
 import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { fetchCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
+import { cacheGet, cacheSet } from '@/lib/offlineDb';
+
+/** Snapshot of everything Reports needs, kept in IndexedDB for offline reads. */
+const REPORTS_CACHE_KEY = 'reports:snapshot';
+interface ReportsSnapshot {
+  entries: any[];
+  shops: any[];
+  categoryOptions: string[];
+  sizeOptions: string[];
+  customerTypeOptions: string[];
+  customFields: CustomFieldDef[];
+}
 
 interface CustomFieldDef {
   id: string;
