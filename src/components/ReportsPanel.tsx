@@ -126,6 +126,10 @@ export const ReportsPanel = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      if (!navigator.onLine) {
+        const restored = await hydrateFromCache();
+        if (restored) return;
+      }
       if (import.meta.env.DEV) console.log('Starting to fetch data...', { isManager, userShopId });
 
       // Fetch entries with images
