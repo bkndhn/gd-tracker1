@@ -25,6 +25,10 @@ import { AIInsightsPanel } from './AIInsightsPanel';
 import { useCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { DashboardLayoutEditor } from './DashboardLayoutEditor';
+import { cacheGet, cacheSet } from '@/lib/offlineDb';
+
+const DASHBOARD_CACHE_KEY = 'dashboard:entries';
+const DASHBOARD_SHOPS_CACHE_KEY = 'dashboard:shops';
 
 
 interface GDEntry {
@@ -80,7 +84,17 @@ export const Dashboard = () => {
   const { data: masterData } = useQuery({
     queryKey: ['dashboard-master-data'],
     queryFn: async () => {
+      if (!navigator.onLine) {
+        const cached = await cacheGet<any[]>(DASHBOARD_SHOPS_CACHE_KEY);
+        if (cached) return { shops: cached.value };
+      }
       const shopsRes = await supabase.from('shops').select('*').is('deleted_at', null).order('name');
+      if (shopsRes.error) {
+        const cached = await cacheGet<any[]>(DASHBOARD_SHOPS_CACHE_KEY);
+        if (cached) return { shops: cached.value };
+        throw shopsRes.error;
+      }
+      void cacheSet(DASHBOARD_SHOPS_CACHE_KEY, shopsRes.data || []);
       return { shops: shopsRes.data || [] };
     },
     staleTime: 1000 * 60 * 5,
@@ -90,6 +104,12 @@ export const Dashboard = () => {
   const { data: rawEntries, isLoading, refetch } = useQuery<any[]>({
     queryKey: ['dashboard-entries', userShopId],
     queryFn: async () => {
+      // Offline: serve the last successful snapshot straight from IndexedDB
+      if (!navigator.onLine) {
+        const cached = await cacheGet<any[]>(DASHBOARD_CACHE_KEY);
+        if (cached) return cached.value;
+      }
+
       const { data: entriesData, error: entriesError } = await supabase
         .from('goods_damaged_entries')
         .select('id, created_at, shop_id, notes, voice_note_url')
@@ -97,6 +117,8 @@ export const Dashboard = () => {
 
       if (entriesError) {
         if (import.meta.env.DEV) console.error('Dashboard fetch error:', entriesError);
+        const cached = await cacheGet<any[]>(DASHBOARD_CACHE_KEY);
+        if (cached) return cached.value;
         throw entriesError;
       }
 
@@ -117,10 +139,12 @@ export const Dashboard = () => {
         }
       }
 
-      return (entriesData || []).map(entry => ({
+      const merged = (entriesData || []).map(entry => ({
         ...entry,
         gd_entry_images: imagesData.filter(img => img.gd_entry_id === entry.id),
       }));
+      void cacheSet(DASHBOARD_CACHE_KEY, merged);
+      return merged;
     },
     enabled: !!profile && (isAdmin || isManager),
     staleTime: 1000 * 60,

@@ -29,6 +29,18 @@ import { useExportJobs } from '@/hooks/useExportJobs';
 import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { fetchCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
+import { cacheGet, cacheSet } from '@/lib/offlineDb';
+
+/** Snapshot of everything Reports needs, kept in IndexedDB for offline reads. */
+const REPORTS_CACHE_KEY = 'reports:snapshot';
+interface ReportsSnapshot {
+  entries: any[];
+  shops: any[];
+  categoryOptions: string[];
+  sizeOptions: string[];
+  customerTypeOptions: string[];
+  customFields: CustomFieldDef[];
+}
 
 interface CustomFieldDef {
   id: string;
@@ -114,6 +126,10 @@ export const ReportsPanel = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      if (!navigator.onLine) {
+        const restored = await hydrateFromCache();
+        if (restored) return;
+      }
       if (import.meta.env.DEV) console.log('Starting to fetch data...', { isManager, userShopId });
 
       // Fetch entries with images
@@ -190,19 +206,43 @@ export const ReportsPanel = () => {
         };
       });
 
-      setEntries(enrichedEntries);
-      setShops(shopsRes.data);
-      setCategoryOptions(stdOptions(cvIndex, 'category'));
-      setSizeOptions(stdOptions(cvIndex, 'size'));
-      setCustomerTypeOptions(stdOptions(cvIndex, 'customer_type'));
-      setCustomFields(extraFields);
+      const snapshot: ReportsSnapshot = {
+        entries: enrichedEntries,
+        shops: shopsRes.data,
+        categoryOptions: stdOptions(cvIndex, 'category'),
+        sizeOptions: stdOptions(cvIndex, 'size'),
+        customerTypeOptions: stdOptions(cvIndex, 'customer_type'),
+        customFields: extraFields,
+      };
+
+      applySnapshot(snapshot);
+      void cacheSet(REPORTS_CACHE_KEY, snapshot);
 
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error fetching data:', error);
-      toast.error('Failed to load reports data');
+      const restored = await hydrateFromCache();
+      if (!restored) toast.error('Failed to load reports data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const applySnapshot = (snapshot: ReportsSnapshot) => {
+    setEntries(snapshot.entries);
+    setShops(snapshot.shops);
+    setCategoryOptions(snapshot.categoryOptions);
+    setSizeOptions(snapshot.sizeOptions);
+    setCustomerTypeOptions(snapshot.customerTypeOptions);
+    setCustomFields(snapshot.customFields);
+  };
+
+  /** Serve the last successful load when the network is unavailable. */
+  const hydrateFromCache = async (): Promise<boolean> => {
+    const cached = await cacheGet<ReportsSnapshot>(REPORTS_CACHE_KEY);
+    if (!cached?.value?.entries) return false;
+    applySnapshot(cached.value);
+    toast.info(`Showing saved data from ${format(new Date(cached.savedAt), 'dd MMM, HH:mm')}`);
+    return true;
   };
 
   const applyFilters = () => {
