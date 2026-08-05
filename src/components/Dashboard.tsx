@@ -25,6 +25,10 @@ import { AIInsightsPanel } from './AIInsightsPanel';
 import { useCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { DashboardLayoutEditor } from './DashboardLayoutEditor';
+import { cacheGet, cacheSet } from '@/lib/offlineDb';
+
+const DASHBOARD_CACHE_KEY = 'dashboard:entries';
+const DASHBOARD_SHOPS_CACHE_KEY = 'dashboard:shops';
 
 
 interface GDEntry {
