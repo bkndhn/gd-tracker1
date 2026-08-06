@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CloudOff, RefreshCw, Clock, AlertTriangle, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +10,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { MAX_ATTEMPTS } from '@/lib/outbox';
 
 const timeAgo = (ts: number) => {
   const s = Math.max(1, Math.round((Date.now() - ts) / 1000));
@@ -34,6 +35,14 @@ export const OfflineStatusBar = () => {
     discardItem,
   } = useOfflineSync();
   const [open, setOpen] = useState(false);
+  // Ticks once a second so per-visit retry countdowns stay live while the sheet is open.
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!open) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [open]);
+
 
   if (isOnline && items.length === 0) return null;
 
