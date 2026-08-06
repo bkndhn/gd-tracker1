@@ -461,7 +461,7 @@ export const Dashboard = () => {
     ]);
 
     exportToPDFViaHTML({
-      title: `GD Report: ${modalFilter.value}`,
+      title: `Lost Sale Report: ${modalFilter.value}`,
       subtitle: dateRangeText,
       columns: [
         { header: 'S.NO', width: '40px', align: 'center' },
@@ -619,7 +619,7 @@ export const Dashboard = () => {
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-bold text-foreground">Welcome to Your Dashboard!</h2>
             <p className="text-muted-foreground max-w-md">
-              Start by creating your first GD entry. Click the "GD" tab below to get started.
+              Start by logging your first non-purchase visit. Click the "Log Visit" tab below to get started.
             </p>
           </div>
         </div>

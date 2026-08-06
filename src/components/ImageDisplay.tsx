@@ -62,7 +62,7 @@ export const ImageDisplay = ({ images, className = "" }: ImageDisplayProps) => {
       return (
         <LazyImage
           src={resolvedImages[0].image_url}
-          alt="GD Entry"
+          alt="Visit photo"
           wrapperClassName="w-16 h-16 rounded hover:opacity-80 transition-opacity"
           onClick={() => setIsOpen(true)}
         />
@@ -72,7 +72,7 @@ export const ImageDisplay = ({ images, className = "" }: ImageDisplayProps) => {
       <div className="flex gap-1">
         <LazyImage
           src={resolvedImages[0].image_url}
-          alt="GD Entry"
+          alt="Visit photo"
           wrapperClassName="w-16 h-16 rounded hover:opacity-80 transition-opacity"
           onClick={() => setIsOpen(true)}
         />
