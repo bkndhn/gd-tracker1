@@ -174,7 +174,7 @@ export const DamagedGoodsForm = () => {
   };
 
   const buildWhatsAppMessage = () => {
-    let msg = `📋 *GD Report*\n`;
+    let msg = `📋 *Lost Sale Report*\n`;
     msg += `👤 ${profile?.name || ''}\n`;
     const shopField = customFields.find(f => f.is_standard && f.standard_key === 'shop');
     const hasShopCustomField = Boolean(shopField && customFieldValues[shopField.id]);
@@ -348,15 +348,15 @@ export const DamagedGoodsForm = () => {
       if (selectedImages.length > 0) successParts.push(`${selectedImages.length} image(s)`);
       if (voiceNoteUrl) successParts.push('voice note');
       toast.success(successParts.length > 0
-        ? `GD entry created with ${successParts.join(' and ')}!`
-        : 'GD entry created successfully!'
+        ? `Visit logged with ${successParts.join(' and ')}!`
+        : 'Visit logged successfully!'
       );
 
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
           type: 'NEW_GD_ENTRY',
-          title: 'New GD Entry',
-          body: `${profile.name} reported GD in ${userShop?.name || 'a shop'}`,
+          title: 'New Lost Sale',
+          body: `${profile.name} logged a non-purchase visit at ${userShop?.name || 'a shop'}`,
           url: '/'
         });
       }
@@ -406,7 +406,7 @@ export const DamagedGoodsForm = () => {
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Report GD</span>
+          <span>Log Non-Purchase Visit</span>
           <div className="flex items-center gap-2 text-sm font-normal">
             {entryLimitReached && <span className="text-destructive">Entry limit reached</span>}
             {maxEntries !== null && !entryLimitReached && (
@@ -420,7 +420,7 @@ export const DamagedGoodsForm = () => {
             {pendingCount > 0 && <span className="text-blue-500">{pendingCount} pending</span>}
           </div>
         </CardTitle>
-        <CardDescription>Fill out this form to report GD in your store</CardDescription>
+        <CardDescription>Record a customer who left without buying and why</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
