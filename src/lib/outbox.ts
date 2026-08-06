@@ -105,7 +105,7 @@ export async function enqueueEntry(input: {
     status: 'pending',
     attempts: 0,
     nextAttemptAt: 0,
-    label: input.label || input.entry.notes?.slice(0, 60) || 'GD entry',
+    label: input.label || input.entry.notes?.slice(0, 60) || 'Visit log',
     entry: input.entry,
     customValues: input.customValues,
     images: input.images.map(toAttachment),
