@@ -52,7 +52,7 @@ export interface OutboxItem {
   customValuesSaved?: boolean;
 }
 
-const MAX_ATTEMPTS = 8;
+export const MAX_ATTEMPTS = 8;
 const BASE_DELAY_MS = 5_000;
 const MAX_DELAY_MS = 5 * 60_000;
 
