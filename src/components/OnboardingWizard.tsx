@@ -22,7 +22,7 @@ const ONBOARDING_KEY = (userId: string) => `gd_onboarding_done_${userId}`;
 
 const SUGGESTIONS: Record<string, string[]> = {
   shop: ['Main Branch', 'City Center', 'Warehouse'],
-  category: ['Damaged in Transit', 'Manufacturing Defect', 'Customer Return', 'Expired'],
+  category: ['Price Too High', 'Out of Stock', 'Size Not Available', 'Just Browsing'],
   size: ['Small', 'Medium', 'Large'],
   customer_type: ['Retail', 'Wholesale', 'Online'],
 };
@@ -189,12 +189,12 @@ export const OnboardingWizard = ({ open, onOpenChange, onFinished }: Props) => {
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Welcome{profile?.name ? `, ${profile.name}` : ''}. Three quick steps and your team can start
-                  logging damaged goods. You can change any of this later in the Admin Panel.
+                  logging why visitors leave without buying. You can change any of this later in the Admin Panel.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-3">
                   {[
                     { icon: Tag, title: 'Name your fields', body: 'Call them whatever your business calls them.' },
-                    { icon: Store, title: 'Add options', body: 'Branches, categories, sizes, customer types.' },
+                    { icon: Store, title: 'Add options', body: 'Branches, reasons, sizes, customer types.' },
                     { icon: PartyPopper, title: 'Invite your team', body: 'Create manager and user logins.' },
                   ].map(({ icon: Icon, title, body }) => (
                     <div key={title} className="rounded-lg border border-border/60 bg-card/60 p-3">

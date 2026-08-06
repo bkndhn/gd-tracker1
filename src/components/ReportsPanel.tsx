@@ -702,7 +702,7 @@ export const ReportsPanel = () => {
       ws['!freeze'] = { xSplit: 0, ySplit: 1 } as any;
       ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: exportData.length, c: headerCount - 1 } }) };
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'GD Reports');
+      XLSX.utils.book_append_sheet(wb, ws, 'Lost Sale Reports');
 
 
       setProgress(95, 'Packaging file…');
@@ -758,7 +758,7 @@ export const ReportsPanel = () => {
       await tick();
 
       const openPdf = () => exportToPDFViaHTML({
-        title: 'GD Reports',
+        title: 'Lost Sale Reports',
         subtitle: `Generated: ${format(new Date(), 'dd-MM-yyyy HH:mm')}`,
         columns: [
           { header: 'S.NO', width: '40px', align: 'center' },
@@ -1150,7 +1150,7 @@ export const ReportsPanel = () => {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
               <CardTitle className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
-                GD Reports
+                Lost Sale Reports
                 {!isOnline && (
                   <span className="text-[10px] font-normal text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full border border-orange-100">
                     Offline
@@ -1365,7 +1365,7 @@ export const ReportsPanel = () => {
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle className="text-lg sm:text-xl">GD Reports</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Lost Sale Reports</CardTitle>
               <CardDescription className="text-sm">
                 Showing {viewMode === 'table' ? tableFilteredEntries.length : filteredEntries.length} of {entries.length} entries
                 {viewMode === 'table' && (tableShopFilters.length > 0 || tableCategoryFilters.length > 0 || tableSizeFilters.length > 0 || tableCustomerTypeFilters.length > 0) && (

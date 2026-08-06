@@ -84,7 +84,7 @@ export const MainApp = () => {
     }
   }, [isAdmin, isManager, isSuperAdmin, activeTab]);
 
-  // Auto-focus notes input when switching to GD tab
+  // Auto-focus notes input when switching to the log-visit tab
   useEffect(() => {
     addBreadcrumb('navigation', `tab:${activeTab}`);
     if (activeTab === 'gd') {
@@ -168,7 +168,7 @@ export const MainApp = () => {
               <>
                 <Button variant={activeTab === 'gd' ? 'default' : 'ghost'} onClick={() => setActiveTab('gd')}
                   className="flex items-center gap-2 flex-shrink-0">
-                  <Plus className="h-4 w-4" />GD
+                  <Plus className="h-4 w-4" />Log Visit
                 </Button>
                 {(isAdmin || isManager) && (
                   <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} onClick={() => setActiveTab('dashboard')}

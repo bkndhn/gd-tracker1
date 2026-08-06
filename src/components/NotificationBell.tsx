@@ -47,7 +47,7 @@ export const NotificationBell = () => {
           table: 'goods_damaged_entries'
         },
         async (payload) => {
-          if (import.meta.env.DEV) console.log('New GD entry notification:', payload);
+          if (import.meta.env.DEV) console.log('New lost sale notification:', payload);
           
           const newEntry = payload.new as any;
           
@@ -67,7 +67,7 @@ export const NotificationBell = () => {
           
           const notification: Notification = {
             id: newEntry.id,
-            message: `New GD entry: ${categoryName}`,
+            message: `New lost sale: ${categoryName}`,
             shopName,
             categoryName,
             timestamp: new Date(newEntry.created_at),
@@ -78,7 +78,7 @@ export const NotificationBell = () => {
           playNotificationSound();
           
           // Show toast notification
-          toast.info(`New GD Entry from ${shopName}`, {
+          toast.info(`New lost sale from ${shopName}`, {
             description: categoryName,
             duration: 4000,
           });
