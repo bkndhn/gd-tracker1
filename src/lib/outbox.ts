@@ -52,7 +52,7 @@ export interface OutboxItem {
   customValuesSaved?: boolean;
 }
 
-const MAX_ATTEMPTS = 8;
+export const MAX_ATTEMPTS = 8;
 const BASE_DELAY_MS = 5_000;
 const MAX_DELAY_MS = 5 * 60_000;
 
@@ -105,7 +105,7 @@ export async function enqueueEntry(input: {
     status: 'pending',
     attempts: 0,
     nextAttemptAt: 0,
-    label: input.label || input.entry.notes?.slice(0, 60) || 'GD entry',
+    label: input.label || input.entry.notes?.slice(0, 60) || 'Visit log',
     entry: input.entry,
     customValues: input.customValues,
     images: input.images.map(toAttachment),

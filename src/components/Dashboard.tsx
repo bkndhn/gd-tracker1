@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { TrendingUp, Package, Calendar, CalendarDays, Sparkles, Filter, X, ArrowUpDown, BarChart3, FileDown, FileSpreadsheet, LineChart, LayoutGrid } from 'lucide-react';
+import { TrendingUp, TrendingDown, Package, Calendar, CalendarDays, Sparkles, Filter, X, ArrowUpDown, BarChart3, FileDown, FileSpreadsheet, LineChart, LayoutGrid, Users, UserCheck, Store } from 'lucide-react';
 import { exportToPDFViaHTML, makeImageCell } from '@/utils/htmlPdfExport';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
@@ -112,7 +112,7 @@ export const Dashboard = () => {
 
       const { data: entriesData, error: entriesError } = await supabase
         .from('goods_damaged_entries')
-        .select('id, created_at, shop_id, notes, voice_note_url')
+        .select('id, created_at, shop_id, notes, voice_note_url, employee_name')
         .order('created_at', { ascending: false });
 
       if (entriesError) {
@@ -254,6 +254,20 @@ export const Dashboard = () => {
       byCustomerType[customerType] = (byCustomerType[customerType] || 0) + 1;
     });
 
+    const topList = (map: Record<string, number>, limit = 3) =>
+      Object.entries(map)
+        .filter(([name]) => name && name !== 'Unknown')
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, limit)
+        .map(([name, count]) => ({ name, count }));
+
+    // Who logged the visits (reporter/employee)
+    const byEmployee: Record<string, number> = {};
+    breakdownEntries.forEach(entry => {
+      const who = (entry as any).employee_name || 'Unknown';
+      byEmployee[who] = (byEmployee[who] || 0) + 1;
+    });
+
     return {
       today,
       thisWeek,
@@ -266,7 +280,14 @@ export const Dashboard = () => {
       byCategory,
       bySize,
       byCustomerType,
+      byEmployee,
+      breakdownTotal: breakdownEntries.length,
+      topReasons: topList(byCategory),
+      topEmployees: topList(byEmployee),
+      topSegments: topList(byCustomerType),
+      topShops: topList(byShop),
     };
+
   }, [allEntries, selectedShop, selectedCategory, selectedCustomerType, customDateFrom, customDateTo, dateRangePreset]);
 
   // Real-time subscription
@@ -832,7 +853,60 @@ export const Dashboard = () => {
             </Card>
           )}
 
+          {/* Lost-sale highlights */}
+          {summary && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" /> Total non-purchase visits
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-foreground">{summary.total}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {summary.breakdownTotal} in the selected period
+                  </p>
+                </CardContent>
+              </Card>
+
+              {[
+                { title: `Top lost reasons`, icon: TrendingDown, list: summary.topReasons, type: 'category' as const, accent: 'text-rose-500' },
+                { title: 'Top employees', icon: UserCheck, list: summary.topEmployees, type: null, accent: 'text-emerald-500' },
+                { title: 'Common shop segments', icon: Store, list: summary.topSegments, type: 'customer_type' as const, accent: 'text-amber-500' },
+              ].map(({ title, icon: Icon, list, type, accent }) => (
+                <Card key={title} className="bg-card/95">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Icon className={`h-4 w-4 ${accent}`} /> {title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1.5">
+                    {list.length > 0 ? list.map((row, idx) => (
+                      <button
+                        key={row.name}
+                        type="button"
+                        onClick={() => type && handleItemClick(type, row.name)}
+                        disabled={!type}
+                        className="w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition-colors enabled:hover:bg-muted disabled:cursor-default"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className={`text-xs font-bold w-4 ${accent}`}>{idx + 1}</span>
+                          <span className="truncate text-sm font-medium text-foreground">{row.name}</span>
+                        </span>
+                        <span className="text-sm font-bold text-foreground">{row.count}</span>
+                      </button>
+                    )) : (
+                      <p className="text-sm text-muted-foreground py-3 text-center">No data yet</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
           {/* Time-based Stats (order & visibility from layout editor) */}
+
           {visibleKpis.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {visibleKpis.map(id => <div key={id}>{kpiNodes[id]}</div>)}
