@@ -112,7 +112,7 @@ export const Dashboard = () => {
 
       const { data: entriesData, error: entriesError } = await supabase
         .from('goods_damaged_entries')
-        .select('id, created_at, shop_id, notes, voice_note_url')
+        .select('id, created_at, shop_id, notes, voice_note_url, employee_name')
         .order('created_at', { ascending: false });
 
       if (entriesError) {
