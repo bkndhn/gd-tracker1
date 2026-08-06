@@ -254,6 +254,20 @@ export const Dashboard = () => {
       byCustomerType[customerType] = (byCustomerType[customerType] || 0) + 1;
     });
 
+    const topList = (map: Record<string, number>, limit = 3) =>
+      Object.entries(map)
+        .filter(([name]) => name && name !== 'Unknown')
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, limit)
+        .map(([name, count]) => ({ name, count }));
+
+    // Who logged the visits (reporter/employee)
+    const byEmployee: Record<string, number> = {};
+    breakdownEntries.forEach(entry => {
+      const who = (entry as any).employee_name || 'Unknown';
+      byEmployee[who] = (byEmployee[who] || 0) + 1;
+    });
+
     return {
       today,
       thisWeek,
@@ -266,7 +280,14 @@ export const Dashboard = () => {
       byCategory,
       bySize,
       byCustomerType,
+      byEmployee,
+      breakdownTotal: breakdownEntries.length,
+      topReasons: topList(byCategory),
+      topEmployees: topList(byEmployee),
+      topSegments: topList(byCustomerType),
+      topShops: topList(byShop),
     };
+
   }, [allEntries, selectedShop, selectedCategory, selectedCustomerType, customDateFrom, customDateTo, dateRangePreset]);
 
   // Real-time subscription
