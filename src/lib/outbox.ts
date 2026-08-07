@@ -199,7 +199,10 @@ export async function syncOutbox(): Promise<{ sent: number; failed: number }> {
       .filter((i) => i.status === 'pending')
       .map((i) => i.nextAttemptAt - Date.now())
       .sort((a, b) => a - b)[0];
-    if (next !== undefined) scheduleSync(Math.max(1_000, next));
+    if (next !== undefined) {
+      scheduleSync(Math.max(1_000, next));
+      void requestBrowserRetry();
+    }
   } finally {
     syncing = false;
     await notify();
