@@ -279,26 +279,26 @@ export const CustomFieldManagement = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Settings2 className="h-5 w-5" />
+    <div className="space-y-4 w-full min-w-0">
+      <Card className="w-full min-w-0 overflow-hidden">
+        <CardHeader className="px-3 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Settings2 className="h-5 w-5 shrink-0" />
                 Custom Fields
               </CardTitle>
               <CardDescription>
-                Create custom dropdown fields that appear in the GD form for your users
+                Create custom fields that appear in the visit form for your users
               </CardDescription>
             </div>
-            <Button onClick={() => setIsAddFieldOpen(true)} size="sm">
+            <Button onClick={() => setIsAddFieldOpen(true)} size="sm" className="w-full sm:w-auto shrink-0">
               <Plus className="h-4 w-4 mr-1" />
               Add Field
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6">
           {fields.length === 0 ? (
             <p className="text-center text-muted-foreground py-4">
               No custom fields yet. Click "Add Field" to create one.
@@ -306,10 +306,10 @@ export const CustomFieldManagement = () => {
           ) : (
             <div className="space-y-3">
               {fields.map((field) => (
-                <div key={field.id} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium">{field.name}</span>
+                <div key={field.id} className="border rounded-lg p-3 sm:p-4 space-y-3 min-w-0">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <span className="font-medium break-words min-w-0">{field.name}</span>
                       <Badge variant="outline" className="text-xs capitalize">
                         {FIELD_TYPES.find(t => t.value === (field.field_type || 'dropdown'))?.label || field.field_type}
                       </Badge>
@@ -331,7 +331,7 @@ export const CustomFieldManagement = () => {
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap lg:shrink-0">
                       <div className="flex items-center gap-1.5">
                         <Label htmlFor={`visible-${field.id}`} className="text-xs text-muted-foreground">Show</Label>
                         <Switch
@@ -411,9 +411,9 @@ export const CustomFieldManagement = () => {
                     </div>
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                       {(options[field.id] || []).map((opt) => (
-                        <div key={opt.id} className="flex items-center justify-between p-1.5 bg-muted/50 rounded text-sm">
-                          <span>{opt.value}</span>
-                          <div className="flex gap-1">
+                        <div key={opt.id} className="flex items-center justify-between gap-2 p-1.5 bg-muted/50 rounded text-sm min-w-0">
+                          <span className="truncate min-w-0">{opt.value}</span>
+                          <div className="flex gap-1 shrink-0">
                             <Button
                               variant="ghost" size="icon"
                               className="h-6 w-6"

@@ -11,6 +11,18 @@
 import { supabase } from '@/integrations/supabase/client';
 import { idb, OUTBOX_STORE } from './offlineDb';
 
+/** Ask the service worker to retry later, even if the app gets closed. */
+async function requestBrowserRetry() {
+  try {
+    if (!('serviceWorker' in navigator)) return;
+    const reg: any = await navigator.serviceWorker.ready;
+    await reg?.sync?.register('outbox-sync');
+  } catch {
+    /* Background Sync unsupported — in-app timers still retry */
+  }
+}
+
+
 export interface OutboxCustomValue {
   custom_field_id: string;
   custom_field_option_id?: string | null;
@@ -118,6 +130,7 @@ export async function enqueueEntry(input: {
   await idb.put(OUTBOX_STORE, item);
   await notify();
   scheduleSync(0);
+  void requestBrowserRetry();
   return item;
 }
 
@@ -186,7 +199,10 @@ export async function syncOutbox(): Promise<{ sent: number; failed: number }> {
       .filter((i) => i.status === 'pending')
       .map((i) => i.nextAttemptAt - Date.now())
       .sort((a, b) => a - b)[0];
-    if (next !== undefined) scheduleSync(Math.max(1_000, next));
+    if (next !== undefined) {
+      scheduleSync(Math.max(1_000, next));
+      void requestBrowserRetry();
+    }
   } finally {
     syncing = false;
     await notify();

@@ -37,3 +37,28 @@ self.addEventListener('message', (event) => {
     });
   }
 });
+
+// ---- Background sync: retry queued offline visits without the app open ----
+const OUTBOX_SYNC_TAG = 'outbox-sync';
+const OUTBOX_PERIODIC_TAG = 'outbox-periodic-sync';
+
+async function wakeClientsForOutbox() {
+  const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  if (all.length > 0) {
+    all.forEach((client) => client.postMessage({ type: 'OUTBOX_SYNC' }));
+    return;
+  }
+  // No open window: keep the sync registration alive so the browser retries
+  // again later (and re-arms when the user reopens the app).
+  throw new Error('no-clients');
+}
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === OUTBOX_SYNC_TAG) event.waitUntil(wakeClientsForOutbox());
+});
+
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === OUTBOX_PERIODIC_TAG) {
+    event.waitUntil(wakeClientsForOutbox().catch(() => {}));
+  }
+});
