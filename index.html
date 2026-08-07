@@ -25,7 +25,12 @@
   <meta property="og:type" content="website">
 </head>
   <body>
-    <div id="root"></div>
+    <style>
+      #boot-splash{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0b0b0f}
+      #boot-splash i{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:#6366f1;animation:bs .7s linear infinite}
+      @keyframes bs{to{transform:rotate(360deg)}}
+    </style>
+    <div id="root"><div id="boot-splash"><i></i></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
