@@ -411,9 +411,9 @@ export const CustomFieldManagement = () => {
                     </div>
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                       {(options[field.id] || []).map((opt) => (
-                        <div key={opt.id} className="flex items-center justify-between p-1.5 bg-muted/50 rounded text-sm">
-                          <span>{opt.value}</span>
-                          <div className="flex gap-1">
+                        <div key={opt.id} className="flex items-center justify-between gap-2 p-1.5 bg-muted/50 rounded text-sm min-w-0">
+                          <span className="truncate min-w-0">{opt.value}</span>
+                          <div className="flex gap-1 shrink-0">
                             <Button
                               variant="ghost" size="icon"
                               className="h-6 w-6"
