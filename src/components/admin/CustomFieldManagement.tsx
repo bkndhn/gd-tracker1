@@ -298,7 +298,7 @@ export const CustomFieldManagement = () => {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6">
           {fields.length === 0 ? (
             <p className="text-center text-muted-foreground py-4">
               No custom fields yet. Click "Add Field" to create one.
@@ -306,10 +306,10 @@ export const CustomFieldManagement = () => {
           ) : (
             <div className="space-y-3">
               {fields.map((field) => (
-                <div key={field.id} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium">{field.name}</span>
+                <div key={field.id} className="border rounded-lg p-3 sm:p-4 space-y-3 min-w-0">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <span className="font-medium break-words min-w-0">{field.name}</span>
                       <Badge variant="outline" className="text-xs capitalize">
                         {FIELD_TYPES.find(t => t.value === (field.field_type || 'dropdown'))?.label || field.field_type}
                       </Badge>
