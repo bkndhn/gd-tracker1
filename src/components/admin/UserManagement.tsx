@@ -267,36 +267,36 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <UserPlus className="h-5 w-5" />
+      <div className="space-y-6 w-full min-w-0">
+        <Card className="w-full min-w-0 overflow-hidden">
+          <CardHeader className="px-3 sm:px-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <UserPlus className="h-5 w-5 shrink-0" />
                   User Management
                 </CardTitle>
                 <CardDescription>
                   Manage sub-users and their roles ({displayProfiles.length} users)
                 </CardDescription>
               </div>
-              <Button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2">
+              <Button onClick={() => setIsCreateOpen(true)} className="flex items-center justify-center gap-2 w-full sm:w-auto shrink-0">
                 <UserPlus className="h-4 w-4" />
                 Add User
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-6">
             <div className="grid gap-4">
               {displayProfiles.map((p) => {
                 const status = (p as any).status || 'active';
                 const isPaused = status === 'paused';
                 return (
-                  <div key={p.id} className={`border rounded-lg p-4 ${isPaused ? 'opacity-60 bg-muted/30' : ''}`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{p.name}</div>
-                        <div className="text-sm text-muted-foreground">
+                  <div key={p.id} className={`border rounded-lg p-3 sm:p-4 min-w-0 ${isPaused ? 'opacity-60 bg-muted/30' : ''}`}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{p.name}</div>
+                        <div className="text-sm text-muted-foreground truncate">
                           {p.email || p.user_id}
                         </div>
                         <div className="mt-1 flex gap-2 flex-wrap">
@@ -306,7 +306,7 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
                           </Badge>
                         </div>
                       </div>
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1.5 flex-wrap sm:shrink-0">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
