@@ -130,6 +130,7 @@ export async function enqueueEntry(input: {
   await idb.put(OUTBOX_STORE, item);
   await notify();
   scheduleSync(0);
+  void requestBrowserRetry();
   return item;
 }
 
