@@ -279,20 +279,20 @@ export const CustomFieldManagement = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Settings2 className="h-5 w-5" />
+    <div className="space-y-4 w-full min-w-0">
+      <Card className="w-full min-w-0 overflow-hidden">
+        <CardHeader className="px-3 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Settings2 className="h-5 w-5 shrink-0" />
                 Custom Fields
               </CardTitle>
               <CardDescription>
-                Create custom dropdown fields that appear in the GD form for your users
+                Create custom fields that appear in the visit form for your users
               </CardDescription>
             </div>
-            <Button onClick={() => setIsAddFieldOpen(true)} size="sm">
+            <Button onClick={() => setIsAddFieldOpen(true)} size="sm" className="w-full sm:w-auto shrink-0">
               <Plus className="h-4 w-4 mr-1" />
               Add Field
             </Button>
