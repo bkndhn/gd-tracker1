@@ -11,6 +11,18 @@
 import { supabase } from '@/integrations/supabase/client';
 import { idb, OUTBOX_STORE } from './offlineDb';
 
+/** Ask the service worker to retry later, even if the app gets closed. */
+async function requestBrowserRetry() {
+  try {
+    if (!('serviceWorker' in navigator)) return;
+    const reg: any = await navigator.serviceWorker.ready;
+    await reg?.sync?.register('outbox-sync');
+  } catch {
+    /* Background Sync unsupported — in-app timers still retry */
+  }
+}
+
+
 export interface OutboxCustomValue {
   custom_field_id: string;
   custom_field_option_id?: string | null;
