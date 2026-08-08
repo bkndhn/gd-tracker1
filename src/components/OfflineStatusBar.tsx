@@ -107,6 +107,17 @@ export const OfflineStatusBar = () => {
                   Entries saved on this device. They send automatically when you are back online.
                 </SheetDescription>
               </SheetHeader>
+
+              <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border bg-muted/40 p-2">
+                <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                  {syncResult ?? `${pendingCount} queued${failedCount ? ` · ${failedCount} failed` : ''}`}
+                </p>
+                <Button size="sm" className="h-7 shrink-0 text-xs" onClick={runSync} disabled={isSyncing}>
+                  <RefreshCw className={`mr-1 h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Syncing…' : 'Sync now'}
+                </Button>
+              </div>
+
               <div className="mt-4 space-y-2">
                 {items.map((item) => {
                   const steps = [
