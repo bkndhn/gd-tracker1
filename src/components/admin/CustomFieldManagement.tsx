@@ -122,6 +122,7 @@ export const CustomFieldManagement = () => {
   // Add field state
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState('dropdown');
+  const [newFieldMandatory, setNewFieldMandatory] = useState(false);
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
 
   // Edit field state
