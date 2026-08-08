@@ -544,17 +544,28 @@ export const CustomFieldManagement = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Custom Field</DialogTitle>
-            <DialogDescription>Create a new dropdown field for the GD form</DialogDescription>
+            <DialogDescription>Create a new field for the visit form</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Field Name</Label>
+          <div className="space-y-4 min-w-0">
+            <div className="space-y-2 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Field Name</Label>
+                <span className={`text-xs ${newFieldName.trim().length > MAX_FIELD_NAME ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {newFieldName.trim().length}/{MAX_FIELD_NAME}
+                </span>
+              </div>
               <Input
                 value={newFieldName}
-                onChange={(e) => setNewFieldName(e.target.value)}
+                onChange={(e) => setNewFieldName(e.target.value.slice(0, MAX_FIELD_NAME + 10))}
                 placeholder="e.g., Color, Brand, Material"
                 onKeyPress={(e) => e.key === 'Enter' && handleCreateField()}
               />
+              {newFieldName.trim() && newFieldError && (
+                <p className="text-xs text-destructive">{newFieldError}</p>
+              )}
+              {!newFieldError && nameHint(newFieldName) && (
+                <p className="text-xs text-muted-foreground">{nameHint(newFieldName)}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Field Type</Label>
@@ -565,9 +576,26 @@ export const CustomFieldManagement = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-start justify-between gap-3 rounded-lg border p-3">
+              <div className="min-w-0">
+                <Label htmlFor="new-mandatory" className="text-sm">Required field</Label>
+                <p className="text-xs text-muted-foreground">
+                  {newFieldMandatory
+                    ? 'Users cannot submit a visit until this is filled.'
+                    : 'Users can leave this blank when logging a visit.'}
+                </p>
+              </div>
+              <Switch id="new-mandatory" checked={newFieldMandatory} onCheckedChange={setNewFieldMandatory} />
+            </div>
+            {HAS_OPTIONS(newFieldType) && (
+              <p className="text-xs text-muted-foreground">
+                Add the selectable options after creating the field.
+              </p>
+            )}
+            <FieldPreview name={newFieldName} type={newFieldType} mandatory={newFieldMandatory} options={[]} />
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => { setIsAddFieldOpen(false); setNewFieldName(''); setNewFieldType('dropdown'); }}>Cancel</Button>
-              <Button onClick={handleCreateField} disabled={!newFieldName.trim()}>Create Field</Button>
+              <Button variant="outline" onClick={() => { setIsAddFieldOpen(false); setNewFieldName(''); setNewFieldType('dropdown'); setNewFieldMandatory(false); }}>Cancel</Button>
+              <Button onClick={handleCreateField} disabled={!!newFieldError}>Create Field</Button>
             </div>
           </div>
         </DialogContent>
@@ -578,16 +606,25 @@ export const CustomFieldManagement = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Field</DialogTitle>
-            <DialogDescription>Update the field name</DialogDescription>
+            <DialogDescription>Update the field and check the preview before saving</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Field Name</Label>
+          <div className="space-y-4 min-w-0">
+            <div className="space-y-2 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Field Name</Label>
+                <span className={`text-xs ${editFieldName.trim().length > MAX_FIELD_NAME ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {editFieldName.trim().length}/{MAX_FIELD_NAME}
+                </span>
+              </div>
               <Input
                 value={editFieldName}
-                onChange={(e) => setEditFieldName(e.target.value)}
+                onChange={(e) => setEditFieldName(e.target.value.slice(0, MAX_FIELD_NAME + 10))}
                 onKeyPress={(e) => e.key === 'Enter' && handleEditField()}
               />
+              {editFieldError && <p className="text-xs text-destructive">{editFieldError}</p>}
+              {!editFieldError && nameHint(editFieldName) && (
+                <p className="text-xs text-muted-foreground">{nameHint(editFieldName)}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Field Type</Label>
@@ -597,10 +634,26 @@ export const CustomFieldManagement = () => {
                   {FIELD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {editingField && HAS_OPTIONS(editingField.field_type) && !HAS_OPTIONS(editFieldType) && (
+                <p className="text-xs text-destructive">
+                  Changing away from a choice type hides the existing options from the form.
+                </p>
+              )}
             </div>
+            <p className="text-xs text-muted-foreground">
+              This field is currently{' '}
+              <span className="font-medium">{editingField?.is_mandatory ? 'required' : 'optional'}</span> — toggle
+              "Required" in the list to change it.
+            </p>
+            <FieldPreview
+              name={editFieldName}
+              type={editFieldType}
+              mandatory={!!editingField?.is_mandatory}
+              options={(options[editingField?.id || ''] || []).map((o) => o.value)}
+            />
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => { setIsEditFieldOpen(false); setEditingField(null); }}>Cancel</Button>
-              <Button onClick={handleEditField} disabled={!editFieldName.trim()}>Save</Button>
+              <Button onClick={handleEditField} disabled={!!editFieldError}>Save</Button>
             </div>
           </div>
         </DialogContent>
