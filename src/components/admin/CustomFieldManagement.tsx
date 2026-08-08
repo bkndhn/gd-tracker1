@@ -231,7 +231,11 @@ export const CustomFieldManagement = () => {
   };
 
   const handleEditField = async () => {
-    if (!editingField || !editFieldName.trim()) return;
+    if (!editingField) return;
+    if (editFieldError) {
+      toast.error(editFieldError);
+      return;
+    }
     try {
       const { error } = await (supabase.from('custom_fields') as any)
         .update({ name: editFieldName.trim(), field_type: editFieldType })
