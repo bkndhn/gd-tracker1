@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   OutboxItem,
@@ -20,7 +20,40 @@ export const useOfflineSync = () => {
   const [items, setItems] = useState<OutboxItem[]>([]);
   const [isSyncing, setIsSyncing] = useState(outboxSyncing());
 
-  useEffect(() => subscribeOutbox(setItems), []);
+  // Items already announced as permanently failed, so we alert only once each.
+  const announcedFailures = useRef<Set<string>>(new Set());
+
+  useEffect(
+    () =>
+      subscribeOutbox((next) => {
+        setItems(next);
+
+        // Permanent delivery failure → in-app notification with reason + one-tap retry.
+        next
+          .filter((i) => i.status === 'failed' && !announcedFailures.current.has(i.id))
+          .forEach((i) => {
+            announcedFailures.current.add(i.id);
+            toast.error(`Couldn't send "${i.label}"`, {
+              description: i.lastError || 'Delivery failed after several attempts.',
+              duration: Infinity,
+              action: {
+                label: 'Retry',
+                onClick: () => {
+                  announcedFailures.current.delete(i.id);
+                  void retryItem(i.id);
+                },
+              },
+            });
+          });
+
+        // Allow re-alerting if an item recovers and later fails again.
+        const failedIds = new Set(next.filter((i) => i.status === 'failed').map((i) => i.id));
+        announcedFailures.current.forEach((id) => {
+          if (!failedIds.has(id)) announcedFailures.current.delete(id);
+        });
+      }),
+    [],
+  );
 
   useEffect(() => {
     const handleOnline = () => {
