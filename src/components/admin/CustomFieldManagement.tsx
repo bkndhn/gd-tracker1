@@ -217,6 +217,7 @@ export const CustomFieldManagement = () => {
         .insert({
           name: newFieldName.trim(),
           field_type: newFieldType,
+          is_mandatory: newFieldMandatory,
           admin_id: (profile as any)?.admin_id || profile?.id,
           display_order: fields.length,
         });
@@ -224,6 +225,7 @@ export const CustomFieldManagement = () => {
       toast.success('Custom field created');
       setNewFieldName('');
       setNewFieldType('dropdown');
+      setNewFieldMandatory(false);
       setIsAddFieldOpen(false);
       fetchFields();
     } catch (error: any) {
