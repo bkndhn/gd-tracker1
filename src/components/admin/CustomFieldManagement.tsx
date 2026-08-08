@@ -186,8 +186,31 @@ export const CustomFieldManagement = () => {
     }
   };
 
+  /** Blocking validation shared by the add & edit dialogs. */
+  const validateName = (name: string, excludeId?: string): string | null => {
+    const v = name.trim();
+    if (!v) return 'Field name is required.';
+    if (v.length > MAX_FIELD_NAME) return `Keep it under ${MAX_FIELD_NAME} characters (currently ${v.length}).`;
+    if (fields.some((f) => f.id !== excludeId && f.name.trim().toLowerCase() === v.toLowerCase()))
+      return 'Another field already uses this name.';
+    return null;
+  };
+
+  /** Non-blocking guidance shown under the input. */
+  const nameHint = (name: string): string | null => {
+    const v = name.trim();
+    if (v.length > WARN_FIELD_NAME) return 'Long labels wrap onto two lines on mobile — shorter is clearer.';
+    return null;
+  };
+
+  const newFieldError = validateName(newFieldName);
+  const editFieldError = editingField ? validateName(editFieldName, editingField.id) : null;
+
   const handleCreateField = async () => {
-    if (!newFieldName.trim()) return;
+    if (newFieldError) {
+      toast.error(newFieldError);
+      return;
+    }
     try {
       const { error } = await (supabase.from('custom_fields') as any)
         .insert({
