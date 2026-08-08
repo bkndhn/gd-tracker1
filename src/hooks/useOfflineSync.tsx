@@ -89,15 +89,16 @@ export const useOfflineSync = () => {
     return () => clearInterval(id);
   }, []);
 
-  const manualSync = useCallback(async () => {
+  const manualSync = useCallback(async (): Promise<{ sent: number; failed: number; offline?: boolean }> => {
     if (!navigator.onLine) {
       toast.warning('Still offline — will sync automatically when back online.');
-      return;
+      return { sent: 0, failed: 0, offline: true };
     }
     const { sent, failed } = await syncOutbox();
     if (sent > 0) toast.success(`Synced ${sent} entr${sent === 1 ? 'y' : 'ies'}.`);
     if (failed > 0) toast.error(`${failed} entr${failed === 1 ? 'y' : 'ies'} could not sync yet.`);
     if (sent === 0 && failed === 0) toast.info('Nothing to sync.');
+    return { sent, failed };
   }, []);
 
   const pending = items.filter((i) => i.status !== 'failed');
