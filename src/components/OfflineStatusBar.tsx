@@ -206,7 +206,7 @@ export const OfflineStatusBar = () => {
           </Sheet>
         )}
         {isOnline && (
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={manualSync} disabled={isSyncing}>
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={runSync} disabled={isSyncing}>
             Sync now
           </Button>
         )}
