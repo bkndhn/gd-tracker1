@@ -35,6 +35,7 @@ export const OfflineStatusBar = () => {
     discardItem,
   } = useOfflineSync();
   const [open, setOpen] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
   // Ticks once a second so per-visit retry countdowns stay live while the sheet is open.
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -42,6 +43,20 @@ export const OfflineStatusBar = () => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [open]);
+
+  const runSync = async () => {
+    setSyncResult(null);
+    const res = await manualSync();
+    if (res.offline) {
+      setSyncResult('Still offline — queued visits will send automatically.');
+    } else if (res.sent === 0 && res.failed === 0) {
+      setSyncResult('Nothing to send right now.');
+    } else {
+      setSyncResult(
+        `${res.sent} sent${res.failed > 0 ? ` · ${res.failed} still queued` : ''} · ${new Date().toLocaleTimeString()}`,
+      );
+    }
+  };
 
 
   if (isOnline && items.length === 0) return null;
@@ -92,6 +107,17 @@ export const OfflineStatusBar = () => {
                   Entries saved on this device. They send automatically when you are back online.
                 </SheetDescription>
               </SheetHeader>
+
+              <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border bg-muted/40 p-2">
+                <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                  {syncResult ?? `${pendingCount} queued${failedCount ? ` · ${failedCount} failed` : ''}`}
+                </p>
+                <Button size="sm" className="h-7 shrink-0 text-xs" onClick={runSync} disabled={isSyncing}>
+                  <RefreshCw className={`mr-1 h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Syncing…' : 'Sync now'}
+                </Button>
+              </div>
+
               <div className="mt-4 space-y-2">
                 {items.map((item) => {
                   const steps = [
@@ -180,7 +206,7 @@ export const OfflineStatusBar = () => {
           </Sheet>
         )}
         {isOnline && (
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={manualSync} disabled={isSyncing}>
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={runSync} disabled={isSyncing}>
             Sync now
           </Button>
         )}

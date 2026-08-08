@@ -26,6 +26,70 @@ const FIELD_TYPES = [
 
 const HAS_OPTIONS = (t?: string) => (t || 'dropdown') === 'dropdown' || t === 'radio';
 
+/** Labels longer than this are hard to read in the visit form. */
+const MAX_FIELD_NAME = 40;
+const WARN_FIELD_NAME = 24;
+
+/** Live preview of how the field will look in the visit form. */
+const FieldPreview = ({
+  name,
+  type,
+  mandatory,
+  options,
+}: {
+  name: string;
+  type: string;
+  mandatory: boolean;
+  options: string[];
+}) => {
+  const label = name.trim() || 'Field label';
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3 min-w-0 overflow-hidden">
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        Preview in visit form
+      </p>
+      <div className="space-y-1.5 min-w-0">
+        <p className="break-words text-sm font-medium leading-snug min-w-0">
+          <span className="line-clamp-2">{label}</span>
+          {mandatory ? (
+            <span className="ml-1 text-destructive">*</span>
+          ) : (
+            <span className="ml-1 text-xs font-normal text-muted-foreground">(optional)</span>
+          )}
+        </p>
+        {type === 'radio' ? (
+          <div className="space-y-1">
+            {(options.length ? options : ['Option A', 'Option B']).slice(0, 3).map((o) => (
+              <div key={o} className="flex items-center gap-2 text-sm min-w-0">
+                <span className="h-3 w-3 shrink-0 rounded-full border" />
+                <span className="truncate">{o}</span>
+              </div>
+            ))}
+          </div>
+        ) : type === 'textarea' ? (
+          <div className="h-14 rounded-md border bg-background px-2 py-1 text-sm text-muted-foreground">
+            Type here…
+          </div>
+        ) : (
+          <div className="flex h-9 items-center rounded-md border bg-background px-2 text-sm text-muted-foreground">
+            {type === 'dropdown'
+              ? options[0] || 'Select an option'
+              : type === 'date'
+                ? 'dd/mm/yyyy'
+                : type === 'number'
+                  ? '0'
+                  : type === 'email'
+                    ? 'name@example.com'
+                    : type === 'phone'
+                      ? '+91 00000 00000'
+                      : 'Type here…'}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 interface CustomField {
   id: string;
   admin_id: string;
@@ -58,6 +122,7 @@ export const CustomFieldManagement = () => {
   // Add field state
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState('dropdown');
+  const [newFieldMandatory, setNewFieldMandatory] = useState(false);
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
 
   // Edit field state
@@ -122,13 +187,37 @@ export const CustomFieldManagement = () => {
     }
   };
 
+  /** Blocking validation shared by the add & edit dialogs. */
+  const validateName = (name: string, excludeId?: string): string | null => {
+    const v = name.trim();
+    if (!v) return 'Field name is required.';
+    if (v.length > MAX_FIELD_NAME) return `Keep it under ${MAX_FIELD_NAME} characters (currently ${v.length}).`;
+    if (fields.some((f) => f.id !== excludeId && f.name.trim().toLowerCase() === v.toLowerCase()))
+      return 'Another field already uses this name.';
+    return null;
+  };
+
+  /** Non-blocking guidance shown under the input. */
+  const nameHint = (name: string): string | null => {
+    const v = name.trim();
+    if (v.length > WARN_FIELD_NAME) return 'Long labels wrap onto two lines on mobile — shorter is clearer.';
+    return null;
+  };
+
+  const newFieldError = validateName(newFieldName);
+  const editFieldError = editingField ? validateName(editFieldName, editingField.id) : null;
+
   const handleCreateField = async () => {
-    if (!newFieldName.trim()) return;
+    if (newFieldError) {
+      toast.error(newFieldError);
+      return;
+    }
     try {
       const { error } = await (supabase.from('custom_fields') as any)
         .insert({
           name: newFieldName.trim(),
           field_type: newFieldType,
+          is_mandatory: newFieldMandatory,
           admin_id: (profile as any)?.admin_id || profile?.id,
           display_order: fields.length,
         });
@@ -136,6 +225,7 @@ export const CustomFieldManagement = () => {
       toast.success('Custom field created');
       setNewFieldName('');
       setNewFieldType('dropdown');
+      setNewFieldMandatory(false);
       setIsAddFieldOpen(false);
       fetchFields();
     } catch (error: any) {
@@ -144,7 +234,11 @@ export const CustomFieldManagement = () => {
   };
 
   const handleEditField = async () => {
-    if (!editingField || !editFieldName.trim()) return;
+    if (!editingField) return;
+    if (editFieldError) {
+      toast.error(editFieldError);
+      return;
+    }
     try {
       const { error } = await (supabase.from('custom_fields') as any)
         .update({ name: editFieldName.trim(), field_type: editFieldType })
@@ -453,17 +547,28 @@ export const CustomFieldManagement = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Custom Field</DialogTitle>
-            <DialogDescription>Create a new dropdown field for the GD form</DialogDescription>
+            <DialogDescription>Create a new field for the visit form</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Field Name</Label>
+          <div className="space-y-4 min-w-0">
+            <div className="space-y-2 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Field Name</Label>
+                <span className={`text-xs ${newFieldName.trim().length > MAX_FIELD_NAME ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {newFieldName.trim().length}/{MAX_FIELD_NAME}
+                </span>
+              </div>
               <Input
                 value={newFieldName}
-                onChange={(e) => setNewFieldName(e.target.value)}
+                onChange={(e) => setNewFieldName(e.target.value.slice(0, MAX_FIELD_NAME + 10))}
                 placeholder="e.g., Color, Brand, Material"
                 onKeyPress={(e) => e.key === 'Enter' && handleCreateField()}
               />
+              {newFieldName.trim() && newFieldError && (
+                <p className="text-xs text-destructive">{newFieldError}</p>
+              )}
+              {!newFieldError && nameHint(newFieldName) && (
+                <p className="text-xs text-muted-foreground">{nameHint(newFieldName)}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Field Type</Label>
@@ -474,9 +579,26 @@ export const CustomFieldManagement = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-start justify-between gap-3 rounded-lg border p-3">
+              <div className="min-w-0">
+                <Label htmlFor="new-mandatory" className="text-sm">Required field</Label>
+                <p className="text-xs text-muted-foreground">
+                  {newFieldMandatory
+                    ? 'Users cannot submit a visit until this is filled.'
+                    : 'Users can leave this blank when logging a visit.'}
+                </p>
+              </div>
+              <Switch id="new-mandatory" checked={newFieldMandatory} onCheckedChange={setNewFieldMandatory} />
+            </div>
+            {HAS_OPTIONS(newFieldType) && (
+              <p className="text-xs text-muted-foreground">
+                Add the selectable options after creating the field.
+              </p>
+            )}
+            <FieldPreview name={newFieldName} type={newFieldType} mandatory={newFieldMandatory} options={[]} />
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => { setIsAddFieldOpen(false); setNewFieldName(''); setNewFieldType('dropdown'); }}>Cancel</Button>
-              <Button onClick={handleCreateField} disabled={!newFieldName.trim()}>Create Field</Button>
+              <Button variant="outline" onClick={() => { setIsAddFieldOpen(false); setNewFieldName(''); setNewFieldType('dropdown'); setNewFieldMandatory(false); }}>Cancel</Button>
+              <Button onClick={handleCreateField} disabled={!!newFieldError}>Create Field</Button>
             </div>
           </div>
         </DialogContent>
@@ -487,16 +609,25 @@ export const CustomFieldManagement = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Field</DialogTitle>
-            <DialogDescription>Update the field name</DialogDescription>
+            <DialogDescription>Update the field and check the preview before saving</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Field Name</Label>
+          <div className="space-y-4 min-w-0">
+            <div className="space-y-2 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Field Name</Label>
+                <span className={`text-xs ${editFieldName.trim().length > MAX_FIELD_NAME ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {editFieldName.trim().length}/{MAX_FIELD_NAME}
+                </span>
+              </div>
               <Input
                 value={editFieldName}
-                onChange={(e) => setEditFieldName(e.target.value)}
+                onChange={(e) => setEditFieldName(e.target.value.slice(0, MAX_FIELD_NAME + 10))}
                 onKeyPress={(e) => e.key === 'Enter' && handleEditField()}
               />
+              {editFieldError && <p className="text-xs text-destructive">{editFieldError}</p>}
+              {!editFieldError && nameHint(editFieldName) && (
+                <p className="text-xs text-muted-foreground">{nameHint(editFieldName)}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Field Type</Label>
@@ -506,10 +637,26 @@ export const CustomFieldManagement = () => {
                   {FIELD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {editingField && HAS_OPTIONS(editingField.field_type) && !HAS_OPTIONS(editFieldType) && (
+                <p className="text-xs text-destructive">
+                  Changing away from a choice type hides the existing options from the form.
+                </p>
+              )}
             </div>
+            <p className="text-xs text-muted-foreground">
+              This field is currently{' '}
+              <span className="font-medium">{editingField?.is_mandatory ? 'required' : 'optional'}</span> — toggle
+              "Required" in the list to change it.
+            </p>
+            <FieldPreview
+              name={editFieldName}
+              type={editFieldType}
+              mandatory={!!editingField?.is_mandatory}
+              options={(options[editingField?.id || ''] || []).map((o) => o.value)}
+            />
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => { setIsEditFieldOpen(false); setEditingField(null); }}>Cancel</Button>
-              <Button onClick={handleEditField} disabled={!editFieldName.trim()}>Save</Button>
+              <Button onClick={handleEditField} disabled={!!editFieldError}>Save</Button>
             </div>
           </div>
         </DialogContent>
