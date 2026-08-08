@@ -26,6 +26,70 @@ const FIELD_TYPES = [
 
 const HAS_OPTIONS = (t?: string) => (t || 'dropdown') === 'dropdown' || t === 'radio';
 
+/** Labels longer than this are hard to read in the visit form. */
+const MAX_FIELD_NAME = 40;
+const WARN_FIELD_NAME = 24;
+
+/** Live preview of how the field will look in the visit form. */
+const FieldPreview = ({
+  name,
+  type,
+  mandatory,
+  options,
+}: {
+  name: string;
+  type: string;
+  mandatory: boolean;
+  options: string[];
+}) => {
+  const label = name.trim() || 'Field label';
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3 min-w-0 overflow-hidden">
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        Preview in visit form
+      </p>
+      <div className="space-y-1.5 min-w-0">
+        <p className="break-words text-sm font-medium leading-snug min-w-0">
+          <span className="line-clamp-2">{label}</span>
+          {mandatory ? (
+            <span className="ml-1 text-destructive">*</span>
+          ) : (
+            <span className="ml-1 text-xs font-normal text-muted-foreground">(optional)</span>
+          )}
+        </p>
+        {type === 'radio' ? (
+          <div className="space-y-1">
+            {(options.length ? options : ['Option A', 'Option B']).slice(0, 3).map((o) => (
+              <div key={o} className="flex items-center gap-2 text-sm min-w-0">
+                <span className="h-3 w-3 shrink-0 rounded-full border" />
+                <span className="truncate">{o}</span>
+              </div>
+            ))}
+          </div>
+        ) : type === 'textarea' ? (
+          <div className="h-14 rounded-md border bg-background px-2 py-1 text-sm text-muted-foreground">
+            Type here…
+          </div>
+        ) : (
+          <div className="flex h-9 items-center rounded-md border bg-background px-2 text-sm text-muted-foreground">
+            {type === 'dropdown'
+              ? options[0] || 'Select an option'
+              : type === 'date'
+                ? 'dd/mm/yyyy'
+                : type === 'number'
+                  ? '0'
+                  : type === 'email'
+                    ? 'name@example.com'
+                    : type === 'phone'
+                      ? '+91 00000 00000'
+                      : 'Type here…'}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 interface CustomField {
   id: string;
   admin_id: string;
