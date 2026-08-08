@@ -35,6 +35,7 @@ export const OfflineStatusBar = () => {
     discardItem,
   } = useOfflineSync();
   const [open, setOpen] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
   // Ticks once a second so per-visit retry countdowns stay live while the sheet is open.
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -42,6 +43,20 @@ export const OfflineStatusBar = () => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [open]);
+
+  const runSync = async () => {
+    setSyncResult(null);
+    const res = await manualSync();
+    if (res.offline) {
+      setSyncResult('Still offline — queued visits will send automatically.');
+    } else if (res.sent === 0 && res.failed === 0) {
+      setSyncResult('Nothing to send right now.');
+    } else {
+      setSyncResult(
+        `${res.sent} sent${res.failed > 0 ? ` · ${res.failed} still queued` : ''} · ${new Date().toLocaleTimeString()}`,
+      );
+    }
+  };
 
 
   if (isOnline && items.length === 0) return null;
