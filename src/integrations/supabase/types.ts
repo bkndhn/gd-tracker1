@@ -41,6 +41,71 @@ export type Database = {
         }
         Relationships: []
       }
+      anomaly_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          actual_count: number
+          admin_id: string
+          created_at: string
+          expected_count: number
+          fingerprint: string
+          id: string
+          metric: string
+          reason_label: string | null
+          severity: string
+          shop_id: string | null
+          shop_name: string | null
+          updated_at: string
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          actual_count?: number
+          admin_id: string
+          created_at?: string
+          expected_count?: number
+          fingerprint: string
+          id?: string
+          metric?: string
+          reason_label?: string | null
+          severity?: string
+          shop_id?: string | null
+          shop_name?: string | null
+          updated_at?: string
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          actual_count?: number
+          admin_id?: string
+          created_at?: string
+          expected_count?: number
+          fingerprint?: string
+          id?: string
+          metric?: string
+          reason_label?: string | null
+          severity?: string
+          shop_id?: string | null
+          shop_name?: string | null
+          updated_at?: string
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anomaly_alerts_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_sessions: {
         Row: {
           admin_id: string | null
@@ -609,6 +674,59 @@ export type Database = {
           },
         ]
       }
+      saved_views: {
+        Row: {
+          admin_id: string
+          created_at: string
+          deleted_at: string | null
+          filters: Json
+          id: string
+          is_default: boolean
+          name: string
+          owner_id: string
+          page: string
+          scope: string
+          shop_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          deleted_at?: string | null
+          filters?: Json
+          id?: string
+          is_default?: boolean
+          name: string
+          owner_id: string
+          page: string
+          scope?: string
+          shop_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          filters?: Json
+          id?: string
+          is_default?: boolean
+          name?: string
+          owner_id?: string
+          page?: string
+          scope?: string
+          shop_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_views_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_email_reports: {
         Row: {
           admin_id: string
@@ -705,6 +823,89 @@ export type Database = {
           id?: string
           size?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      wa_contacts: {
+        Row: {
+          admin_id: string
+          created_at: string
+          display_name: string | null
+          id: string
+          is_approved: boolean
+          last_message_at: string | null
+          phone: string
+          profile_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_approved?: boolean
+          last_message_at?: string | null
+          phone: string
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_approved?: boolean
+          last_message_at?: string | null
+          phone?: string
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_contacts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_sessions: {
+        Row: {
+          admin_id: string | null
+          created_at: string
+          draft: Json
+          expires_at: string
+          id: string
+          options: Json
+          phone: string
+          profile_id: string | null
+          step: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string
+          draft?: Json
+          expires_at?: string
+          id?: string
+          options?: Json
+          phone: string
+          profile_id?: string | null
+          step?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string
+          draft?: Json
+          expires_at?: string
+          id?: string
+          options?: Json
+          phone?: string
+          profile_id?: string | null
+          step?: string
+          updated_at?: string
         }
         Relationships: []
       }
