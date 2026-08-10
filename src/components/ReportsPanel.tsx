@@ -246,6 +246,18 @@ export const ReportsPanel = () => {
     return true;
   };
 
+  const applySavedFilters = (f: Record<string, any>) => {
+    if (!f) return;
+    setSelectedShop(f.selectedShop ?? 'all');
+    setSelectedCategory(f.selectedCategory ?? 'all');
+    setSelectedSize(f.selectedSize ?? 'all');
+    setSelectedCustomerType(f.selectedCustomerType ?? 'all');
+    setDateFilter(f.dateFilter ?? 'today');
+    setReporterSearch(f.reporterSearch ?? '');
+    setCustomDateFrom(f.customDateFrom ? new Date(f.customDateFrom) : undefined);
+    setCustomDateTo(f.customDateTo ? new Date(f.customDateTo) : undefined);
+  };
+
   const applyFilters = () => {
     let filtered = [...entries];
 
