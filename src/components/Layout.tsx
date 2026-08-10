@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { NotificationBell } from './NotificationBell';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { ThemeToggle } from './ThemeToggle';
+import { LanguageToggle } from './LanguageToggle';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 
 interface LayoutProps {
@@ -72,6 +73,8 @@ export const Layout = ({ children }: LayoutProps) => {
                 )}
               </div>
               
+              <LanguageToggle />
+
               <ThemeToggle />
               
               <NotificationBell />

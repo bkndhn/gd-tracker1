@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ExportJobsProvider } from "@/hooks/useExportJobs";
 import { ExportJobsPanel } from "@/components/ExportJobsPanel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { I18nProvider } from "@/i18n";
 import Index from "./pages/Index";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -28,6 +29,7 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary boundary="root">
       <QueryClientProvider client={queryClient}>
+        <I18nProvider>
         <TooltipProvider>
           <ExportJobsProvider>
             <Toaster />
@@ -43,6 +45,7 @@ const App: React.FC = () => {
             <ExportJobsPanel />
           </ExportJobsProvider>
         </TooltipProvider>
+        </I18nProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
