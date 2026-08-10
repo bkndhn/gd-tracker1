@@ -1186,6 +1186,21 @@ export const ReportsPanel = () => {
         </CardHeader>
         {showFilters && (
         <CardContent className="space-y-4 pt-4">
+          <SavedViewsBar
+            page="reports"
+            getFilters={() => ({
+              selectedShop,
+              selectedCategory,
+              selectedSize,
+              selectedCustomerType,
+              dateFilter,
+              reporterSearch,
+              customDateFrom: customDateFrom ? customDateFrom.toISOString() : null,
+              customDateTo: customDateTo ? customDateTo.toISOString() : null,
+            })}
+            onApply={applySavedFilters}
+            onDefaultLoaded={applySavedFilters}
+          />
           {/* Global search across all columns */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Search</Label>

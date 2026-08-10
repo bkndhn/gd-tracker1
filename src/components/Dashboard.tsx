@@ -724,6 +724,19 @@ export const Dashboard = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                <SavedViewsBar
+                  page="dashboard"
+                  getFilters={() => ({
+                    selectedShop,
+                    selectedCategory,
+                    selectedCustomerType,
+                    dateRangePreset,
+                    customDateFrom: customDateFrom ? customDateFrom.toISOString() : null,
+                    customDateTo: customDateTo ? customDateTo.toISOString() : null,
+                  })}
+                  onApply={applySavedFilters}
+                  onDefaultLoaded={applySavedFilters}
+                />
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Date Range</Label>
