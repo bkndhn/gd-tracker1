@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { SavedViewsBar } from '@/components/SavedViewsBar';
 import { ImageDisplay } from '@/components/ImageDisplay';
 import { ImageThumbnail } from '@/components/ImageThumbnail';
 import { VoiceNotePlayer } from '@/components/VoiceNotePlayer';
@@ -243,6 +244,18 @@ export const ReportsPanel = () => {
     applySnapshot(cached.value);
     toast.info(`Showing saved data from ${format(new Date(cached.savedAt), 'dd MMM, HH:mm')}`);
     return true;
+  };
+
+  const applySavedFilters = (f: Record<string, any>) => {
+    if (!f) return;
+    setSelectedShop(f.selectedShop ?? 'all');
+    setSelectedCategory(f.selectedCategory ?? 'all');
+    setSelectedSize(f.selectedSize ?? 'all');
+    setSelectedCustomerType(f.selectedCustomerType ?? 'all');
+    setDateFilter(f.dateFilter ?? 'today');
+    setReporterSearch(f.reporterSearch ?? '');
+    setCustomDateFrom(f.customDateFrom ? new Date(f.customDateFrom) : undefined);
+    setCustomDateTo(f.customDateTo ? new Date(f.customDateTo) : undefined);
   };
 
   const applyFilters = () => {
@@ -1186,6 +1199,21 @@ export const ReportsPanel = () => {
         </CardHeader>
         {showFilters && (
         <CardContent className="space-y-4 pt-4">
+          <SavedViewsBar
+            page="reports"
+            getFilters={() => ({
+              selectedShop,
+              selectedCategory,
+              selectedSize,
+              selectedCustomerType,
+              dateFilter,
+              reporterSearch,
+              customDateFrom: customDateFrom ? customDateFrom.toISOString() : null,
+              customDateTo: customDateTo ? customDateTo.toISOString() : null,
+            })}
+            onApply={applySavedFilters}
+            onDefaultLoaded={applySavedFilters}
+          />
           {/* Global search across all columns */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Search</Label>
