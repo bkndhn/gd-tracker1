@@ -13,6 +13,7 @@ import { exportToPDFViaHTML, makeImageCell } from '@/utils/htmlPdfExport';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { SavedViewsBar } from '@/components/SavedViewsBar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -323,6 +324,17 @@ export const Dashboard = () => {
     setCustomDateFrom(undefined);
     setCustomDateTo(undefined);
   };
+
+  const applySavedFilters = (f: Record<string, any>) => {
+    if (!f) return;
+    setSelectedShop(f.selectedShop ?? 'all');
+    setSelectedCategory(f.selectedCategory ?? 'all');
+    setSelectedCustomerType(f.selectedCustomerType ?? 'all');
+    setDateRangePreset(f.dateRangePreset ?? 'all_time');
+    setCustomDateFrom(f.customDateFrom ? new Date(f.customDateFrom) : undefined);
+    setCustomDateTo(f.customDateTo ? new Date(f.customDateTo) : undefined);
+  };
+
 
   // Handle date range preset changes
   const handleDateRangePresetChange = (value: string) => {
