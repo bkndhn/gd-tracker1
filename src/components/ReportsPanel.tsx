@@ -189,7 +189,7 @@ export const ReportsPanel = () => {
       // Extra (non-standard) custom fields render as additional columns
       const extraFields: CustomFieldDef[] = cvIndex.visibleFields
         .filter(f => !f.is_standard)
-        .map(f => ({ id: f.id, name: f.name, is_visible: f.is_visible, display_order: f.display_order }));
+        .map(f => ({ id: f.id, name: f.name, is_visible: f.is_visible, is_mandatory: f.is_mandatory, display_order: f.display_order, field_type: f.field_type }));
 
       const enrichedEntries = entriesData.map(entry => {
         const shop = shopsRes.data.find(s => s.id === entry.shop_id);
@@ -811,6 +811,47 @@ export const ReportsPanel = () => {
     hours = hours % 12 || 12;
     return `${day}-${month}-${year} ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
   };
+
+  // --- WhatsApp follow-up (uses only this tenant's own entry values) ---
+  const phoneFields = useMemo(
+    () => customFields.filter(f => (f.field_type || '') === 'phone'),
+    [customFields],
+  );
+
+  const buildFollowUpContext = useCallback((entry: any): FollowUpContext | null => {
+    const rawPhone = phoneFields
+      .map(f => entry.customFieldValues?.[f.id])
+      .find(v => isValidPhone(v));
+    if (!rawPhone) return null;
+
+    const extras: Record<string, string> = {};
+    customFields.forEach(f => {
+      if ((f.field_type || '') === 'phone') return;
+      const val = entry.customFieldValues?.[f.id];
+      if (val) extras[f.name] = val;
+    });
+
+    const reasonField = customFields.find(f => /reason/i.test(f.name));
+    const reason = (reasonField && entry.customFieldValues?.[reasonField.id])
+      || entry.customer_types?.name
+      || entry.categories?.name;
+    if (reasonField) delete extras[reasonField.name];
+
+    return {
+      phone: rawPhone,
+      shopName: entry.shops?.name,
+      reason,
+      category: entry.categories?.name,
+      size: entry.sizes?.size,
+      customerType: entry.customer_types?.name,
+      notes: entry.notes,
+      visitedAt: entry.created_at,
+      extras,
+      reporterName: entry.employee_name || undefined,
+    };
+  }, [customFields, phoneFields]);
+
+
 
   // Helper function to fetch image as base64
   const fetchImageAsBase64 = async (imageUrl: string): Promise<string | null> => {
