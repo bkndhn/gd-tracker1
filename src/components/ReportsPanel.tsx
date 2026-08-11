@@ -31,6 +31,7 @@ import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { fetchCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
 import { cacheGet, cacheSet } from '@/lib/offlineDb';
+import { isValidPhone, type FollowUpContext } from '@/lib/whatsappFollowUp';
 
 /** Snapshot of everything Reports needs, kept in IndexedDB for offline reads. */
 const REPORTS_CACHE_KEY = 'reports:snapshot';
@@ -47,7 +48,9 @@ interface CustomFieldDef {
   id: string;
   name: string;
   is_visible: boolean;
+  is_mandatory?: boolean;
   display_order: number;
+  field_type?: string;
 }
 
 type GoodsEntry = Database['public']['Tables']['goods_damaged_entries']['Row'] & {
