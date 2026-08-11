@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { WhatsAppInputBar } from '@/components/WhatsAppInputBar';
 import { toast } from 'sonner';
 import { sanitizeNotes } from '@/utils/security';
+import { isValidPhone, normalizePhone, PHONE_RULE_MESSAGE } from '@/lib/whatsappFollowUp';
 
 interface CustomField {
   id: string;
