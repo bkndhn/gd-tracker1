@@ -215,7 +215,7 @@ export const DamagedGoodsForm = () => {
     if (type === 'number' && !/^-?[0-9]+(\.[0-9]+)?$/.test(value)) return `${field.name} must be a number`;
     if (type === 'date' && Number.isNaN(new Date(value).getTime())) return `${field.name} must be a valid date`;
     if (type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return `${field.name} must be a valid email`;
-    if (type === 'phone' && !/^[+0-9()\-\s]{6,20}$/.test(value)) return `${field.name} must be a valid phone number`;
+    if (type === 'phone' && !isValidPhone(value)) return `${field.name} ${PHONE_RULE_MESSAGE}`;
     return null;
   };
 
