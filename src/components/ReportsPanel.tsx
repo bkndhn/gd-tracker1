@@ -47,7 +47,9 @@ interface CustomFieldDef {
   id: string;
   name: string;
   is_visible: boolean;
+  is_mandatory?: boolean;
   display_order: number;
+  field_type?: string;
 }
 
 type GoodsEntry = Database['public']['Tables']['goods_damaged_entries']['Row'] & {
