@@ -31,6 +31,7 @@ import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { fetchCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
 import { cacheGet, cacheSet } from '@/lib/offlineDb';
+import { isValidPhone, type FollowUpContext } from '@/lib/whatsappFollowUp';
 
 /** Snapshot of everything Reports needs, kept in IndexedDB for offline reads. */
 const REPORTS_CACHE_KEY = 'reports:snapshot';
