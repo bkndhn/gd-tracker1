@@ -1,12 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Bell, X, Package, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { useAnomalyAlerts, getDismissed } from '@/hooks/useAnomalyAlerts';
+import { AnomalyAlertsPanel } from '@/components/AnomalyAlertsPanel';
 
 interface Notification {
   id: string;
@@ -23,7 +26,20 @@ export const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const { alerts } = useAnomalyAlerts();
+  const [dismissed, setDismissed] = useState<string[]>(() => getDismissed());
+  useEffect(() => {
+    const handler = () => setDismissed(getDismissed());
+    window.addEventListener('anomaly-dismissed', handler);
+    return () => window.removeEventListener('anomaly-dismissed', handler);
+  }, []);
+  const visibleAlerts = useMemo(
+    () => alerts.filter(a => !dismissed.includes(a.id)),
+    [alerts, dismissed],
+  );
+
+  const unreadCount = notifications.filter(n => !n.read).length + visibleAlerts.length;
+
 
   // Play notification sound
   const playNotificationSound = () => {
