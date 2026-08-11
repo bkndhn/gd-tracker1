@@ -1,12 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Bell, X, Package, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { useAnomalyAlerts, getDismissed } from '@/hooks/useAnomalyAlerts';
+import { AnomalyAlertsPanel } from '@/components/AnomalyAlertsPanel';
 
 interface Notification {
   id: string;
@@ -23,7 +26,20 @@ export const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const { alerts } = useAnomalyAlerts();
+  const [dismissed, setDismissed] = useState<string[]>(() => getDismissed());
+  useEffect(() => {
+    const handler = () => setDismissed(getDismissed());
+    window.addEventListener('anomaly-dismissed', handler);
+    return () => window.removeEventListener('anomaly-dismissed', handler);
+  }, []);
+  const visibleAlerts = useMemo(
+    () => alerts.filter(a => !dismissed.includes(a.id)),
+    [alerts, dismissed],
+  );
+
+  const unreadCount = notifications.filter(n => !n.read).length + visibleAlerts.length;
+
 
   // Play notification sound
   const playNotificationSound = () => {
@@ -164,57 +180,73 @@ export const NotificationBell = () => {
               </Button>
             )}
           </div>
-          
-          <ScrollArea className="max-h-[300px]">
-            {notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <Bell className="h-8 w-8 mb-2 opacity-50" />
-                <p className="text-sm">No notifications yet</p>
-                <p className="text-xs">New GD entries will appear here</p>
-              </div>
-            ) : (
-              <div className="divide-y">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`p-3 hover:bg-muted/50 transition-colors ${
-                      !notification.read ? 'bg-primary/5' : ''
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-primary/10 rounded-full shrink-0">
-                        <Package className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {notification.message}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {notification.shopName}
-                        </p>
-                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {formatTime(notification.timestamp)}
+
+          <Tabs defaultValue="activity">
+            <TabsList className="grid grid-cols-2 w-full rounded-none bg-transparent border-b h-9">
+              <TabsTrigger value="activity" className="text-xs">Activity</TabsTrigger>
+              <TabsTrigger value="alerts" className="text-xs">
+                Alerts{visibleAlerts.length > 0 ? ` (${visibleAlerts.length})` : ''}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="activity" className="m-0">
+              <ScrollArea className="max-h-[300px]">
+                {notifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                    <Bell className="h-8 w-8 mb-2 opacity-50" />
+                    <p className="text-sm">No notifications yet</p>
+                    <p className="text-xs">New lost sale entries will appear here</p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className={`p-3 hover:bg-muted/50 transition-colors ${
+                          !notification.read ? 'bg-primary/5' : ''
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-primary/10 rounded-full shrink-0">
+                            <Package className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {notification.message}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {notification.shopName}
+                            </p>
+                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {formatTime(notification.timestamp)}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeNotification(notification.id);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 hover:opacity-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeNotification(notification.id);
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="alerts" className="m-0">
+              <AnomalyAlertsPanel alerts={visibleAlerts} />
+            </TabsContent>
+          </Tabs>
         </PopoverContent>
+
       </Popover>
     </>
   );
