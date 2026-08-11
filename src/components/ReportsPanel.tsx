@@ -189,7 +189,7 @@ export const ReportsPanel = () => {
       // Extra (non-standard) custom fields render as additional columns
       const extraFields: CustomFieldDef[] = cvIndex.visibleFields
         .filter(f => !f.is_standard)
-        .map(f => ({ id: f.id, name: f.name, is_visible: f.is_visible, display_order: f.display_order }));
+        .map(f => ({ id: f.id, name: f.name, is_visible: f.is_visible, is_mandatory: f.is_mandatory, display_order: f.display_order, field_type: f.field_type }));
 
       const enrichedEntries = entriesData.map(entry => {
         const shop = shopsRes.data.find(s => s.id === entry.shop_id);
