@@ -509,10 +509,18 @@ export const DamagedGoodsForm = () => {
                   <input
                     type={type === 'number' ? 'number' : type === 'date' ? 'date' : type === 'email' ? 'email' : type === 'phone' ? 'tel' : 'text'}
                     className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ${errorClass}`}
-                    value={value} onChange={(e) => setValue(e.target.value)} onBlur={onBlur}
+                    value={value}
+                    onChange={(e) => setValue(type === 'phone' ? normalizePhone(e.target.value) : e.target.value)}
+                    onBlur={onBlur}
                     aria-invalid={!!error}
-                    placeholder={`Enter ${field.name.toLowerCase()}`}
+                    {...(type === 'phone'
+                      ? { inputMode: 'numeric' as const, maxLength: 10, minLength: 10, pattern: '[6-9][0-9]{9}', autoComplete: 'tel-national' }
+                      : {})}
+                    placeholder={type === 'phone' ? '10-digit mobile number' : `Enter ${field.name.toLowerCase()}`}
                   />
+                )}
+                {type === 'phone' && !error && (
+                  <p className="text-xs text-muted-foreground">10 digits, starting with 6-9</p>
                 )}
                 {error && <p className="text-xs text-destructive">{error}</p>}
               </div>
