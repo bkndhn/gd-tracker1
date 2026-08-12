@@ -1701,6 +1701,11 @@ export const ReportsPanel = () => {
                           {getSortIcon('date')}
                         </div>
                       </TableHead>
+                      {phoneFields.length > 0 && (
+                        <TableHead className="w-20 text-center font-semibold text-primary whitespace-nowrap">
+                          FOLLOW-UP
+                        </TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
