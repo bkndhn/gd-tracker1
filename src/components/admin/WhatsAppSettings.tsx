@@ -47,7 +47,7 @@ export const WhatsAppSettings = () => {
           key: 'whatsapp_redirect_enabled',
           value: { enabled: newValue },
           admin_id: (profile as any)?.admin_id || profile?.id,
-        }, { onConflict: 'key' });
+        }, { onConflict: 'admin_id,key' });
 
       if (error) throw error;
       
