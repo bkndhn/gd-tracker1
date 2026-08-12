@@ -1752,6 +1752,16 @@ export const ReportsPanel = () => {
                         <TableCell className="text-muted-foreground whitespace-nowrap text-center">
                           {formatDateTime(entry.created_at!)}
                         </TableCell>
+                        {phoneFields.length > 0 && (
+                          <TableCell className="text-center">
+                            {(() => {
+                              const ctx = buildFollowUpContext(entry);
+                              return ctx
+                                ? <WhatsAppFollowUpButton context={ctx} />
+                                : <span className="text-muted-foreground text-xs">-</span>;
+                            })()}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
