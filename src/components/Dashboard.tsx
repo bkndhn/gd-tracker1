@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +27,8 @@ import { useCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCusto
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { DashboardLayoutEditor } from './DashboardLayoutEditor';
 import { cacheGet, cacheSet } from '@/lib/offlineDb';
+import { WhatsAppFollowUpButton } from '@/components/WhatsAppFollowUpButton';
+import { isValidPhone, type FollowUpContext } from '@/lib/whatsappFollowUp';
 
 const DASHBOARD_CACHE_KEY = 'dashboard:entries';
 const DASHBOARD_SHOPS_CACHE_KEY = 'dashboard:shops';
@@ -43,6 +45,8 @@ interface GDEntry {
   customer_types: { name: string } | null;
   voice_note_url?: string | null;
   gd_entry_images?: Array<{ id: string; image_url: string; image_name?: string }>;
+  employee_name?: string | null;
+  customFieldValues?: Record<string, string>;
 }
 
 
@@ -164,8 +168,49 @@ export const Dashboard = () => {
       categories: { name: stdValue(cvIndex, entry.id, 'category') || 'Unknown' },
       sizes: { size: stdValue(cvIndex, entry.id, 'size') || 'Unknown' },
       customer_types: { name: stdValue(cvIndex, entry.id, 'customer_type') || 'Unknown' },
+      customFieldValues: cvIndex?.valuesByEntry?.[entry.id] || {},
     })) as GDEntry[];
   }, [rawEntries, cvIndex]);
+
+  // --- WhatsApp follow-up (tenant-scoped: values come from this admin's own entries) ---
+  const tenantFields = cvIndex?.fields || [];
+  const phoneFields = useMemo(
+    () => tenantFields.filter(f => (f.field_type || '') === 'phone'),
+    [tenantFields],
+  );
+
+  const buildFollowUpContext = useCallback((entry: GDEntry): FollowUpContext | null => {
+    const rawPhone = phoneFields
+      .map(f => entry.customFieldValues?.[f.id])
+      .find(v => isValidPhone(v));
+    if (!rawPhone) return null;
+
+    const extras: Record<string, string> = {};
+    tenantFields.forEach(f => {
+      if ((f.field_type || '') === 'phone' || f.is_standard) return;
+      const val = entry.customFieldValues?.[f.id];
+      if (val) extras[f.name] = val;
+    });
+
+    const reasonField = tenantFields.find(f => /reason/i.test(f.name));
+    const reason = (reasonField && entry.customFieldValues?.[reasonField.id])
+      || entry.customer_types?.name
+      || entry.categories?.name;
+    if (reasonField) delete extras[reasonField.name];
+
+    return {
+      phone: rawPhone,
+      shopName: entry.shops?.name,
+      reason,
+      category: entry.categories?.name,
+      size: entry.sizes?.size,
+      customerType: entry.customer_types?.name,
+      notes: entry.notes,
+      visitedAt: entry.created_at,
+      extras,
+      reporterName: entry.employee_name || undefined,
+    };
+  }, [tenantFields, phoneFields]);
 
   const categoryOptions = useMemo(() => stdOptions(cvIndex, 'category'), [cvIndex]);
   const customerTypeOptions = useMemo(() => stdOptions(cvIndex, 'customer_type'), [cvIndex]);
@@ -1057,6 +1102,9 @@ export const Dashboard = () => {
                         <TableHead className="min-w-[150px] text-xs md:text-sm text-center">NOTES</TableHead>
                         <TableHead className="w-16 text-xs md:text-sm text-center">IMAGE</TableHead>
                         <TableHead className="min-w-[140px] text-xs md:text-sm text-center">DATE AND TIME</TableHead>
+                        {phoneFields.length > 0 && (
+                          <TableHead className="w-20 text-xs md:text-sm text-center">FOLLOW-UP</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
 
@@ -1092,6 +1140,16 @@ export const Dashboard = () => {
                             <TableCell className="text-xs md:text-sm whitespace-nowrap text-center">
                               {formatDateTime(entry.created_at)}
                             </TableCell>
+                            {phoneFields.length > 0 && (
+                              <TableCell className="text-center">
+                                {(() => {
+                                  const ctx = buildFollowUpContext(entry);
+                                  return ctx
+                                    ? <WhatsAppFollowUpButton context={ctx} />
+                                    : <span className="text-muted-foreground text-xs">-</span>;
+                                })()}
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))
                       ) : (

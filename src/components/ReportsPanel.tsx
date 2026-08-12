@@ -31,6 +31,7 @@ import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { fetchCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
 import { cacheGet, cacheSet } from '@/lib/offlineDb';
+import { WhatsAppFollowUpButton } from '@/components/WhatsAppFollowUpButton';
 import { isValidPhone, type FollowUpContext } from '@/lib/whatsappFollowUp';
 
 /** Snapshot of everything Reports needs, kept in IndexedDB for offline reads. */
@@ -1701,6 +1702,11 @@ export const ReportsPanel = () => {
                           {getSortIcon('date')}
                         </div>
                       </TableHead>
+                      {phoneFields.length > 0 && (
+                        <TableHead className="w-20 text-center font-semibold text-primary whitespace-nowrap">
+                          FOLLOW-UP
+                        </TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1747,6 +1753,16 @@ export const ReportsPanel = () => {
                         <TableCell className="text-muted-foreground whitespace-nowrap text-center">
                           {formatDateTime(entry.created_at!)}
                         </TableCell>
+                        {phoneFields.length > 0 && (
+                          <TableCell className="text-center">
+                            {(() => {
+                              const ctx = buildFollowUpContext(entry);
+                              return ctx
+                                ? <WhatsAppFollowUpButton context={ctx} />
+                                : <span className="text-muted-foreground text-xs">-</span>;
+                            })()}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
