@@ -102,3 +102,79 @@ export const buildFollowUpMessage = (ctx: FollowUpContext): string => {
 
 export const buildFollowUpLink = (ctx: FollowUpContext): string =>
   `https://wa.me/${toWaNumber(ctx.phone)}?text=${encodeURIComponent(buildFollowUpMessage(ctx))}`;
+
+/* ------------------------------------------------------------------ *
+ * Smart reply templates (per-admin configurable, tenant isolated)
+ * ------------------------------------------------------------------ */
+
+export type TemplateKey =
+  | 'stock' | 'size' | 'price' | 'variant' | 'quality' | 'service' | 'general';
+
+export const TEMPLATE_LABELS: Record<TemplateKey, string> = {
+  stock: 'Out of stock',
+  size: 'Size / fit not available',
+  price: 'Price / budget',
+  variant: 'Colour, design or model',
+  quality: 'Quality concern',
+  service: 'Service experience',
+  general: 'General follow-up',
+};
+
+/** Placeholders usable inside a template body. */
+export const TEMPLATE_PLACEHOLDERS = ['{shop}', '{category}', '{size}', '{reason}', '{customer_type}'];
+
+export const DEFAULT_TEMPLATES: Record<TemplateKey, string> = {
+  stock: 'We are restocking {category} shortly. Shall I reserve one for you and message you the moment it arrives?',
+  size: 'We can arrange the right size {size} for you. Would you like me to book it in your name?',
+  price: 'We have a better offer running on this now. Would you like me to share the revised price and options in your budget?',
+  variant: 'We just received new colours and designs in this range. Can I share a few photos that match what you were looking for?',
+  quality: 'Sorry about that experience. We have fresh stock now and I would personally check it for you. May I keep a piece aside?',
+  service: 'Sorry for the inconvenience during your visit. Could you share what went wrong so we can fix it and make your next visit smooth?',
+  general: 'Could you let us know what would have made this purchase work for you? We would love to arrange it on your next visit.',
+};
+
+/** Chooses the template that best matches the logged lost reason. */
+export const matchTemplateKey = (ctx: FollowUpContext): TemplateKey => {
+  const hay = `${lower(ctx.reason)} ${lower(ctx.category)} ${lower(ctx.notes)}`;
+  if (/(stock|unavailab|not available|sold out|out of)/.test(hay)) return 'stock';
+  if (/(size|fit|small|large|medium)/.test(hay)) return 'size';
+  if (/(price|cost|expensive|budget|discount|offer)/.test(hay)) return 'price';
+  if (/(colour|color|design|model|variant|style)/.test(hay)) return 'variant';
+  if (/(quality|damage|defect|torn|broken)/.test(hay)) return 'quality';
+  if (/(service|staff|wait|queue|billing|slow|rude)/.test(hay)) return 'service';
+  return 'general';
+};
+
+const fill = (tpl: string, ctx: FollowUpContext): string =>
+  tpl
+    .replace(/\{shop\}/g, ctx.shopName && ctx.shopName !== 'Unknown' ? ctx.shopName : 'our store')
+    .replace(/\{category\}/g, ctx.category && ctx.category !== 'Unknown' ? ctx.category : 'this item')
+    .replace(/\{size\}/g, ctx.size && ctx.size !== 'Unknown' ? `(${ctx.size})` : '')
+    .replace(/\{customer_type\}/g, ctx.customerType && ctx.customerType !== 'Unknown' ? ctx.customerType : '')
+    .replace(/\{reason\}/g, ctx.reason && ctx.reason !== 'Unknown' ? ctx.reason : 'your feedback')
+    .replace(/[ ]{2,}/g, ' ')
+    .trim();
+
+/** Same as buildFollowUpMessage but uses the admin's saved template set. */
+export const buildFollowUpMessageWithTemplates = (
+  ctx: FollowUpContext,
+  templates: Partial<Record<TemplateKey, string>> | undefined,
+  key?: TemplateKey,
+  anomalyNote?: string,
+): string => {
+  const chosen = key || matchTemplateKey(ctx);
+  const body = fill(templates?.[chosen] || DEFAULT_TEMPLATES[chosen], ctx);
+  const base = buildFollowUpMessage(ctx);
+  const withoutAsk = base.split('\n').slice(0, -(ctx.reporterName ? 2 : 1)).join('\n').replace(/\s+$/, '');
+  const lines = [withoutAsk, ''];
+  if (anomalyNote) lines.push(anomalyNote, '');
+  lines.push(body);
+  if (ctx.reporterName) {
+    const shop = ctx.shopName && ctx.shopName !== 'Unknown' ? ctx.shopName : 'our store';
+    lines.push(`- ${ctx.reporterName}, ${shop}`);
+  }
+  return lines.join('\n');
+};
+
+export const buildFollowUpLinkFromText = (phone: string, text: string): string =>
+  `https://wa.me/${toWaNumber(phone)}?text=${encodeURIComponent(text)}`;
