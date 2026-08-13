@@ -1758,7 +1758,7 @@ export const ReportsPanel = () => {
                             {(() => {
                               const ctx = buildFollowUpContext(entry);
                               return ctx
-                                ? <WhatsAppFollowUpButton context={ctx} />
+                                ? <WhatsAppFollowUpButton context={ctx} entryId={entry.id} shopId={(entry as any).shop_id ?? null} />
                                 : <span className="text-muted-foreground text-xs">-</span>;
                             })()}
                           </TableCell>
