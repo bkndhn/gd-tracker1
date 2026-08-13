@@ -10,7 +10,7 @@ import { OfflineStatusBar } from '@/components/OfflineStatusBar';
 
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Plus, Settings, FileText, Shield } from 'lucide-react';
+import { BarChart3, Plus, Settings, FileText, Shield, MessageCircle } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OnboardingWizard, hasCompletedOnboarding } from '@/components/OnboardingWizard';
 import { identifySession, addBreadcrumb } from '@/lib/errorTracking';
@@ -20,13 +20,15 @@ import { supabase } from '@/integrations/supabase/client';
 const importDashboard = () => import('@/components/Dashboard').then(m => ({ default: m.Dashboard }));
 const importReports = () => import('@/components/ReportsPanel').then(m => ({ default: m.ReportsPanel }));
 const importAdmin = () => import('@/components/AdminPanel').then(m => ({ default: m.AdminPanel }));
+const importFollowUps = () => import('@/components/FollowUpPanel').then(m => ({ default: m.FollowUpPanel }));
 const importSuperAdmin = () => import('@/components/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard }));
 const Dashboard = React.lazy(importDashboard);
 const ReportsPanel = React.lazy(importReports);
 const AdminPanel = React.lazy(importAdmin);
+const FollowUpPanel = React.lazy(importFollowUps);
 const SuperAdminDashboard = React.lazy(importSuperAdmin);
 
-type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'super_admin';
+type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'followups' | 'super_admin';
 
 export const MainApp = () => {
   const { isSuperAdmin, isAdmin, isManager, profile, user, signOut, adminId } = useAuth();
@@ -128,6 +130,10 @@ export const MainApp = () => {
         return isAdmin && !isSuperAdmin ? (
           <ErrorBoundary boundary="AdminPanel"><Suspense fallback={<LoadingSpinner />}><AdminPanel /></Suspense></ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
+      case 'followups':
+        return (isAdmin || isManager) && !isSuperAdmin ? (
+          <ErrorBoundary boundary="FollowUpPanel"><Suspense fallback={<LoadingSpinner />}><FollowUpPanel /></Suspense></ErrorBoundary>
+        ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'reports':
         return (isAdmin || isManager) && !isSuperAdmin ? (
           <ErrorBoundary boundary="ReportsPanel"><Suspense fallback={<LoadingSpinner />}><ReportsPanel /></Suspense></ErrorBoundary>
@@ -182,6 +188,13 @@ export const MainApp = () => {
                     onMouseEnter={() => importReports()} onFocus={() => importReports()}
                     className="flex items-center gap-2 flex-shrink-0">
                     <FileText className="h-4 w-4" />Reports
+                  </Button>
+                )}
+                {(isAdmin || isManager) && (
+                  <Button variant={activeTab === 'followups' ? 'default' : 'ghost'} onClick={() => setActiveTab('followups')}
+                    onMouseEnter={() => importFollowUps()} onFocus={() => importFollowUps()}
+                    className="flex items-center gap-2 flex-shrink-0">
+                    <MessageCircle className="h-4 w-4" />Follow-ups
                   </Button>
                 )}
                 {isAdmin && (
