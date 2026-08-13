@@ -178,3 +178,41 @@ export const buildFollowUpMessageWithTemplates = (
 
 export const buildFollowUpLinkFromText = (phone: string, text: string): string =>
   `https://wa.me/${toWaNumber(phone)}?text=${encodeURIComponent(text)}`;
+
+/* ------------------------------------------------------------------ *
+ * Multi-language templates (English / Tamil / Hindi)
+ * ------------------------------------------------------------------ */
+
+export type TemplateLocale = 'en' | 'ta' | 'hi';
+
+export const TEMPLATE_LOCALE_LABELS: Record<TemplateLocale, string> = {
+  en: 'English',
+  ta: 'தமிழ்',
+  hi: 'हिन्दी',
+};
+
+export const TEMPLATES_TA: Record<TemplateKey, string> = {
+  stock: '{category} விரைவில் மீண்டும் ஸ்டாக் வரும். உங்களுக்காக ஒன்று ஒதுக்கி வைத்து, வந்தவுடன் தகவல் சொல்லட்டுமா?',
+  size: 'உங்களுக்கு தேவையான சைஸ் {size} ஏற்பாடு செய்யலாம். உங்கள் பெயரில் பதிவு செய்யட்டுமா?',
+  price: 'இப்போது இதற்கு சிறந்த சலுகை உள்ளது. திருத்திய விலை மற்றும் உங்கள் பட்ஜெட்டுக்கு ஏற்ற விருப்பங்களை அனுப்பட்டுமா?',
+  variant: 'இந்த வகையில் புதிய நிறங்கள் மற்றும் டிசைன்கள் வந்துள்ளன. சில புகைப்படங்கள் அனுப்பட்டுமா?',
+  quality: 'அந்த அனுபவத்திற்கு வருந்துகிறோம். புதிய ஸ்டாக் வந்துள்ளது, நானே சரிபார்த்து ஒதுக்கி வைக்கிறேன். சரியா?',
+  service: 'உங்கள் வருகையின் போது ஏற்பட்ட சிரமத்திற்கு வருந்துகிறோம். என்ன தவறு நடந்தது என்று சொன்னால் சரிசெய்கிறோம்.',
+  general: 'இந்த வாங்குதல் நடக்க என்ன தேவைப்பட்டது என்று சொல்ல முடியுமா? அடுத்த வருகையில் ஏற்பாடு செய்கிறோம்.',
+};
+
+export const TEMPLATES_HI: Record<TemplateKey, string> = {
+  stock: '{category} जल्द ही दोबारा स्टॉक में आ रहा है। क्या मैं आपके लिए एक रिज़र्व कर दूँ और आते ही बता दूँ?',
+  size: 'हम आपके लिए सही साइज़ {size} की व्यवस्था कर सकते हैं। क्या इसे आपके नाम पर बुक कर दूँ?',
+  price: 'अभी इस पर बेहतर ऑफ़र चल रहा है। क्या मैं नई कीमत और आपके बजट के विकल्प भेज दूँ?',
+  variant: 'इस रेंज में नए रंग और डिज़ाइन आए हैं। क्या मैं कुछ फ़ोटो भेज सकता हूँ?',
+  quality: 'उस अनुभव के लिए खेद है। अब नया स्टॉक आया है, मैं खुद जाँच कर आपके लिए रख दूँगा। ठीक रहेगा?',
+  service: 'आपकी विज़िट में हुई असुविधा के लिए खेद है। क्या हुआ बताइए, हम उसे ठीक करेंगे।',
+  general: 'बताइए, यह खरीद पूरी होने के लिए क्या ज़रूरी था? अगली विज़िट पर हम उसकी व्यवस्था कर देंगे।',
+};
+
+export const DEFAULT_TEMPLATES_BY_LOCALE: Record<TemplateLocale, Record<TemplateKey, string>> = {
+  en: DEFAULT_TEMPLATES,
+  ta: TEMPLATES_TA,
+  hi: TEMPLATES_HI,
+};
