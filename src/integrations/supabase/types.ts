@@ -423,6 +423,96 @@ export type Database = {
         }
         Relationships: []
       }
+      follow_ups: {
+        Row: {
+          admin_id: string
+          channel: string
+          created_at: string
+          customer_name: string | null
+          entry_id: string | null
+          id: string
+          message: string | null
+          next_reminder_at: string | null
+          outcome: string
+          outcome_at: string | null
+          outcome_note: string | null
+          phone: string
+          reason_label: string | null
+          recovered_amount: number
+          reminder_stage: number
+          sent_at: string
+          sent_by: string
+          sent_by_name: string | null
+          shop_id: string | null
+          shop_name: string | null
+          template_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          channel?: string
+          created_at?: string
+          customer_name?: string | null
+          entry_id?: string | null
+          id?: string
+          message?: string | null
+          next_reminder_at?: string | null
+          outcome?: string
+          outcome_at?: string | null
+          outcome_note?: string | null
+          phone: string
+          reason_label?: string | null
+          recovered_amount?: number
+          reminder_stage?: number
+          sent_at?: string
+          sent_by: string
+          sent_by_name?: string | null
+          shop_id?: string | null
+          shop_name?: string | null
+          template_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          channel?: string
+          created_at?: string
+          customer_name?: string | null
+          entry_id?: string | null
+          id?: string
+          message?: string | null
+          next_reminder_at?: string | null
+          outcome?: string
+          outcome_at?: string | null
+          outcome_note?: string | null
+          phone?: string
+          reason_label?: string | null
+          recovered_amount?: number
+          reminder_stage?: number
+          sent_at?: string
+          sent_by?: string
+          sent_by_name?: string | null
+          shop_id?: string | null
+          shop_name?: string | null
+          template_key?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_ups_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "goods_damaged_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_ups_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gd_entry_custom_values: {
         Row: {
           created_at: string | null
@@ -768,6 +858,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      shop_targets: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          period_month: string
+          shop_id: string | null
+          target_followups: number
+          target_recovered: number
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          period_month: string
+          shop_id?: string | null
+          target_followups?: number
+          target_recovered?: number
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          period_month?: string
+          shop_id?: string | null
+          target_followups?: number
+          target_recovered?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_targets_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shops: {
         Row: {
