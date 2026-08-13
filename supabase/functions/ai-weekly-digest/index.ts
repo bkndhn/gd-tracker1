@@ -15,7 +15,7 @@ async function generateDigest(summary: string): Promise<string> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Lovable-API-Key': LOVABLE_API_KEY! },
     body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'system',
