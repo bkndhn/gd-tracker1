@@ -82,6 +82,8 @@ export const AdminPanel = () => {
 
       <WhatsAppFollowUpSettings />
 
+      <WhatsAppIntakeSettings />
+
 
       <UserManagement shops={shops} profiles={profiles} onRefresh={fetchData} />
 
