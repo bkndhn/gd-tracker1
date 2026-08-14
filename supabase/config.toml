@@ -3,3 +3,6 @@ project_id = "jlmkvvhmtpuplnpunbhc"
 
 [functions.export-report-email]
 verify_jwt = true
+
+[functions.whatsapp-webhook]
+verify_jwt = false

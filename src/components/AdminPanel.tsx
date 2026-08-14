@@ -6,6 +6,7 @@ import { Database } from '@/types/database';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { WhatsAppSettings } from '@/components/admin/WhatsAppSettings';
 import { WhatsAppFollowUpSettings } from '@/components/admin/WhatsAppFollowUpSettings';
+import { WhatsAppIntakeSettings } from '@/components/admin/WhatsAppIntakeSettings';
 import { CustomFieldManagement } from '@/components/admin/CustomFieldManagement';
 import { ExportSettings } from '@/components/admin/ExportSettings';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
@@ -80,6 +81,8 @@ export const AdminPanel = () => {
       <WhatsAppSettings />
 
       <WhatsAppFollowUpSettings />
+
+      <WhatsAppIntakeSettings />
 
 
       <UserManagement shops={shops} profiles={profiles} onRefresh={fetchData} />
