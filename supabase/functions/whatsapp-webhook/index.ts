@@ -152,14 +152,8 @@ async function handleMessage(supa: any, msg: any, contactName?: string) {
     .maybeSingle();
 
   if (!contact) {
-    await supa.from('wa_contacts').insert({
-      admin_id: '00000000-0000-0000-0000-000000000000',
-      phone: from,
-      display_name: contactName || null,
-      is_approved: false,
-      last_message_at: new Date().toISOString(),
-    }).then(() => undefined, () => undefined);
-    await sendText(from, 'This number is not registered for visit logging. Ask your admin to approve it in the app.');
+    console.log('unregistered whatsapp sender', from, contactName || '');
+    await sendText(from, 'This number is not registered for visit logging. Ask your admin to add it in Admin → WhatsApp intake.');
     return;
   }
   if (!contact.is_approved) {
