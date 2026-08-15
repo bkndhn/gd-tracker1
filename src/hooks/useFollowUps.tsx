@@ -32,6 +32,11 @@ export interface FollowUpRow {
   reminder_stage: number;
   sent_at: string;
   outcome_at: string | null;
+  wa_message_id?: string | null;
+  delivery_status?: 'queued' | 'sent' | 'delivered' | 'read' | 'failed' | null;
+  delivered_at?: string | null;
+  read_at?: string | null;
+  delivery_error?: string | null;
 }
 
 export interface LogFollowUpInput {

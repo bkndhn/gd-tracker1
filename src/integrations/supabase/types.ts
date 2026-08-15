@@ -429,6 +429,9 @@ export type Database = {
           channel: string
           created_at: string
           customer_name: string | null
+          delivered_at: string | null
+          delivery_error: string | null
+          delivery_status: string
           entry_id: string | null
           id: string
           message: string | null
@@ -437,6 +440,7 @@ export type Database = {
           outcome_at: string | null
           outcome_note: string | null
           phone: string
+          read_at: string | null
           reason_label: string | null
           recovered_amount: number
           reminder_stage: number
@@ -447,12 +451,16 @@ export type Database = {
           shop_name: string | null
           template_key: string | null
           updated_at: string
+          wa_message_id: string | null
         }
         Insert: {
           admin_id: string
           channel?: string
           created_at?: string
           customer_name?: string | null
+          delivered_at?: string | null
+          delivery_error?: string | null
+          delivery_status?: string
           entry_id?: string | null
           id?: string
           message?: string | null
@@ -461,6 +469,7 @@ export type Database = {
           outcome_at?: string | null
           outcome_note?: string | null
           phone: string
+          read_at?: string | null
           reason_label?: string | null
           recovered_amount?: number
           reminder_stage?: number
@@ -471,12 +480,16 @@ export type Database = {
           shop_name?: string | null
           template_key?: string | null
           updated_at?: string
+          wa_message_id?: string | null
         }
         Update: {
           admin_id?: string
           channel?: string
           created_at?: string
           customer_name?: string | null
+          delivered_at?: string | null
+          delivery_error?: string | null
+          delivery_status?: string
           entry_id?: string | null
           id?: string
           message?: string | null
@@ -485,6 +498,7 @@ export type Database = {
           outcome_at?: string | null
           outcome_note?: string | null
           phone?: string
+          read_at?: string | null
           reason_label?: string | null
           recovered_amount?: number
           reminder_stage?: number
@@ -495,6 +509,7 @@ export type Database = {
           shop_name?: string | null
           template_key?: string | null
           updated_at?: string
+          wa_message_id?: string | null
         }
         Relationships: [
           {
@@ -1039,6 +1054,72 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      wa_webhook_events: {
+        Row: {
+          admin_id: string | null
+          attempts: number
+          created_at: string
+          entry_id: string | null
+          error_message: string | null
+          event_id: string
+          follow_up_id: string | null
+          id: string
+          kind: string
+          payload: Json
+          phone: string | null
+          processed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id?: string | null
+          attempts?: number
+          created_at?: string
+          entry_id?: string | null
+          error_message?: string | null
+          event_id: string
+          follow_up_id?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          phone?: string | null
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string | null
+          attempts?: number
+          created_at?: string
+          entry_id?: string | null
+          error_message?: string | null
+          event_id?: string
+          follow_up_id?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          phone?: string | null
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_webhook_events_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "goods_damaged_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_webhook_events_follow_up_id_fkey"
+            columns: ["follow_up_id"]
+            isOneToOne: false
+            referencedRelation: "follow_ups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

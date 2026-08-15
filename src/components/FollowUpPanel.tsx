@@ -28,6 +28,21 @@ const outcomeTone: Record<FollowUpOutcome, string> = {
   lost: 'bg-destructive/10 text-destructive border-destructive/30',
 };
 
+/** WhatsApp delivery state (sent / delivered / read) for one follow-up message. */
+const DeliveryChip = ({ row }: { row: FollowUpRow }) => {
+  const state = row.delivery_status || 'queued';
+  const map: Record<string, { label: string; cls: string; title: string }> = {
+    queued: { label: '○ queued', cls: 'text-muted-foreground', title: 'Waiting for WhatsApp confirmation' },
+    sent: { label: '✓ sent', cls: 'text-muted-foreground', title: `Sent ${fmtDate(row.sent_at)}` },
+    delivered: { label: '✓✓ delivered', cls: 'text-muted-foreground', title: `Delivered ${fmtDate(row.delivered_at)}` },
+    read: { label: '✓✓ read', cls: 'text-sky-600', title: `Read ${fmtDate(row.read_at)}` },
+    failed: { label: '! failed', cls: 'text-destructive', title: row.delivery_error || 'Delivery failed' },
+  };
+  const m = map[state] || map.queued;
+  return <span className={`text-[11px] font-medium ${m.cls}`} title={m.title}>{m.label}</span>;
+};
+
+
 const StatCard = ({ icon: Icon, label, value, sub }: any) => (
   <Card className="premium-card">
     <CardContent className="p-4">
@@ -140,7 +155,7 @@ export const FollowUpPanel = () => {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">+91 {r.phone} · {r.shop_name || 'Unknown shop'}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {r.reason_label || 'No reason'} · sent {fmtDate(r.sent_at)} by {r.sent_by_name || 'staff'} · stage {r.reminder_stage + 1}
+                      {r.reason_label || 'No reason'} · sent {fmtDate(r.sent_at)} by {r.sent_by_name || 'staff'} · stage {r.reminder_stage + 1} · <DeliveryChip row={r} />
                     </p>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => snoozeReminder(r.id, 3)}>Snooze 3d</Button>
@@ -183,7 +198,10 @@ export const FollowUpPanel = () => {
                         <td className="p-2 truncate max-w-[160px]">{r.shop_name || '—'}</td>
                         <td className="p-2 truncate max-w-[140px]">{r.sent_by_name || '—'}</td>
                         <td className="p-2">
-                          <Badge variant="outline" className={outcomeTone[r.outcome]}>{OUTCOME_LABELS[r.outcome]}</Badge>
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className={outcomeTone[r.outcome]}>{OUTCOME_LABELS[r.outcome]}</Badge>
+                            <DeliveryChip row={r} />
+                          </div>
                         </td>
                         <td className="p-2 text-right whitespace-nowrap">{r.recovered_amount ? inr(r.recovered_amount) : '—'}</td>
                         <td className="p-2 text-right">

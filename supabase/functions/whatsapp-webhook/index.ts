@@ -141,40 +141,60 @@ async function createEntry(supa: any, session: any, contact: any) {
   return entry.id;
 }
 
-/**
- * Customer replies: match the sender against pending follow-ups (last 10 digits)
- * and auto-mark the newest one as replied with the reply text.
- * Returns true when the message was consumed as a follow-up reply.
- */
-async function handleCustomerReply(supa: any, from: string, text: string): Promise<boolean> {
-  const last10 = from.replace(/\D/g, '').slice(-10);
-  if (last10.length < 10) return false;
+export type HandleResult = {
+  status: 'processed' | 'unmatched' | 'ignored' | 'error';
+  adminId?: string | null;
+  followUpId?: string | null;
+  entryId?: string | null;
+  error?: string;
+};
 
+/**
+ * Customer replies: match the sender against their follow-ups (by the last 10 digits,
+ * so country-code differences never break matching). Picks the newest *pending*
+ * follow-up; when none is pending it still attaches the reply to the newest
+ * follow-up from the last 30 days so the timeline stays correct with many visits.
+ */
+async function handleCustomerReply(supa: any, from: string, text: string): Promise<HandleResult | null> {
+  const last10 = from.replace(/\D/g, '').slice(-10);
+  if (last10.length < 10) return null;
+
+  const since = new Date(Date.now() - 30 * 24 * 3600_000).toISOString();
   const { data: rows } = await supa
     .from('follow_ups')
-    .select('id, outcome, customer_name')
+    .select('id, admin_id, entry_id, shop_id, outcome, sent_at')
     .like('phone', `%${last10}`)
-    .in('outcome', ['pending'])
+    .gte('sent_at', since)
     .order('sent_at', { ascending: false })
-    .limit(1);
+    .limit(20);
 
-  const fu = rows?.[0];
-  if (!fu) return false;
+  const candidates = rows || [];
+  if (candidates.length === 0) return null;
 
-  await supa
-    .from('follow_ups')
-    .update({
-      outcome: 'replied',
-      outcome_at: new Date().toISOString(),
-      outcome_note: text ? `Customer replied: ${text.slice(0, 500)}` : 'Customer replied (media message)',
-      next_reminder_at: null,
-    })
-    .eq('id', fu.id);
+  const fu = candidates.find((r: any) => r.outcome === 'pending') || candidates[0];
+  const note = text ? `Customer replied: ${text.slice(0, 500)}` : 'Customer replied (media message)';
 
-  return true;
+  if (fu.outcome === 'pending') {
+    await supa
+      .from('follow_ups')
+      .update({
+        outcome: 'replied',
+        outcome_at: new Date().toISOString(),
+        outcome_note: note,
+        next_reminder_at: null,
+        read_at: new Date().toISOString(),
+        delivery_status: 'read',
+      })
+      .eq('id', fu.id)
+      .eq('outcome', 'pending'); // idempotent: a concurrent duplicate cannot re-mark it
+  } else {
+    await supa.from('follow_ups').update({ outcome_note: note }).eq('id', fu.id);
+  }
+
+  return { status: 'processed', adminId: fu.admin_id, followUpId: fu.id, entryId: fu.entry_id };
 }
 
-async function handleMessage(supa: any, msg: any, contactName?: string) {
+async function handleMessage(supa: any, msg: any, contactName?: string): Promise<HandleResult> {
   const from: string = msg.from;
   const text: string = msg.text?.body?.trim() || msg.button?.text?.trim() || '';
 
@@ -185,24 +205,22 @@ async function handleMessage(supa: any, msg: any, contactName?: string) {
     .maybeSingle();
 
   if (!contact) {
-    if (await handleCustomerReply(supa, from, text)) {
-      console.log('follow-up reply recorded for', from);
-      return;
-    }
+    const reply = await handleCustomerReply(supa, from, text);
+    if (reply) return reply;
     console.log('unregistered whatsapp sender', from, contactName || '');
     await sendText(from, 'This number is not registered for visit logging. Ask your admin to add it in Admin → WhatsApp intake.');
-    return;
+    return { status: 'unmatched', error: 'Sender is not a registered staff number and matches no recent follow-up' };
   }
   if (!contact.is_approved) {
     await sendText(from, 'Your number is pending approval. Ask your admin to approve it in Admin → WhatsApp intake.');
-    return;
+    return { status: 'unmatched', adminId: contact.admin_id, error: 'Number pending approval' };
   }
   await supa.from('wa_contacts').update({ last_message_at: new Date().toISOString() }).eq('id', contact.id);
 
   if (/^(cancel|stop|reset)$/i.test(text)) {
     await supa.from('wa_sessions').delete().eq('phone', from);
     await sendText(from, 'Cancelled. Send a new message to log another visit.');
-    return;
+    return { status: 'ignored', adminId: contact.admin_id };
   }
 
   const { data: existing } = await supa.from('wa_sessions').select('*').eq('phone', from).maybeSingle();
@@ -215,12 +233,11 @@ async function handleMessage(supa: any, msg: any, contactName?: string) {
     const pick = Number(text);
     if (!pick || pick < 1 || pick > options.length) {
       await sendText(from, `Please reply with a number:\n${numbered(options)}`);
-      return;
+      return { status: 'ignored', adminId: contact.admin_id };
     }
     const shop = options[pick - 1];
     const draft = { ...(fresh.draft || {}), shop_id: shop.id, shop_name: shop.label };
-    await askReason(supa, from, contact, draft);
-    return;
+    return await askReason(supa, from, contact, draft);
   }
 
   // --- Step: awaiting reason choice ---
@@ -229,21 +246,22 @@ async function handleMessage(supa: any, msg: any, contactName?: string) {
     const pick = Number(text);
     if (!pick || pick < 1 || pick > options.length) {
       await sendText(from, `Please reply with a number:\n${numbered(options)}`);
-      return;
+      return { status: 'ignored', adminId: contact.admin_id };
     }
     const opt = options[pick - 1];
     const draft = { ...(fresh.draft || {}), reason_option_id: opt.id, reason_label: opt.label };
     try {
-      await createEntry(supa, { draft }, contact);
+      const entryId = await createEntry(supa, { draft }, contact);
       await supa.from('wa_sessions').delete().eq('phone', from);
       await sendText(
         from,
         `Logged ✅\nShop: ${draft.shop_name || '-'}\nReason: ${opt.label}\nNote: ${draft.notes || '(voice/photo only)'}`,
       );
+      return { status: 'processed', adminId: contact.admin_id, entryId };
     } catch (e: any) {
       await sendText(from, `Could not save the visit: ${e.message || 'unknown error'}`);
+      return { status: 'error', adminId: contact.admin_id, error: e.message || 'unknown error' };
     }
-    return;
   }
 
   // --- New conversation: capture content, then ask shop ---
@@ -255,7 +273,7 @@ async function handleMessage(supa: any, msg: any, contactName?: string) {
   }
   if (!draft.notes && !draft.image_ids && !draft.audio_id) {
     await sendText(from, 'Send the visit details as text, a photo or a voice note to start logging.');
-    return;
+    return { status: 'ignored', adminId: contact.admin_id };
   }
 
   const { data: shops } = await supa
@@ -268,11 +286,10 @@ async function handleMessage(supa: any, msg: any, contactName?: string) {
 
   if (shopList.length === 0) {
     await sendText(from, 'No shops are set up yet. Ask your admin to add a shop first.');
-    return;
+    return { status: 'error', adminId: contact.admin_id, error: 'No shops configured for this tenant' };
   }
   if (shopList.length === 1) {
-    await askReason(supa, from, contact, { ...draft, shop_id: shopList[0].id, shop_name: shopList[0].label });
-    return;
+    return await askReason(supa, from, contact, { ...draft, shop_id: shopList[0].id, shop_name: shopList[0].label });
   }
 
   await setSession(supa, from, {
@@ -283,19 +300,21 @@ async function handleMessage(supa: any, msg: any, contactName?: string) {
     options: shopList,
   });
   await sendText(from, `Which shop?\n${numbered(shopList)}\n\n(Reply with the number, or "cancel")`);
+  return { status: 'processed', adminId: contact.admin_id };
 }
 
-async function askReason(supa: any, from: string, contact: any, draft: Record<string, unknown>) {
+async function askReason(supa: any, from: string, contact: any, draft: Record<string, unknown>): Promise<HandleResult> {
   const field = await reasonField(supa, contact.admin_id);
   if (!field) {
     try {
-      await createEntry(supa, { draft }, contact);
+      const entryId = await createEntry(supa, { draft }, contact);
       await supa.from('wa_sessions').delete().eq('phone', from);
       await sendText(from, `Logged ✅\nShop: ${draft.shop_name || '-'}`);
+      return { status: 'processed', adminId: contact.admin_id, entryId };
     } catch (e: any) {
       await sendText(from, `Could not save the visit: ${e.message || 'unknown error'}`);
+      return { status: 'error', adminId: contact.admin_id, error: e.message || 'unknown error' };
     }
-    return;
   }
 
   const { data: opts } = await supa
@@ -308,13 +327,14 @@ async function askReason(supa: any, from: string, contact: any, draft: Record<st
 
   if (list.length === 0) {
     try {
-      await createEntry(supa, { draft }, contact);
+      const entryId = await createEntry(supa, { draft }, contact);
       await supa.from('wa_sessions').delete().eq('phone', from);
       await sendText(from, `Logged ✅\nShop: ${draft.shop_name || '-'}`);
+      return { status: 'processed', adminId: contact.admin_id, entryId };
     } catch (e: any) {
       await sendText(from, `Could not save the visit: ${e.message || 'unknown error'}`);
+      return { status: 'error', adminId: contact.admin_id, error: e.message || 'unknown error' };
     }
-    return;
   }
 
   await setSession(supa, from, {
@@ -325,6 +345,81 @@ async function askReason(supa: any, from: string, contact: any, draft: Record<st
     options: list,
   });
   await sendText(from, `${field.name}?\n${numbered(list)}\n\n(Reply with the number, or "cancel")`);
+  return { status: 'processed', adminId: contact.admin_id };
+}
+
+/**
+ * Idempotency: claim an event id. Returns false when this exact event was already
+ * seen (Meta retries the same payload), so nothing gets processed twice.
+ */
+async function claimEvent(
+  supa: any,
+  eventId: string,
+  kind: 'message' | 'status',
+  phone: string | undefined,
+  payload: unknown,
+): Promise<boolean> {
+  const { error } = await supa
+    .from('wa_webhook_events')
+    .insert({ event_id: eventId, kind, phone: phone ?? null, payload: payload ?? {}, status: 'received' });
+  if (!error) return true;
+  // Duplicate key -> already handled; just record the retry attempt.
+  const { data: existing } = await supa
+    .from('wa_webhook_events')
+    .select('id, attempts')
+    .eq('event_id', eventId)
+    .maybeSingle();
+  if (existing) {
+    await supa
+      .from('wa_webhook_events')
+      .update({ attempts: (existing.attempts || 1) + 1 })
+      .eq('id', existing.id);
+  }
+  return false;
+}
+
+async function finishEvent(supa: any, eventId: string, res: HandleResult) {
+  await supa
+    .from('wa_webhook_events')
+    .update({
+      status: res.status,
+      admin_id: res.adminId ?? null,
+      follow_up_id: res.followUpId ?? null,
+      entry_id: res.entryId ?? null,
+      error_message: res.error ?? null,
+      processed_at: new Date().toISOString(),
+    })
+    .eq('event_id', eventId);
+}
+
+/** Maps a WhatsApp delivery receipt onto the follow-up it belongs to. */
+async function handleStatus(supa: any, st: any): Promise<HandleResult> {
+  const messageId: string = st.id;
+  const state: string = st.status; // sent | delivered | read | failed
+  const ts = st.timestamp ? new Date(Number(st.timestamp) * 1000).toISOString() : new Date().toISOString();
+
+  const { data: fu } = await supa
+    .from('follow_ups')
+    .select('id, admin_id, entry_id, delivery_status, delivered_at')
+    .eq('wa_message_id', messageId)
+    .maybeSingle();
+
+  if (!fu) {
+    return { status: 'unmatched', error: `No follow-up linked to WhatsApp message ${messageId}` };
+  }
+
+  const rank: Record<string, number> = { queued: 0, sent: 1, delivered: 2, read: 3, failed: 4 };
+  const patch: Record<string, unknown> = {};
+  // Never move a follow-up backwards when receipts arrive out of order.
+  if ((rank[state] ?? 0) >= (rank[fu.delivery_status] ?? 0)) patch.delivery_status = state;
+  if (state === 'delivered') patch.delivered_at = ts;
+  if (state === 'read') { patch.read_at = ts; patch.delivered_at = fu.delivered_at ?? ts; }
+  if (state === 'failed') patch.delivery_error = st.errors?.[0]?.title || 'Delivery failed';
+
+  if (Object.keys(patch).length > 0) {
+    await supa.from('follow_ups').update(patch).eq('id', fu.id);
+  }
+  return { status: 'processed', adminId: fu.admin_id, followUpId: fu.id, entryId: fu.entry_id };
 }
 
 Deno.serve(async (req) => {
@@ -365,8 +460,34 @@ Deno.serve(async (req) => {
       for (const change of entry.changes || []) {
         const value = change.value || {};
         const profileName = value.contacts?.[0]?.profile?.name;
+
+        // Inbound messages — one event row per WhatsApp message id (idempotent)
         for (const msg of value.messages || []) {
-          await handleMessage(supa, msg, profileName);
+          const eventId = `msg:${msg.id}`;
+          const claimed = await claimEvent(supa, eventId, 'message', msg.from, msg);
+          if (!claimed) {
+            console.log('duplicate whatsapp event ignored', eventId);
+            continue;
+          }
+          try {
+            const res = await handleMessage(supa, msg, profileName);
+            await finishEvent(supa, eventId, res);
+          } catch (e: any) {
+            await finishEvent(supa, eventId, { status: 'error', error: e?.message || String(e) });
+          }
+        }
+
+        // Delivery receipts — sent / delivered / read / failed
+        for (const st of value.statuses || []) {
+          const eventId = `status:${st.id}:${st.status}`;
+          const claimed = await claimEvent(supa, eventId, 'status', st.recipient_id, st);
+          if (!claimed) continue;
+          try {
+            const res = await handleStatus(supa, st);
+            await finishEvent(supa, eventId, res);
+          } catch (e: any) {
+            await finishEvent(supa, eventId, { status: 'error', error: e?.message || String(e) });
+          }
         }
       }
     }
