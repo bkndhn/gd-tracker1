@@ -141,40 +141,60 @@ async function createEntry(supa: any, session: any, contact: any) {
   return entry.id;
 }
 
-/**
- * Customer replies: match the sender against pending follow-ups (last 10 digits)
- * and auto-mark the newest one as replied with the reply text.
- * Returns true when the message was consumed as a follow-up reply.
- */
-async function handleCustomerReply(supa: any, from: string, text: string): Promise<boolean> {
-  const last10 = from.replace(/\D/g, '').slice(-10);
-  if (last10.length < 10) return false;
+export type HandleResult = {
+  status: 'processed' | 'unmatched' | 'ignored' | 'error';
+  adminId?: string | null;
+  followUpId?: string | null;
+  entryId?: string | null;
+  error?: string;
+};
 
+/**
+ * Customer replies: match the sender against their follow-ups (by the last 10 digits,
+ * so country-code differences never break matching). Picks the newest *pending*
+ * follow-up; when none is pending it still attaches the reply to the newest
+ * follow-up from the last 30 days so the timeline stays correct with many visits.
+ */
+async function handleCustomerReply(supa: any, from: string, text: string): Promise<HandleResult | null> {
+  const last10 = from.replace(/\D/g, '').slice(-10);
+  if (last10.length < 10) return null;
+
+  const since = new Date(Date.now() - 30 * 24 * 3600_000).toISOString();
   const { data: rows } = await supa
     .from('follow_ups')
-    .select('id, outcome, customer_name')
+    .select('id, admin_id, entry_id, shop_id, outcome, sent_at')
     .like('phone', `%${last10}`)
-    .in('outcome', ['pending'])
+    .gte('sent_at', since)
     .order('sent_at', { ascending: false })
-    .limit(1);
+    .limit(20);
 
-  const fu = rows?.[0];
-  if (!fu) return false;
+  const candidates = rows || [];
+  if (candidates.length === 0) return null;
 
-  await supa
-    .from('follow_ups')
-    .update({
-      outcome: 'replied',
-      outcome_at: new Date().toISOString(),
-      outcome_note: text ? `Customer replied: ${text.slice(0, 500)}` : 'Customer replied (media message)',
-      next_reminder_at: null,
-    })
-    .eq('id', fu.id);
+  const fu = candidates.find((r: any) => r.outcome === 'pending') || candidates[0];
+  const note = text ? `Customer replied: ${text.slice(0, 500)}` : 'Customer replied (media message)';
 
-  return true;
+  if (fu.outcome === 'pending') {
+    await supa
+      .from('follow_ups')
+      .update({
+        outcome: 'replied',
+        outcome_at: new Date().toISOString(),
+        outcome_note: note,
+        next_reminder_at: null,
+        read_at: new Date().toISOString(),
+        delivery_status: 'read',
+      })
+      .eq('id', fu.id)
+      .eq('outcome', 'pending'); // idempotent: a concurrent duplicate cannot re-mark it
+  } else {
+    await supa.from('follow_ups').update({ outcome_note: note }).eq('id', fu.id);
+  }
+
+  return { status: 'processed', adminId: fu.admin_id, followUpId: fu.id, entryId: fu.entry_id };
 }
 
-async function handleMessage(supa: any, msg: any, contactName?: string) {
+async function handleMessage(supa: any, msg: any, contactName?: string): Promise<HandleResult> {
   const from: string = msg.from;
   const text: string = msg.text?.body?.trim() || msg.button?.text?.trim() || '';
 
@@ -185,17 +205,15 @@ async function handleMessage(supa: any, msg: any, contactName?: string) {
     .maybeSingle();
 
   if (!contact) {
-    if (await handleCustomerReply(supa, from, text)) {
-      console.log('follow-up reply recorded for', from);
-      return;
-    }
+    const reply = await handleCustomerReply(supa, from, text);
+    if (reply) return reply;
     console.log('unregistered whatsapp sender', from, contactName || '');
     await sendText(from, 'This number is not registered for visit logging. Ask your admin to add it in Admin → WhatsApp intake.');
-    return;
+    return { status: 'unmatched', error: 'Sender is not a registered staff number and matches no recent follow-up' };
   }
   if (!contact.is_approved) {
     await sendText(from, 'Your number is pending approval. Ask your admin to approve it in Admin → WhatsApp intake.');
-    return;
+    return { status: 'unmatched', adminId: contact.admin_id, error: 'Number pending approval' };
   }
   await supa.from('wa_contacts').update({ last_message_at: new Date().toISOString() }).eq('id', contact.id);
 
