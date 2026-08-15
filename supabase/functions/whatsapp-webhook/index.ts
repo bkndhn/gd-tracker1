@@ -141,6 +141,39 @@ async function createEntry(supa: any, session: any, contact: any) {
   return entry.id;
 }
 
+/**
+ * Customer replies: match the sender against pending follow-ups (last 10 digits)
+ * and auto-mark the newest one as replied with the reply text.
+ * Returns true when the message was consumed as a follow-up reply.
+ */
+async function handleCustomerReply(supa: any, from: string, text: string): Promise<boolean> {
+  const last10 = from.replace(/\D/g, '').slice(-10);
+  if (last10.length < 10) return false;
+
+  const { data: rows } = await supa
+    .from('follow_ups')
+    .select('id, outcome, customer_name')
+    .like('phone', `%${last10}`)
+    .in('outcome', ['pending'])
+    .order('sent_at', { ascending: false })
+    .limit(1);
+
+  const fu = rows?.[0];
+  if (!fu) return false;
+
+  await supa
+    .from('follow_ups')
+    .update({
+      outcome: 'replied',
+      outcome_at: new Date().toISOString(),
+      outcome_note: text ? `Customer replied: ${text.slice(0, 500)}` : 'Customer replied (media message)',
+      next_reminder_at: null,
+    })
+    .eq('id', fu.id);
+
+  return true;
+}
+
 async function handleMessage(supa: any, msg: any, contactName?: string) {
   const from: string = msg.from;
   const text: string = msg.text?.body?.trim() || msg.button?.text?.trim() || '';
@@ -152,6 +185,10 @@ async function handleMessage(supa: any, msg: any, contactName?: string) {
     .maybeSingle();
 
   if (!contact) {
+    if (await handleCustomerReply(supa, from, text)) {
+      console.log('follow-up reply recorded for', from);
+      return;
+    }
     console.log('unregistered whatsapp sender', from, contactName || '');
     await sendText(from, 'This number is not registered for visit logging. Ask your admin to add it in Admin → WhatsApp intake.');
     return;
