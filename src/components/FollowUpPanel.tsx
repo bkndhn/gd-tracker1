@@ -140,7 +140,7 @@ export const FollowUpPanel = () => {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">+91 {r.phone} · {r.shop_name || 'Unknown shop'}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {r.reason_label || 'No reason'} · sent {fmtDate(r.sent_at)} by {r.sent_by_name || 'staff'} · stage {r.reminder_stage + 1}
+                      {r.reason_label || 'No reason'} · sent {fmtDate(r.sent_at)} by {r.sent_by_name || 'staff'} · stage {r.reminder_stage + 1} · <DeliveryChip row={r} />
                     </p>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => snoozeReminder(r.id, 3)}>Snooze 3d</Button>
@@ -183,7 +183,10 @@ export const FollowUpPanel = () => {
                         <td className="p-2 truncate max-w-[160px]">{r.shop_name || '—'}</td>
                         <td className="p-2 truncate max-w-[140px]">{r.sent_by_name || '—'}</td>
                         <td className="p-2">
-                          <Badge variant="outline" className={outcomeTone[r.outcome]}>{OUTCOME_LABELS[r.outcome]}</Badge>
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className={outcomeTone[r.outcome]}>{OUTCOME_LABELS[r.outcome]}</Badge>
+                            <DeliveryChip row={r} />
+                          </div>
                         </td>
                         <td className="p-2 text-right whitespace-nowrap">{r.recovered_amount ? inr(r.recovered_amount) : '—'}</td>
                         <td className="p-2 text-right">
