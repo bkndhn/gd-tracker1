@@ -220,7 +220,7 @@ async function handleMessage(supa: any, msg: any, contactName?: string): Promise
   if (/^(cancel|stop|reset)$/i.test(text)) {
     await supa.from('wa_sessions').delete().eq('phone', from);
     await sendText(from, 'Cancelled. Send a new message to log another visit.');
-    return;
+    return { status: 'ignored', adminId: contact.admin_id };
   }
 
   const { data: existing } = await supa.from('wa_sessions').select('*').eq('phone', from).maybeSingle();
@@ -233,12 +233,11 @@ async function handleMessage(supa: any, msg: any, contactName?: string): Promise
     const pick = Number(text);
     if (!pick || pick < 1 || pick > options.length) {
       await sendText(from, `Please reply with a number:\n${numbered(options)}`);
-      return;
+      return { status: 'ignored', adminId: contact.admin_id };
     }
     const shop = options[pick - 1];
     const draft = { ...(fresh.draft || {}), shop_id: shop.id, shop_name: shop.label };
-    await askReason(supa, from, contact, draft);
-    return;
+    return await askReason(supa, from, contact, draft);
   }
 
   // --- Step: awaiting reason choice ---
@@ -247,21 +246,22 @@ async function handleMessage(supa: any, msg: any, contactName?: string): Promise
     const pick = Number(text);
     if (!pick || pick < 1 || pick > options.length) {
       await sendText(from, `Please reply with a number:\n${numbered(options)}`);
-      return;
+      return { status: 'ignored', adminId: contact.admin_id };
     }
     const opt = options[pick - 1];
     const draft = { ...(fresh.draft || {}), reason_option_id: opt.id, reason_label: opt.label };
     try {
-      await createEntry(supa, { draft }, contact);
+      const entryId = await createEntry(supa, { draft }, contact);
       await supa.from('wa_sessions').delete().eq('phone', from);
       await sendText(
         from,
         `Logged ✅\nShop: ${draft.shop_name || '-'}\nReason: ${opt.label}\nNote: ${draft.notes || '(voice/photo only)'}`,
       );
+      return { status: 'processed', adminId: contact.admin_id, entryId };
     } catch (e: any) {
       await sendText(from, `Could not save the visit: ${e.message || 'unknown error'}`);
+      return { status: 'error', adminId: contact.admin_id, error: e.message || 'unknown error' };
     }
-    return;
   }
 
   // --- New conversation: capture content, then ask shop ---
@@ -273,7 +273,7 @@ async function handleMessage(supa: any, msg: any, contactName?: string): Promise
   }
   if (!draft.notes && !draft.image_ids && !draft.audio_id) {
     await sendText(from, 'Send the visit details as text, a photo or a voice note to start logging.');
-    return;
+    return { status: 'ignored', adminId: contact.admin_id };
   }
 
   const { data: shops } = await supa
@@ -286,11 +286,10 @@ async function handleMessage(supa: any, msg: any, contactName?: string): Promise
 
   if (shopList.length === 0) {
     await sendText(from, 'No shops are set up yet. Ask your admin to add a shop first.');
-    return;
+    return { status: 'error', adminId: contact.admin_id, error: 'No shops configured for this tenant' };
   }
   if (shopList.length === 1) {
-    await askReason(supa, from, contact, { ...draft, shop_id: shopList[0].id, shop_name: shopList[0].label });
-    return;
+    return await askReason(supa, from, contact, { ...draft, shop_id: shopList[0].id, shop_name: shopList[0].label });
   }
 
   await setSession(supa, from, {
