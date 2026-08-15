@@ -28,6 +28,21 @@ const outcomeTone: Record<FollowUpOutcome, string> = {
   lost: 'bg-destructive/10 text-destructive border-destructive/30',
 };
 
+/** WhatsApp delivery state (sent / delivered / read) for one follow-up message. */
+const DeliveryChip = ({ row }: { row: FollowUpRow }) => {
+  const state = row.delivery_status || 'queued';
+  const map: Record<string, { label: string; cls: string; title: string }> = {
+    queued: { label: '○ queued', cls: 'text-muted-foreground', title: 'Waiting for WhatsApp confirmation' },
+    sent: { label: '✓ sent', cls: 'text-muted-foreground', title: `Sent ${fmtDate(row.sent_at)}` },
+    delivered: { label: '✓✓ delivered', cls: 'text-muted-foreground', title: `Delivered ${fmtDate(row.delivered_at)}` },
+    read: { label: '✓✓ read', cls: 'text-sky-600', title: `Read ${fmtDate(row.read_at)}` },
+    failed: { label: '! failed', cls: 'text-destructive', title: row.delivery_error || 'Delivery failed' },
+  };
+  const m = map[state] || map.queued;
+  return <span className={`text-[11px] font-medium ${m.cls}`} title={m.title}>{m.label}</span>;
+};
+
+
 const StatCard = ({ icon: Icon, label, value, sub }: any) => (
   <Card className="premium-card">
     <CardContent className="p-4">
