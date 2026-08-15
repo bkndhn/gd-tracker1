@@ -364,7 +364,6 @@ async function claimEvent(
     .insert({ event_id: eventId, kind, phone: phone ?? null, payload: payload ?? {}, status: 'received' });
   if (!error) return true;
   // Duplicate key -> already handled; just record the retry attempt.
-  await supa.rpc('noop').catch(() => undefined);
   const { data: existing } = await supa
     .from('wa_webhook_events')
     .select('id, attempts')
@@ -401,7 +400,7 @@ async function handleStatus(supa: any, st: any): Promise<HandleResult> {
 
   const { data: fu } = await supa
     .from('follow_ups')
-    .select('id, admin_id, entry_id, delivery_status')
+    .select('id, admin_id, entry_id, delivery_status, delivered_at')
     .eq('wa_message_id', messageId)
     .maybeSingle();
 
