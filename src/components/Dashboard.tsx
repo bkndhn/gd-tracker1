@@ -28,6 +28,8 @@ import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { DashboardLayoutEditor } from './DashboardLayoutEditor';
 import { cacheGet, cacheSet } from '@/lib/offlineDb';
 import { WhatsAppFollowUpButton } from '@/components/WhatsAppFollowUpButton';
+import { CustomerProfileDialog } from '@/components/CustomerProfileDialog';
+
 import { isValidPhone, type FollowUpContext } from '@/lib/whatsappFollowUp';
 
 const DASHBOARD_CACHE_KEY = 'dashboard:entries';
