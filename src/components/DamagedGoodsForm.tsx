@@ -14,6 +14,9 @@ import { WhatsAppInputBar } from '@/components/WhatsAppInputBar';
 import { toast } from 'sonner';
 import { sanitizeNotes } from '@/utils/security';
 import { isValidPhone, normalizePhone, PHONE_RULE_MESSAGE } from '@/lib/whatsappFollowUp';
+import { useRepeatVisitorHint, repeatHintText } from '@/hooks/useCustomerProfile';
+import { History } from 'lucide-react';
+
 
 interface CustomField {
   id: string;
