@@ -34,6 +34,23 @@ interface CustomFieldOption {
   legacy_table?: string | null;
 }
 
+/** Warns staff when the typed number has visited before, with its dominant lost reason. */
+const RepeatVisitorBanner = ({ phone }: { phone: string }) => {
+  const hint = useRepeatVisitorHint(phone);
+  if (!hint || hint.visits === 0) return null;
+  return (
+    <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+      <History className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span>
+        {repeatHintText(hint)}
+        {hint.recovered > 0 && ` Recovered ₹${Math.round(hint.recovered).toLocaleString('en-IN')} from this customer before.`}
+      </span>
+    </div>
+  );
+};
+
+
+
 export const DamagedGoodsForm = () => {
   const { profile } = useAuth();
   const { shops, loading: dataLoading } = useCachedData();
