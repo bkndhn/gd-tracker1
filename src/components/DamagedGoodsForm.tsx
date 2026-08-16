@@ -522,6 +522,8 @@ export const DamagedGoodsForm = () => {
                 {type === 'phone' && !error && (
                   <p className="text-xs text-muted-foreground">10 digits, starting with 6-9</p>
                 )}
+                {type === 'phone' && <RepeatVisitorBanner phone={value} />}
+
                 {error && <p className="text-xs text-destructive">{error}</p>}
               </div>
             );
