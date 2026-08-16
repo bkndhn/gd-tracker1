@@ -32,6 +32,8 @@ import { AIInsightsPanel } from './AIInsightsPanel';
 import { fetchCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
 import { cacheGet, cacheSet } from '@/lib/offlineDb';
 import { WhatsAppFollowUpButton } from '@/components/WhatsAppFollowUpButton';
+import { CustomerProfileDialog } from '@/components/CustomerProfileDialog';
+
 import { isValidPhone, type FollowUpContext } from '@/lib/whatsappFollowUp';
 
 /** Snapshot of everything Reports needs, kept in IndexedDB for offline reads. */
