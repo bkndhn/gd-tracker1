@@ -1145,7 +1145,13 @@ export const Dashboard = () => {
                                 {(() => {
                                   const ctx = buildFollowUpContext(entry);
                                   return ctx
-                                    ? <WhatsAppFollowUpButton context={ctx} entryId={entry.id} shopId={(entry as any).shop_id ?? null} />
+                                    ? (
+                                      <div className="flex items-center justify-center gap-1">
+                                        <WhatsAppFollowUpButton context={ctx} entryId={entry.id} shopId={(entry as any).shop_id ?? null} />
+                                        <CustomerProfileDialog phone={ctx.phone} />
+                                      </div>
+                                    )
+
                                     : <span className="text-muted-foreground text-xs">-</span>;
                                 })()}
                               </TableCell>
