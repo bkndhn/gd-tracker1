@@ -28,6 +28,8 @@ import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { DashboardLayoutEditor } from './DashboardLayoutEditor';
 import { cacheGet, cacheSet } from '@/lib/offlineDb';
 import { WhatsAppFollowUpButton } from '@/components/WhatsAppFollowUpButton';
+import { CustomerProfileDialog } from '@/components/CustomerProfileDialog';
+
 import { isValidPhone, type FollowUpContext } from '@/lib/whatsappFollowUp';
 
 const DASHBOARD_CACHE_KEY = 'dashboard:entries';
@@ -1145,7 +1147,13 @@ export const Dashboard = () => {
                                 {(() => {
                                   const ctx = buildFollowUpContext(entry);
                                   return ctx
-                                    ? <WhatsAppFollowUpButton context={ctx} entryId={entry.id} shopId={(entry as any).shop_id ?? null} />
+                                    ? (
+                                      <div className="flex items-center justify-center gap-1">
+                                        <WhatsAppFollowUpButton context={ctx} entryId={entry.id} shopId={(entry as any).shop_id ?? null} />
+                                        <CustomerProfileDialog phone={ctx.phone} />
+                                      </div>
+                                    )
+
                                     : <span className="text-muted-foreground text-xs">-</span>;
                                 })()}
                               </TableCell>
