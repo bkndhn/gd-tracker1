@@ -168,9 +168,9 @@ Deno.serve(async (req) => {
     const cached = cacheGet(cacheKey);
     if (cached) return jsonRes({ text: cached, cached: true });
 
-    const systemPrompt = `You are a retail damage-control analyst for a "Goods Damaged" (GD) tracking app used by shops.
+    const systemPrompt = `You are a retail lost-sales analyst for an app that tracks non-purchase visitors and why sales are lost.
 You interpret aggregated GD data (by shop, category, size, customer type, notes, dates) and give concise, actionable insights.
-Speak plainly. Use bullet points. Highlight anomalies, trends, top offenders, and recommend concrete actions to reduce damages.`;
+Speak plainly. Use bullet points. Highlight anomalies, trends, top loss drivers, and recommend concrete actions to recover lost sales.`;
 
     const userPrompt = mode === 'summary'
       ? `Analyze this ${context} data and produce:

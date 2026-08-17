@@ -54,7 +54,7 @@ const RepeatVisitorBanner = ({ phone }: { phone: string }) => {
 
 
 
-export const DamagedGoodsForm = () => {
+export const LostVisitForm = () => {
   const { profile } = useAuth();
   const { shops, loading: dataLoading } = useCachedData();
   const { isOnline, pendingCount, saveOfflineEntry } = useOfflineSync();

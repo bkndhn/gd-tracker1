@@ -6,7 +6,7 @@ const ICON = '/lovable-uploads/d9731f6e-4026-4be4-aaf0-1a401d8ba7be.png';
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
   event.waitUntil(
-    self.registration.showNotification(data.title || 'New GD Entry', {
+    self.registration.showNotification(data.title || 'New visit logged', {
       body: data.body || 'A new visit entry has been added',
       icon: ICON,
       badge: ICON,
@@ -26,7 +26,7 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'NEW_GD_ENTRY') {
     const { title, body, url } = event.data;
-    self.registration.showNotification(title || 'New GD Entry', {
+    self.registration.showNotification(title || 'New visit logged', {
       body: body || 'A new visit entry has been added',
       icon: ICON,
       badge: ICON,
