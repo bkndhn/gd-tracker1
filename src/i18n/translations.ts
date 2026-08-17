@@ -14,8 +14,8 @@ export const LOCALES: Record<Lang, string> = {
 
 const en = {
   // App shell
-  'app.name': 'GD Tracker',
-  'app.short': 'GD',
+  'app.name': 'Lost Sale Insights',
+  'app.short': 'LSI',
   'nav.logVisit': 'Log Visit',
   'nav.dashboard': 'Dashboard',
   'nav.reports': 'Reports',
@@ -123,8 +123,8 @@ const en = {
 type Dict = typeof en;
 
 const ta: Dict = {
-  'app.name': 'GD டிராக்கர்',
-  'app.short': 'GD',
+  'app.name': 'லாஸ்ட் சேல் டிராக்கர்',
+  'app.short': 'LSI',
   'nav.logVisit': 'வருகை பதிவு',
   'nav.dashboard': 'டாஷ்போர்டு',
   'nav.reports': 'அறிக்கைகள்',
@@ -223,8 +223,8 @@ const ta: Dict = {
 };
 
 const hi: Dict = {
-  'app.name': 'GD ट्रैकर',
-  'app.short': 'GD',
+  'app.name': 'लॉस्ट सेल ट्रैकर',
+  'app.short': 'LSI',
   'nav.logVisit': 'विज़िट दर्ज करें',
   'nav.dashboard': 'डैशबोर्ड',
   'nav.reports': 'रिपोर्ट',

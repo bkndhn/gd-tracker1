@@ -81,7 +81,7 @@ export const PWAInstallPrompt = () => {
               <Download className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold">Install GD Tracker</div>
+              <div className="text-sm font-semibold">Install Lost Sale Insights</div>
               <div className="text-xs opacity-90 truncate">Faster, works offline, native feel</div>
             </div>
           </div>

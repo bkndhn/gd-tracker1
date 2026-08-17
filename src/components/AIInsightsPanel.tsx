@@ -111,7 +111,7 @@ export const AIInsightsPanel = ({ context, data }: Props) => {
               <Input
                 value={question}
                 onChange={(e) => setQuestion(e.target.value.slice(0, 500))}
-                placeholder="Ask anything (e.g. Which shop damages most?)"
+                placeholder="Ask anything (e.g. Which shop loses most sales?)"
                 onKeyDown={(e) => { if (e.key === 'Enter' && question.trim()) generate('ask', question.trim()); }}
               />
               <Button size="icon" onClick={() => question.trim() && generate('ask', question.trim())} disabled={answerLoading || !question.trim()}>

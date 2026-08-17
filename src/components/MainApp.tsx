@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useRealtimeSync, useForceLogoutOnDelete } from '@/hooks/useRealtimeSync';
 import { Layout } from '@/components/Layout';
-import { DamagedGoodsForm } from '@/components/DamagedGoodsForm';
+import { LostVisitForm } from '@/components/LostVisitForm';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { OfflineStatusBar } from '@/components/OfflineStatusBar';
 
@@ -121,7 +121,7 @@ export const MainApp = () => {
           <ErrorBoundary boundary="SuperAdminDashboard"><Suspense fallback={<LoadingSpinner />}><SuperAdminDashboard /></Suspense></ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'gd':
-        return !isSuperAdmin ? <ErrorBoundary boundary="gd-form"><DamagedGoodsForm /></ErrorBoundary> : <div className="text-center text-muted-foreground">Access denied</div>;
+        return !isSuperAdmin ? <ErrorBoundary boundary="gd-form"><LostVisitForm /></ErrorBoundary> : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'dashboard':
         return (isAdmin || isManager) && !isSuperAdmin ? (
           <ErrorBoundary boundary="Dashboard"><Suspense fallback={<LoadingSpinner />}><Dashboard /></Suspense></ErrorBoundary>
@@ -141,7 +141,7 @@ export const MainApp = () => {
       default:
         return isSuperAdmin ? (
           <ErrorBoundary boundary="SuperAdminDashboard"><Suspense fallback={<LoadingSpinner />}><SuperAdminDashboard /></Suspense></ErrorBoundary>
-        ) : <ErrorBoundary boundary="gd-form"><DamagedGoodsForm /></ErrorBoundary>;
+        ) : <ErrorBoundary boundary="gd-form"><LostVisitForm /></ErrorBoundary>;
     }
   };
 

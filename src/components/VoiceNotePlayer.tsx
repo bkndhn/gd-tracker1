@@ -245,7 +245,7 @@ export const VoiceNotePlayer = ({ voiceUrl, compact = false }: VoiceNotePlayerPr
     if (!isPlaying || typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     const ms: any = (navigator as any).mediaSession;
     try {
-      ms.metadata = new (window as any).MediaMetadata({ title: 'Voice Note', artist: 'GD Tracker' });
+      ms.metadata = new (window as any).MediaMetadata({ title: 'Voice Note', artist: 'Lost Sale Insights' });
       const setAction = (a: string, cb: any) => { try { ms.setActionHandler(a, cb); } catch { /* noop */ } };
       setAction('play', () => { if (audioRef.current && !isPlayingRef.current) togglePlay(); });
       setAction('pause', () => { if (audioRef.current && isPlayingRef.current) togglePlay(); });

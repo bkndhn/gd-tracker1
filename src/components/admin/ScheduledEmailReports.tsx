@@ -83,7 +83,7 @@ export const ScheduledEmailReports = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5" />Scheduled Email Reports</CardTitle>
-        <CardDescription>Auto-send GD reports to chosen email(s) at a specific time. Tenant-isolated.</CardDescription>
+        <CardDescription>Auto-send visit reports to chosen email(s) at a specific time. Tenant-isolated.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">

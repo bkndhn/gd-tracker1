@@ -170,7 +170,7 @@ export const OnboardingWizard = ({ open, onOpenChange, onFinished }: Props) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Set up your GD Tracker
+            Set up your Lost Sale Insights
           </DialogTitle>
           <DialogDescription>
             Step {step + 1} of {steps.length} — {steps[step]}

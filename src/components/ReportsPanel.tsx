@@ -1174,7 +1174,7 @@ export const ReportsPanel = () => {
 
       // Use multi-section HTML PDF export
       exportMultiSectionPDFViaHTML({
-        title: 'GD Multi-Sheet Report',
+        title: 'Lost Sale Multi-Sheet Report',
         subtitle: `Generated: ${format(new Date(), 'dd-MM-yyyy HH:mm')} | Total: ${filteredEntries.length} entries`,
         columns,
         sections,
@@ -1528,7 +1528,7 @@ export const ReportsPanel = () => {
                 </DialogTrigger>
                 <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle className="text-gradient-primary">GD Summary</DialogTitle>
+                    <DialogTitle className="text-gradient-primary">Visit Summary</DialogTitle>
                   </DialogHeader>
                   {summary ? (
                     <div className="space-y-4">
@@ -1614,7 +1614,7 @@ export const ReportsPanel = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      No GD entries found.
+                      No visits found.
                     </div>
                   )}
                 </DialogContent>

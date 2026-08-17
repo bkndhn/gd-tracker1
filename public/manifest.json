@@ -1,8 +1,8 @@
 
 {
-  "name": "GD Insights",
-  "short_name": "GD",
-  "description": "Damaged Goods Management System",
+  "name": "Lost Sale Insights",
+  "short_name": "LSI",
+  "description": "Track non-purchase visitors and why sales are lost",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
