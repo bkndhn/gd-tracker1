@@ -49,7 +49,7 @@ export const NotificationBell = () => {
     }
   };
 
-  // Subscribe to real-time GD entries
+  // Subscribe to real-time visits
   useEffect(() => {
     if (!isAdmin && !isManager) return;
 

@@ -1,5 +1,5 @@
 /**
- * Offline outbox: WhatsApp-style "queued message" delivery for GD entries.
+ * Offline outbox: WhatsApp-style "queued message" delivery for visits.
  *
  * An entry created offline is stored locally with its images / voice note as
  * blobs, shown immediately in the UI as "pending", and pushed to Supabase as

@@ -127,7 +127,7 @@ export const AnalyticsCharts = ({ entries }: AnalyticsChartsProps) => {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-4 w-4" />
-            Weekly GD Trend
+            Weekly Visit Trend
           </CardTitle>
           <CardDescription>Last 7 days entry count</CardDescription>
         </CardHeader>

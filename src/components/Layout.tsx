@@ -56,8 +56,8 @@ export const Layout = ({ children }: LayoutProps) => {
                 <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
               </div>
               <span className="ml-2 text-lg sm:text-xl font-bold text-gradient-primary truncate tracking-tight">
-                <span className="sm:hidden">GD</span>
-                <span className="hidden sm:inline">GD Tracker</span>
+                <span className="sm:hidden">LSI</span>
+                <span className="hidden sm:inline">Lost Sale Insights</span>
               </span>
             </div>
             

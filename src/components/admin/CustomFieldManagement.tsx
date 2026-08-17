@@ -277,7 +277,7 @@ export const CustomFieldManagement = () => {
         .update({ is_visible: !field.is_visible })
         .eq('id', field.id);
       if (error) throw error;
-      toast.success(`${field.name} is now ${!field.is_visible ? 'visible' : 'hidden'} in GD form`);
+      toast.success(`${field.name} is now ${!field.is_visible ? 'visible' : 'hidden'} in visit form`);
       fetchFields();
     } catch (error: any) {
       toast.error(error.message || 'Failed to toggle visibility');
@@ -690,7 +690,7 @@ export const CustomFieldManagement = () => {
         onConfirm={handleDeleteField}
         title="Delete Custom Field"
         itemName={deleteField?.name}
-        description={`This will remove "${deleteField?.name}" and all its options from the GD form.`}
+        description={`This will remove "${deleteField?.name}" and all its options from the visit form.`}
         loading={isDeletingField}
       />
 

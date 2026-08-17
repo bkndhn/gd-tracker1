@@ -7,7 +7,7 @@ self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
   event.waitUntil(
     self.registration.showNotification(data.title || 'New GD Entry', {
-      body: data.body || 'A new goods damaged entry has been added',
+      body: data.body || 'A new visit entry has been added',
       icon: ICON,
       badge: ICON,
       data: data.url || '/',
@@ -27,7 +27,7 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'NEW_GD_ENTRY') {
     const { title, body, url } = event.data;
     self.registration.showNotification(title || 'New GD Entry', {
-      body: body || 'A new goods damaged entry has been added',
+      body: body || 'A new visit entry has been added',
       icon: ICON,
       badge: ICON,
       data: url || '/',

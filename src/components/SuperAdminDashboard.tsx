@@ -564,7 +564,7 @@ export const SuperAdminDashboard = () => {
               <Input type="number" min={1} value={maxUsers} onChange={e => setMaxUsers(Number(e.target.value))} />
             </div>
             <div className="space-y-2">
-              <Label>Maximum GD Entries <span className="text-xs text-muted-foreground">(blank = unlimited)</span></Label>
+              <Label>Maximum Visits <span className="text-xs text-muted-foreground">(blank = unlimited)</span></Label>
               <Input type="number" min={0} value={maxEntries}
                 onChange={e => setMaxEntries(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Unlimited" />
               <p className="text-xs text-muted-foreground">Current usage: {entryCounts[selectedAdmin?.id || ''] || 0} entries</p>
@@ -618,7 +618,7 @@ export const SuperAdminDashboard = () => {
       {/* Delete Confirmation */}
       <DeleteConfirmationDialog open={!!deleteAdmin} onOpenChange={open => !open && setDeleteAdmin(null)}
         onConfirm={handleDelete} title="Delete Admin & All Data" itemName={deleteAdmin?.name}
-        description={`Are you sure you want to delete "${deleteAdmin?.name}"? This will permanently delete the admin, ALL their sub-users, shops, categories, sizes, customer types, GD entries, and settings.`}
+        description={`Are you sure you want to delete "${deleteAdmin?.name}"? This will permanently delete the admin, ALL their sub-users, shops, categories, sizes, customer types, visits, and settings.`}
         loading={isDeleting} />
 
       {/* Pause Confirmation */}

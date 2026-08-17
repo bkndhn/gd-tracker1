@@ -76,7 +76,7 @@ export const WhatsAppSettings = () => {
           WhatsApp Integration
         </CardTitle>
         <CardDescription>
-          Redirect staff to their shop's WhatsApp group after submitting a GD report
+          Redirect staff to their shop's WhatsApp group after submitting a visit report
         </CardDescription>
       </CardHeader>
       <CardContent>

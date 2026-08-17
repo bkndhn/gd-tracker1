@@ -34,7 +34,7 @@ export const MobileBottomNav = ({ activeTab, setActiveTab, isAdmin, isManager, i
           <>
             <Button variant={activeTab === 'gd' ? 'default' : 'ghost'} onClick={() => setActiveTab('gd')}
               className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
-              <Plus className="h-4 w-4" /><span className="text-xs">GD</span>
+              <Plus className="h-4 w-4" /><span className="text-xs">Log</span>
             </Button>
             {(isAdmin || isManager) && (
               <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} onClick={() => setActiveTab('dashboard')}

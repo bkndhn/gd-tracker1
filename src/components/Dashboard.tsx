@@ -107,7 +107,7 @@ export const Dashboard = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Fetch all GD entries (no legacy lookup joins)
+  // Fetch all visits (no legacy lookup joins)
   const { data: rawEntries, isLoading, refetch } = useQuery<any[]>({
     queryKey: ['dashboard-entries', userShopId],
     queryFn: async () => {
@@ -352,7 +352,7 @@ export const Dashboard = () => {
           table: 'goods_damaged_entries'
         },
         () => {
-          if (import.meta.env.DEV) console.log('GD entry changed, refreshing dashboard...');
+          if (import.meta.env.DEV) console.log('visit entry changed, refreshing dashboard...');
           refetch();
         }
       )
@@ -517,9 +517,9 @@ export const Dashboard = () => {
     ws['!cols'] = colWidths;
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'GD Entries');
+    XLSX.utils.book_append_sheet(wb, ws, 'Visits');
 
-    const fileName = `GD_${modalFilter.type}_${modalFilter.value}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+    const fileName = `Visits_${modalFilter.type}_${modalFilter.value}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 

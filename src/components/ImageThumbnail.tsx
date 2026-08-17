@@ -37,7 +37,7 @@ export const ImageThumbnail = ({ images, maxDisplay = 1 }: ImageThumbnailProps) 
             <LazyImage
               key={img.id}
               src={img.image_url}
-              alt={img.image_name || 'GD Image'}
+              alt={img.image_name || 'Visit image'}
               wrapperClassName="w-8 h-8 rounded border border-border"
             />
           ))}
@@ -51,7 +51,7 @@ export const ImageThumbnail = ({ images, maxDisplay = 1 }: ImageThumbnailProps) 
           <div className="relative aspect-video bg-black flex items-center justify-center">
             <LazyImage
               src={resolvedImages[currentIndex]?.image_url}
-              alt={resolvedImages[currentIndex]?.image_name || 'GD Image'}
+              alt={resolvedImages[currentIndex]?.image_name || 'Visit image'}
               fit="contain"
               eager
               wrapperClassName="w-full h-full bg-black"
