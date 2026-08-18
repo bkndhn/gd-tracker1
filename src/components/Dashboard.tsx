@@ -23,6 +23,9 @@ import { NoteViewerModal } from './NoteViewerModal';
 import { AnalyticsCharts } from './AnalyticsCharts';
 import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
+import { TopFixesCard } from './TopFixesCard';
+import { StockGapReport } from './StockGapReport';
+import { useFollowUps } from '@/hooks/useFollowUps';
 import { useCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { DashboardLayoutEditor } from './DashboardLayoutEditor';
@@ -56,6 +59,7 @@ export const Dashboard = () => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
   const { isOnline, pendingCount } = useOfflineSync();
   const { labels } = useFieldLabels();
+  const { rows: followUpRows } = useFollowUps(90);
   const layoutController = useDashboardLayout();
   const { orderedVisible } = layoutController;
   const [layoutEditorOpen, setLayoutEditorOpen] = useState(false);
@@ -675,7 +679,18 @@ export const Dashboard = () => {
     ),
   };
 
+  const openDrill = (type: 'shop' | 'category' | 'size' | 'customer_type', value: string) => {
+    setModalFilter({ type, value });
+    setDetailModalOpen(true);
+  };
+
   const sectionNodes: Record<string, JSX.Element | null> = {
+    top_fixes: allEntries && allEntries.length > 0 ? (
+      <div className="mt-6"><TopFixesCard entries={allEntries as any} followUps={followUpRows as any} onDrill={openDrill} /></div>
+    ) : null,
+    stock_gap: allEntries && allEntries.length > 0 ? (
+      <div className="mt-6"><StockGapReport entries={allEntries as any} onDrill={openDrill} /></div>
+    ) : null,
     charts: showCharts && allEntries && allEntries.length > 0 ? (
       <div className="mt-6"><AnalyticsCharts entries={allEntries} /></div>
     ) : null,
