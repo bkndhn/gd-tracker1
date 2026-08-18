@@ -7,6 +7,8 @@ export type DashboardWidgetId =
   | 'kpi_total'
   | 'charts'
   | 'ai'
+  | 'top_fixes'
+  | 'stock_gap'
   | 'by_shop'
   | 'by_category'
   | 'by_size'
@@ -23,6 +25,8 @@ export const DASHBOARD_WIDGETS: DashboardWidgetMeta[] = [
   { id: 'kpi_week', label: 'This Week', group: 'kpi' },
   { id: 'kpi_month', label: 'This Month', group: 'kpi' },
   { id: 'kpi_total', label: 'Total', group: 'kpi' },
+  { id: 'top_fixes', label: 'Top 3 Fixes', group: 'section' },
+  { id: 'stock_gap', label: 'Stock & Size Gaps', group: 'section' },
   { id: 'charts', label: 'Analytics Charts', group: 'section' },
   { id: 'ai', label: 'AI Insights', group: 'section' },
   { id: 'by_shop', label: 'Breakdown: By Shop', group: 'breakdown' },
