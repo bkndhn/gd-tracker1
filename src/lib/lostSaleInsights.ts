@@ -230,7 +230,7 @@ export function computeTopFixes(
   const maxTrend = max(r => Math.max(0, r.changePct ?? 0));
 
   const candidates: TopFix[] = raws.map(r => {
-    const parts: ScoreComponent[] = [
+    const parts: ScoreComponent[] = ([
       {
         key: 'volume',
         label: 'Volume',
