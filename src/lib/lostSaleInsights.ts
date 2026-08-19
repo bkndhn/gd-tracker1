@@ -24,6 +24,64 @@ export interface InsightFollowUp {
 
 export type FixKind = 'reason' | 'shop' | 'staff';
 
+/** One line of the "why is this ranked here" explanation. */
+export interface ScoreComponent {
+  key: 'volume' | 'value' | 'trend' | 'recency';
+  label: string;
+  /** Raw measured number (visits, rupees, % change, days) */
+  raw: number;
+  /** 0-1 normalised score across the candidates in this window */
+  normalized: number;
+  weight: number;
+  /** normalized * weight */
+  contribution: number;
+  explanation: string;
+}
+
+/**
+ * Tunable scoring model. Admins can change these weights so the ranking matches
+ * how their business thinks about a "costly" problem.
+ */
+export interface ScoringWeights {
+  /** How much raw visit volume matters */
+  volume: number;
+  /** How much estimated recoverable rupees matter */
+  value: number;
+  /** How much a week-on-week increase matters */
+  trend: number;
+  /** How much "it happened recently" matters */
+  recency: number;
+  /** Per-dimension multipliers so an admin can bias towards shops or coaching */
+  kindMultiplier: Record<FixKind, number>;
+}
+
+export const DEFAULT_SCORING_WEIGHTS: ScoringWeights = {
+  volume: 40,
+  value: 30,
+  trend: 20,
+  recency: 10,
+  kindMultiplier: { reason: 1, shop: 1, staff: 1 },
+};
+
+export function normalizeWeights(input: Partial<ScoringWeights> | null | undefined): ScoringWeights {
+  const w = input || {};
+  const num = (v: unknown, fallback: number) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  };
+  return {
+    volume: num(w.volume, DEFAULT_SCORING_WEIGHTS.volume),
+    value: num(w.value, DEFAULT_SCORING_WEIGHTS.value),
+    trend: num(w.trend, DEFAULT_SCORING_WEIGHTS.trend),
+    recency: num(w.recency, DEFAULT_SCORING_WEIGHTS.recency),
+    kindMultiplier: {
+      reason: num(w.kindMultiplier?.reason, 1),
+      shop: num(w.kindMultiplier?.shop, 1),
+      staff: num(w.kindMultiplier?.staff, 1),
+    },
+  };
+}
+
 export interface TopFix {
   kind: FixKind;
   /** The dimension value, e.g. "Price too high" or "MG Road" */
@@ -36,6 +94,12 @@ export interface TopFix {
   changePct: number | null;
   /** Estimated recoverable value (INR) based on realised recovery per visit */
   estimatedValue: number;
+  /** Average age in days of the visits behind this fix */
+  avgAgeDays: number;
+  /** Weighted score used for ranking (higher = more urgent) */
+  score: number;
+  /** Human-readable breakdown of the score */
+  breakdown: ScoreComponent[];
   headline: string;
   action: string;
 }
@@ -74,7 +138,34 @@ export interface TopFixesResult {
   windowEnd: Date;
   totalVisits: number;
   avgValue: number;
+  weights: ScoringWeights;
   fixes: TopFix[];
+}
+
+/** Accessor used to attribute an entry to a dimension value. */
+export const FIX_DIMENSION: Record<FixKind, (e: InsightEntry) => string | null | undefined> = {
+  reason: e => e.categories?.name,
+  shop: e => e.shops?.name,
+  staff: e => e.employee_name,
+};
+
+/** Entries behind a given fix, newest first — used by the drill-down view. */
+export function entriesForFix(
+  entries: InsightEntry[],
+  fix: Pick<TopFix, 'kind' | 'label'>,
+  windowStart?: Date,
+  windowEnd?: Date,
+): InsightEntry[] {
+  const get = FIX_DIMENSION[fix.kind];
+  return entries
+    .filter(e => (get(e) || '').trim() === fix.label)
+    .filter(e => {
+      const d = new Date(e.created_at);
+      if (windowStart && d < windowStart) return false;
+      if (windowEnd && d > windowEnd) return false;
+      return true;
+    })
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 /** Ranks the three most costly problems for the last 7 days. */
@@ -82,16 +173,20 @@ export function computeTopFixes(
   entries: InsightEntry[],
   followUps: InsightFollowUp[] = [],
   now: Date = new Date(),
+  weightsInput: Partial<ScoringWeights> = DEFAULT_SCORING_WEIGHTS,
 ): TopFixesResult {
+  const weights = normalizeWeights(weightsInput);
   const end = now;
   const start = new Date(end.getTime() - WEEK_MS);
   const prevStart = new Date(start.getTime() - WEEK_MS);
 
-  const inWindow = entries.filter(e => {
+  const valid = entries.filter(e => !Number.isNaN(new Date(e.created_at).getTime()));
+
+  const inWindow = valid.filter(e => {
     const d = new Date(e.created_at);
     return d >= start && d <= end;
   });
-  const prevWindow = entries.filter(e => {
+  const prevWindow = valid.filter(e => {
     const d = new Date(e.created_at);
     return d >= prevStart && d < start;
   });
@@ -99,39 +194,95 @@ export function computeTopFixes(
   const avgValue = avgRecoveredValue(followUps);
   const total = inWindow.length;
 
-  const dims: Array<{ kind: FixKind; get: (e: InsightEntry) => string | null | undefined }> = [
-    { kind: 'reason', get: e => e.categories?.name },
-    { kind: 'shop', get: e => e.shops?.name },
-    { kind: 'staff', get: e => e.employee_name },
-  ];
+  type Raw = Omit<TopFix, 'score' | 'breakdown'>;
+  const raws: Raw[] = [];
 
-  const candidates: TopFix[] = [];
-
-  dims.forEach(({ kind, get }) => {
+  (Object.keys(FIX_DIMENSION) as FixKind[]).forEach(kind => {
+    const get = FIX_DIMENSION[kind];
     const current = tally(inWindow, get);
     const previous = tally(prevWindow, get);
     Object.entries(current)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 2)
+      .slice(0, 3)
       .forEach(([label, count]) => {
-        const change = pctChange(count, previous[label] || 0);
-        candidates.push({
+        const own = inWindow.filter(e => (get(e) || '').trim() === label);
+        const avgAgeDays = own.length
+          ? own.reduce((s, e) => s + (end.getTime() - new Date(e.created_at).getTime()), 0) /
+            own.length / 86400000
+          : 7;
+        raws.push({
           kind,
           label,
           count,
           share: total ? count / total : 0,
-          changePct: change,
+          changePct: pctChange(count, previous[label] || 0),
           estimatedValue: count * avgValue,
+          avgAgeDays: Math.max(0, avgAgeDays),
           headline: headlineFor(kind, label, count),
           action: actionFor(kind, label),
         });
       });
   });
 
-  // Rank by money at stake, then by volume, keeping one entry per dimension first
-  const sorted = candidates.sort((a, b) =>
-    (b.estimatedValue - a.estimatedValue) || (b.count - a.count),
-  );
+  const max = (fn: (r: Raw) => number) => raws.reduce((m, r) => Math.max(m, fn(r)), 0);
+  const maxCount = max(r => r.count);
+  const maxValue = max(r => r.estimatedValue);
+  const maxTrend = max(r => Math.max(0, r.changePct ?? 0));
+
+  const candidates: TopFix[] = raws.map(r => {
+    const parts: ScoreComponent[] = ([
+      {
+        key: 'volume',
+        label: 'Volume',
+        raw: r.count,
+        normalized: maxCount ? r.count / maxCount : 0,
+        weight: weights.volume,
+        contribution: 0,
+        explanation: `${r.count} lost visits vs the busiest item this week (${maxCount}).`,
+      },
+      {
+        key: 'value',
+        label: 'Money at stake',
+        raw: r.estimatedValue,
+        normalized: maxValue ? r.estimatedValue / maxValue : 0,
+        weight: weights.value,
+        contribution: 0,
+        explanation: avgValue
+          ? `${r.count} visits × ${formatINR(avgValue)} average recovered per converted follow-up.`
+          : 'No recovered amounts logged yet, so money impact scores 0.',
+      },
+      {
+        key: 'trend',
+        label: 'Getting worse',
+        raw: r.changePct ?? 0,
+        normalized: maxTrend ? Math.max(0, r.changePct ?? 0) / maxTrend : 0,
+        weight: weights.trend,
+        contribution: 0,
+        explanation:
+          r.changePct === null
+            ? 'New this week — no previous week to compare against.'
+            : `${r.changePct > 0 ? 'Up' : 'Down'} ${Math.abs(r.changePct)}% vs last week.`,
+      },
+      {
+        key: 'recency',
+        label: 'Recency',
+        raw: Number(r.avgAgeDays.toFixed(1)),
+        normalized: Math.max(0, Math.min(1, 1 - r.avgAgeDays / 7)),
+        weight: weights.recency,
+        contribution: 0,
+        explanation: `These visits happened ${r.avgAgeDays.toFixed(1)} days ago on average.`,
+      },
+    ] as ScoreComponent[]).map(p => ({ ...p, contribution: p.normalized * p.weight }));
+
+    const base = parts.reduce((s, p) => s + p.contribution, 0);
+    return {
+      ...r,
+      breakdown: parts,
+      score: Math.round(base * (weights.kindMultiplier[r.kind] ?? 1) * 100) / 100,
+    };
+  });
+
+  const sorted = candidates.sort((a, b) => (b.score - a.score) || (b.count - a.count));
 
   const picked: TopFix[] = [];
   const seenKinds = new Set<FixKind>();
@@ -147,8 +298,9 @@ export function computeTopFixes(
     picked.push(fix);
   });
 
-  return { windowStart: start, windowEnd: end, totalVisits: total, avgValue, fixes: picked };
+  return { windowStart: start, windowEnd: end, totalVisits: total, avgValue, weights, fixes: picked };
 }
+
 
 function headlineFor(kind: FixKind, label: string, count: number): string {
   switch (kind) {
