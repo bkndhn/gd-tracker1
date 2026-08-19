@@ -1121,6 +1121,45 @@ export type Database = {
           },
         ]
       }
+      weekly_digests: {
+        Row: {
+          admin_id: string
+          created_at: string
+          emailed_to: string | null
+          headline: string
+          id: string
+          payload: Json
+          period_end: string
+          period_start: string
+          read_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          emailed_to?: string | null
+          headline: string
+          id?: string
+          payload?: Json
+          period_end: string
+          period_start: string
+          read_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          emailed_to?: string | null
+          headline?: string
+          id?: string
+          payload?: Json
+          period_end?: string
+          period_start?: string
+          read_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
