@@ -272,7 +272,7 @@ export function computeTopFixes(
         contribution: 0,
         explanation: `These visits happened ${r.avgAgeDays.toFixed(1)} days ago on average.`,
       },
-    ].map(p => ({ ...p, contribution: p.normalized * p.weight }));
+    ] as ScoreComponent[]).map(p => ({ ...p, contribution: p.normalized * p.weight }));
 
     const base = parts.reduce((s, p) => s + p.contribution, 0);
     return {
