@@ -36,6 +36,54 @@ async function generateDigest(summary: string): Promise<string> {
   return json?.choices?.[0]?.message?.content ?? '<p>No digest available.</p>';
 }
 
+
+const tally = (rows: any[], get: (r: any) => string | undefined | null) => {
+  const m: Record<string, number> = {};
+  rows.forEach((r) => {
+    const k = (get(r) || '').trim();
+    if (!k || k === 'Unknown') return;
+    m[k] = (m[k] || 0) + 1;
+  });
+  return Object.entries(m).sort((a, b) => b[1] - a[1]);
+};
+
+/** Lightweight server-side mirror of the in-app Top 3 fixes + stock gap widgets. */
+function buildHighlights(entries: any[], avgValue: number) {
+  const dims: Array<{ kind: string; label: string; get: (r: any) => any }> = [
+    { kind: 'reason', label: 'Lost reason', get: (r) => r.categories?.name },
+    { kind: 'shop', label: 'Shop', get: (r) => r.shops?.name },
+    { kind: 'staff', label: 'Coaching', get: (r) => r.employee_name },
+  ];
+  const fixes = dims
+    .map((d) => {
+      const top = tally(entries, d.get)[0];
+      if (!top) return null;
+      return {
+        kind: d.kind,
+        dimension: d.label,
+        label: top[0],
+        count: top[1],
+        estimatedValue: top[1] * avgValue,
+      };
+    })
+    .filter(Boolean) as any[];
+
+  const gapMap: Record<string, number> = {};
+  entries.forEach((r) => {
+    const cat = r.categories?.name || 'Unknown';
+    const size = r.sizes?.size || 'Unknown';
+    if (cat === 'Unknown' && size === 'Unknown') return;
+    const k = `${cat} · ${size}`;
+    gapMap[k] = (gapMap[k] || 0) + 1;
+  });
+  const gaps = Object.entries(gapMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([label, count]) => ({ label, count }));
+
+  return { fixes, gaps };
+}
+
 async function buildForAdmin(supa: any, adminId: string) {
   const since = new Date(Date.now() - 7 * 86400000).toISOString();
   const prev = new Date(Date.now() - 14 * 86400000).toISOString();
@@ -43,7 +91,11 @@ async function buildForAdmin(supa: any, adminId: string) {
   const [fuRes, prevRes, entryRes] = await Promise.all([
     supa.from('follow_ups').select('*').eq('admin_id', adminId).gte('sent_at', since),
     supa.from('follow_ups').select('outcome, recovered_amount').eq('admin_id', adminId).gte('sent_at', prev).lt('sent_at', since),
-    supa.from('goods_damaged_entries').select('id, shop_id, created_at').eq('admin_id', adminId).gte('created_at', since),
+    supa
+      .from('goods_damaged_entries')
+      .select('id, shop_id, created_at, employee_name, shops(name), categories(name), sizes(size)')
+      .eq('admin_id', adminId)
+      .gte('created_at', since),
   ]);
 
   const fu = fuRes.data || [];
@@ -62,8 +114,15 @@ async function buildForAdmin(supa: any, adminId: string) {
   const byReason: Record<string, number> = {};
   fu.forEach((r: any) => { const k = r.reason_label || 'Not specified'; byReason[k] = (byReason[k] || 0) + 1; });
 
+  const entries = entryRes.data || [];
+  const convertedFu = fu.filter((r: any) => r.outcome === 'converted' && Number(r.recovered_amount) > 0);
+  const avgValue = convertedFu.length
+    ? Math.round(convertedFu.reduce((s: number, r: any) => s + Number(r.recovered_amount || 0), 0) / convertedFu.length)
+    : 0;
+  const highlights = buildHighlights(entries, avgValue);
+
   const stats = {
-    visits: (entryRes.data || []).length,
+    visits: entries.length,
     followUpsSent: fu.length,
     pending: fu.filter((r: any) => r.outcome === 'pending').length,
     converted: fu.filter((r: any) => r.outcome === 'converted').length,
@@ -78,9 +137,11 @@ async function buildForAdmin(supa: any, adminId: string) {
     `Recovered revenue: ${inr(stats.recovered)} (previous week ${inr(stats.prevRecovered)}).`,
     `By shop: ${Object.entries(byShop).map(([s, v]) => `${s}: ${v.sent} sent, ${v.converted} converted, ${inr(v.recovered)}`).join('; ') || 'no activity'}.`,
     `Top lost reasons: ${Object.entries(byReason).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => `${k} (${v})`).join(', ') || 'none'}.`,
+    `Top 3 fixes: ${highlights.fixes.map((f) => `${f.dimension} "${f.label}" — ${f.count} visits${f.estimatedValue ? `, ~${inr(f.estimatedValue)} recoverable` : ''}`).join('; ') || 'not enough data'}.`,
+    `Stock & size gaps (category · size): ${highlights.gaps.map((g) => `${g.label} (${g.count})`).join(', ') || 'none'}.`,
   ].join('\n');
 
-  return { stats, summary };
+  return { stats, summary, highlights, avgValue };
 }
 
 Deno.serve(async (req) => {
@@ -129,7 +190,7 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     for (const t of targets) {
-      const { stats, summary } = await buildForAdmin(supa, t.adminId);
+      const { stats, summary, highlights } = await buildForAdmin(supa, t.adminId);
       if (!isCron || stats.visits > 0 || stats.followUpsSent > 0) {
         const body = await generateDigest(summary);
         const html = `
@@ -142,6 +203,8 @@ Deno.serve(async (req) => {
               <tr><td style="padding:6px;border:1px solid #eee">Converted</td><td style="padding:6px;border:1px solid #eee"><b>${stats.converted}</b></td></tr>
               <tr><td style="padding:6px;border:1px solid #eee">Recovered revenue</td><td style="padding:6px;border:1px solid #eee"><b>${inr(stats.recovered)}</b></td></tr>
             </table>
+            ${highlights.fixes.length ? `<h3 style="margin:16px 0 6px;font-size:15px">Top 3 fixes this week</h3><ol style="margin:0 0 12px;padding-left:18px;font-size:14px">${highlights.fixes.map((f: any) => `<li><b>${f.dimension}:</b> ${f.label} — ${f.count} lost visits${f.estimatedValue ? ` (~${inr(f.estimatedValue)} recoverable)` : ''}</li>`).join('')}</ol>` : ''}
+            ${highlights.gaps.length ? `<h3 style="margin:16px 0 6px;font-size:15px">Stock &amp; size gaps</h3><ul style="margin:0 0 12px;padding-left:18px;font-size:14px">${highlights.gaps.map((g: any) => `<li>${g.label} — ${g.count} misses</li>`).join('')}</ul>` : ''}
             ${body}
           </div>`;
 
@@ -157,6 +220,20 @@ Deno.serve(async (req) => {
         });
         if (mail.ok) sent++;
         else console.error('resend error', await mail.text());
+
+        // In-app notification copy of the same digest
+        const headline = highlights.fixes.length
+          ? `Top fix: ${highlights.fixes[0].label} (${highlights.fixes[0].count} lost visits)`
+          : `${stats.visits} lost visits, ${inr(stats.recovered)} recovered`;
+        const { error: digestErr } = await supa.from('weekly_digests').insert({
+          admin_id: t.adminId,
+          period_start: new Date(Date.now() - 7 * 86400000).toISOString(),
+          period_end: new Date().toISOString(),
+          headline,
+          payload: { stats, fixes: highlights.fixes, gaps: highlights.gaps, html: body },
+          emailed_to: mail.ok ? t.email : null,
+        });
+        if (digestErr) console.error('weekly_digests insert error', digestErr);
       }
     }
 

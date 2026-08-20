@@ -10,6 +10,7 @@ import { WhatsAppIntakeSettings } from '@/components/admin/WhatsAppIntakeSetting
 import { WhatsAppWebhookMonitor } from '@/components/admin/WhatsAppWebhookMonitor';
 import { CustomFieldManagement } from '@/components/admin/CustomFieldManagement';
 import { ExportSettings } from '@/components/admin/ExportSettings';
+import { ScoringModelSettings } from '@/components/admin/ScoringModelSettings';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -90,6 +91,8 @@ export const AdminPanel = () => {
       <UserManagement shops={shops} profiles={profiles} onRefresh={fetchData} />
 
       <CustomFieldManagement />
+
+      <ScoringModelSettings />
 
       <ExportSettings />
     </div>

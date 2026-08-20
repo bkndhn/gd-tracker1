@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Target, TrendingUp, TrendingDown, Store, User, Tag, ArrowRight } from 'lucide-react';
-import { computeTopFixes, formatINR, type FixKind, type InsightEntry, type InsightFollowUp } from '@/lib/lostSaleInsights';
+import { Target, TrendingUp, TrendingDown, Store, User, Tag, ArrowRight, ListFilter } from 'lucide-react';
+import { computeTopFixes, formatINR, type FixKind, type InsightEntry, type InsightFollowUp, type TopFix } from '@/lib/lostSaleInsights';
+import { useScoringWeights } from '@/hooks/useScoringWeights';
+import { FixDrilldownDialog } from './FixDrilldownDialog';
 
 interface TopFixesCardProps {
   entries: InsightEntry[] | undefined;
@@ -19,7 +21,12 @@ const KIND_META: Record<FixKind, { icon: typeof Tag; label: string; accent: stri
 };
 
 export const TopFixesCard = ({ entries, followUps = [], onDrill }: TopFixesCardProps) => {
-  const result = useMemo(() => computeTopFixes(entries || [], followUps), [entries, followUps]);
+  const { weights } = useScoringWeights();
+  const [activeFix, setActiveFix] = useState<TopFix | null>(null);
+  const result = useMemo(
+    () => computeTopFixes(entries || [], followUps, new Date(), weights),
+    [entries, followUps, weights],
+  );
 
   if (!entries || result.fixes.length === 0) return null;
 
@@ -72,6 +79,15 @@ export const TopFixesCard = ({ entries, followUps = [], onDrill }: TopFixesCardP
                         ~{formatINR(fix.estimatedValue)} recoverable
                       </Badge>
                     )}
+                    <Badge variant="outline" className="text-xs">score {fix.score}</Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 gap-1 px-2 text-xs"
+                      onClick={() => setActiveFix(fix)}
+                    >
+                      <ListFilter className="h-3 w-3" /> Why &amp; export
+                    </Button>
                     {drillType && onDrill && (
                       <Button
                         size="sm"
@@ -94,6 +110,15 @@ export const TopFixesCard = ({ entries, followUps = [], onDrill }: TopFixesCardP
           </p>
         )}
       </CardContent>
+
+      <FixDrilldownDialog
+        open={!!activeFix}
+        onOpenChange={(v) => { if (!v) setActiveFix(null); }}
+        fix={activeFix}
+        entries={entries}
+        windowStart={result.windowStart}
+        windowEnd={result.windowEnd}
+      />
     </Card>
   );
 };

@@ -17,5 +17,7 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Typecheck (fails on missing/undefined references)
         run: bun run typecheck
+      - name: Unit tests (analytics aggregates)
+        run: bun run test
       - name: Build
         run: bun run build
