@@ -79,6 +79,15 @@ export const TopFixesCard = ({ entries, followUps = [], onDrill }: TopFixesCardP
                         ~{formatINR(fix.estimatedValue)} recoverable
                       </Badge>
                     )}
+                    <Badge variant="outline" className="text-xs">score {fix.score}</Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 gap-1 px-2 text-xs"
+                      onClick={() => setActiveFix(fix)}
+                    >
+                      <ListFilter className="h-3 w-3" /> Why &amp; export
+                    </Button>
                     {drillType && onDrill && (
                       <Button
                         size="sm"
@@ -101,6 +110,15 @@ export const TopFixesCard = ({ entries, followUps = [], onDrill }: TopFixesCardP
           </p>
         )}
       </CardContent>
+
+      <FixDrilldownDialog
+        open={!!activeFix}
+        onOpenChange={(v) => { if (!v) setActiveFix(null); }}
+        fix={activeFix}
+        entries={entries}
+        windowStart={result.windowStart}
+        windowEnd={result.windowEnd}
+      />
     </Card>
   );
 };
