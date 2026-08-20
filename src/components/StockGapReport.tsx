@@ -4,9 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PackageSearch, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+import { PackageSearch, TrendingUp, TrendingDown, ArrowRight, FileSpreadsheet, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { computeStockGaps, type InsightEntry } from '@/lib/lostSaleInsights';
+import { buildStockGapTable, exportTableToExcel, exportTableToPDF } from '@/lib/insightExports';
 
 interface StockGapReportProps {
   entries: InsightEntry[] | undefined;
