@@ -21,7 +21,12 @@ const KIND_META: Record<FixKind, { icon: typeof Tag; label: string; accent: stri
 };
 
 export const TopFixesCard = ({ entries, followUps = [], onDrill }: TopFixesCardProps) => {
-  const result = useMemo(() => computeTopFixes(entries || [], followUps), [entries, followUps]);
+  const { weights } = useScoringWeights();
+  const [activeFix, setActiveFix] = useState<TopFix | null>(null);
+  const result = useMemo(
+    () => computeTopFixes(entries || [], followUps, new Date(), weights),
+    [entries, followUps, weights],
+  );
 
   if (!entries || result.fixes.length === 0) return null;
 
