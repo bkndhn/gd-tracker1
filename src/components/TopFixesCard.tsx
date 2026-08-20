@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Target, TrendingUp, TrendingDown, Store, User, Tag, ArrowRight } from 'lucide-react';
-import { computeTopFixes, formatINR, type FixKind, type InsightEntry, type InsightFollowUp } from '@/lib/lostSaleInsights';
+import { Target, TrendingUp, TrendingDown, Store, User, Tag, ArrowRight, ListFilter } from 'lucide-react';
+import { computeTopFixes, formatINR, type FixKind, type InsightEntry, type InsightFollowUp, type TopFix } from '@/lib/lostSaleInsights';
+import { useScoringWeights } from '@/hooks/useScoringWeights';
+import { FixDrilldownDialog } from './FixDrilldownDialog';
 
 interface TopFixesCardProps {
   entries: InsightEntry[] | undefined;
