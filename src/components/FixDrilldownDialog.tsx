@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileSpreadsheet, FileText, Info } from 'lucide-react';
+import { FileSpreadsheet, FileText, Info, Paperclip } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   entriesForFix,
@@ -15,6 +15,9 @@ import {
   type TopFix,
 } from '@/lib/lostSaleInsights';
 import { buildFixDrilldownTable, exportTableToExcel, exportTableToPDF } from '@/lib/insightExports';
+import { useExportTemplate } from '@/hooks/useExportTemplate';
+import { useEvidenceCounts } from '@/hooks/useEntryEvidence';
+import { EvidenceDialog } from '@/components/EvidenceDialog';
 
 interface FixDrilldownDialogProps {
   open: boolean;
@@ -34,6 +37,8 @@ export const FixDrilldownDialog = ({
   const [category, setCategory] = useState(ALL);
   const [search, setSearch] = useState('');
   const [wholeHistory, setWholeHistory] = useState(false);
+  const [evidenceEntry, setEvidenceEntry] = useState<InsightEntry | null>(null);
+  const { template } = useExportTemplate();
 
   const base = useMemo(() => {
     if (!fix) return [];
@@ -64,6 +69,8 @@ export const FixDrilldownDialog = ({
         .some(v => (v || '').toLowerCase().includes(q));
     });
   }, [base, shop, category, search]);
+
+  const evidenceCounts = useEvidenceCounts(filtered.map(e => e.id));
 
   if (!fix) return null;
 
@@ -126,10 +133,10 @@ export const FixDrilldownDialog = ({
               {wholeHistory ? 'All time' : 'This week'}
             </Button>
             <div className="ml-auto flex gap-2">
-              <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" onClick={() => exportTableToExcel(table)}>
+              <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" onClick={() => exportTableToExcel(table, template)}>
                 <FileSpreadsheet className="h-3.5 w-3.5" /> Excel
               </Button>
-              <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" onClick={() => exportTableToPDF(table)}>
+              <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" onClick={() => exportTableToPDF(table, template)}>
                 <FileText className="h-3.5 w-3.5" /> PDF
               </Button>
             </div>
@@ -152,6 +159,7 @@ export const FixDrilldownDialog = ({
                     <TableHead className="text-xs">Size</TableHead>
                     <TableHead className="text-xs">Customer</TableHead>
                     <TableHead className="text-xs">Reporter</TableHead>
+                    <TableHead className="text-xs">Evidence</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -163,11 +171,22 @@ export const FixDrilldownDialog = ({
                       <TableCell className="text-xs">{e.sizes?.size || '—'}</TableCell>
                       <TableCell className="text-xs">{e.customer_types?.name || '—'}</TableCell>
                       <TableCell className="text-xs">{e.employee_name || '—'}</TableCell>
+                      <TableCell className="text-xs">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 gap-1 px-2 text-[11px]"
+                          onClick={() => setEvidenceEntry(e)}
+                        >
+                          <Paperclip className="h-3 w-3" />
+                          {evidenceCounts[e.id] ? `${evidenceCounts[e.id]} file(s)` : 'Attach'}
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-6 text-center text-xs text-muted-foreground">
+                      <TableCell colSpan={7} className="py-6 text-center text-xs text-muted-foreground">
                         No visits match these filters.
                       </TableCell>
                     </TableRow>
@@ -177,6 +196,13 @@ export const FixDrilldownDialog = ({
             </div>
           </ScrollArea>
         </div>
+
+        <EvidenceDialog
+          open={!!evidenceEntry}
+          onOpenChange={v => !v && setEvidenceEntry(null)}
+          entryId={evidenceEntry?.id || null}
+          title={evidenceEntry ? `${evidenceEntry.shops?.name || 'Visit'} · ${format(new Date(evidenceEntry.created_at), 'dd MMM')}` : undefined}
+        />
       </DialogContent>
     </Dialog>
   );
