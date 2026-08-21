@@ -8,6 +8,7 @@ import { PackageSearch, TrendingUp, TrendingDown, ArrowRight, FileSpreadsheet, F
 import { format } from 'date-fns';
 import { computeStockGaps, type InsightEntry } from '@/lib/lostSaleInsights';
 import { buildStockGapTable, exportTableToExcel, exportTableToPDF } from '@/lib/insightExports';
+import { useExportTemplate } from '@/hooks/useExportTemplate';
 
 interface StockGapReportProps {
   entries: InsightEntry[] | undefined;
@@ -22,6 +23,7 @@ const RANGES = [
 
 export const StockGapReport = ({ entries, onDrill }: StockGapReportProps) => {
   const [days, setDays] = useState(30);
+  const { template } = useExportTemplate();
   const result = useMemo(() => computeStockGaps(entries || [], days), [entries, days]);
 
   if (!entries || result.rows.length === 0) return null;
@@ -50,7 +52,7 @@ export const StockGapReport = ({ entries, onDrill }: StockGapReportProps) => {
               size="sm"
               variant="outline"
               className="h-7 gap-1 px-2 text-xs"
-              onClick={() => exportTableToExcel(buildStockGapTable(result.rows, days))}
+              onClick={() => exportTableToExcel(buildStockGapTable(result.rows, days), template)}
             >
               <FileSpreadsheet className="h-3 w-3" /> Excel
             </Button>
@@ -58,7 +60,7 @@ export const StockGapReport = ({ entries, onDrill }: StockGapReportProps) => {
               size="sm"
               variant="outline"
               className="h-7 gap-1 px-2 text-xs"
-              onClick={() => exportTableToPDF(buildStockGapTable(result.rows, days))}
+              onClick={() => exportTableToPDF(buildStockGapTable(result.rows, days), template)}
             >
               <FileText className="h-3 w-3" /> PDF
             </Button>
