@@ -10,19 +10,29 @@ export interface AnomalyEntry {
   shop_id: string | null;
   shopName: string;
   reason: string;
+  size: string;
   notes: string;
 }
 
 export interface AnomalyAlert {
   id: string;
-  metric: 'visits' | 'reason';
+  /** which slice of the data moved */
+  metric: 'visits' | 'reason' | 'size';
+  /** spike = more lost value than usual, drop = unusually quiet */
+  direction: 'spike' | 'drop';
+  title: string;
   shopId: string | null;
   shopName: string;
   reasonLabel: string | null;
+  sizeLabel: string | null;
   windowStart: Date;
   windowEnd: Date;
   actual: number;
   expected: number;
+  /** estimated rupees of lost value in the current window */
+  valueAtStake: number;
+  /** difference in rupees vs the baseline (negative for drops) */
+  valueDelta: number;
   severity: 'high' | 'medium';
   entries: AnomalyEntry[];
 }
@@ -63,9 +73,11 @@ function stdDev(values: number[]) {
 }
 
 /**
- * Detects spikes by comparing the most recent 7-day window for each shop
- * (overall visits and per lost-reason) against that same series' trailing
- * baseline. Everything runs client-side on RLS-scoped data.
+ * Detects sudden spikes AND drops by comparing the most recent 7-day window for
+ * each shop (overall visits, per lost-reason and per size) against that same
+ * series' trailing baseline. Counts are converted to lost value using the
+ * tenant's average recovered amount so alerts are expressed in rupees.
+ * Everything runs client-side on RLS-scoped data.
  */
 export const useAnomalyAlerts = () => {
   const { user } = useAuth();
@@ -78,12 +90,28 @@ export const useAnomalyAlerts = () => {
       const since = new Date(Date.now() - LOOKBACK_DAYS * 86400000).toISOString();
       const { data, error } = await supabase
         .from('goods_damaged_entries')
-        .select('id, created_at, shop_id, notes, shops(name)')
+        .select('id, created_at, shop_id, notes, shops(name), sizes(size)')
         .gte('created_at', since)
         .order('created_at', { ascending: false })
         .limit(5000);
       if (error) throw error;
       return (data || []) as any[];
+    },
+  });
+
+  const { data: avgValue = 0 } = useQuery({
+    queryKey: ['anomaly-avg-value', user?.id],
+    enabled: !!user,
+    staleTime: 1000 * 60 * 10,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('follow_ups')
+        .select('recovered_amount, outcome')
+        .eq('outcome', 'converted')
+        .gt('recovered_amount', 0)
+        .limit(500);
+      const vals = (data || []).map((r: any) => Number(r.recovered_amount || 0)).filter(n => n > 0);
+      return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
     },
   });
 
@@ -102,6 +130,7 @@ export const useAnomalyAlerts = () => {
       shop_id: r.shop_id,
       shopName: r.shops?.name || stdValue(cvIndex, r.id, 'shop') || 'Unknown shop',
       reason: stdValue(cvIndex, r.id, 'category') || 'Unspecified',
+      size: r.sizes?.size || stdValue(cvIndex, r.id, 'size') || 'Unspecified',
       notes: r.notes || '',
     }));
 
@@ -114,9 +143,11 @@ export const useAnomalyAlerts = () => {
     };
 
     type Series = {
+      metric: AnomalyAlert['metric'];
       shopId: string | null;
       shopName: string;
       reasonLabel: string | null;
+      sizeLabel: string | null;
       counts: number[];
       current: AnomalyEntry[];
     };
@@ -136,49 +167,92 @@ export const useAnomalyAlerts = () => {
       const b = bucketOf(e.created_at);
       if (b < 0) return;
       const shopKey = e.shop_id || e.shopName;
-      push(`visits:${shopKey}`, { shopId: e.shop_id, shopName: e.shopName, reasonLabel: null }, b, e);
+      push(
+        `visits:${shopKey}`,
+        { metric: 'visits', shopId: e.shop_id, shopName: e.shopName, reasonLabel: null, sizeLabel: null },
+        b, e,
+      );
       push(
         `reason:${shopKey}:${e.reason}`,
-        { shopId: e.shop_id, shopName: e.shopName, reasonLabel: e.reason },
-        b,
-        e,
+        { metric: 'reason', shopId: e.shop_id, shopName: e.shopName, reasonLabel: e.reason, sizeLabel: null },
+        b, e,
       );
+      if (e.size && e.size !== 'Unspecified') {
+        push(
+          `size:${shopKey}:${e.size}`,
+          { metric: 'size', shopId: e.shop_id, shopName: e.shopName, reasonLabel: null, sizeLabel: e.size },
+          b, e,
+        );
+      }
     });
 
     const out: AnomalyAlert[] = [];
+    const dayStamp = Math.floor(now / 86400000);
+
     series.forEach((s, key) => {
       const actual = s.counts[0];
       const baseline = s.counts.slice(1);
       const expected = mean(baseline);
       const sd = stdDev(baseline);
-      // needs enough volume to be meaningful
-      if (actual < 5) return;
-      const threshold = Math.max(expected * 1.5, expected + 2 * sd, 3);
-      if (actual < threshold) return;
+      const rounded = Math.round(expected * 10) / 10;
 
-      const ratio = expected > 0 ? actual / expected : Infinity;
-      out.push({
-        id: `${key}:${Math.floor(now / 86400000)}`,
-        metric: s.reasonLabel ? 'reason' : 'visits',
+      const scopeLabel = s.reasonLabel
+        ? `"${s.reasonLabel}"`
+        : s.sizeLabel
+          ? `size ${s.sizeLabel}`
+          : 'non-purchase visits';
+
+      const base = {
+        metric: s.metric,
         shopId: s.shopId,
         shopName: s.shopName,
         reasonLabel: s.reasonLabel,
+        sizeLabel: s.sizeLabel,
         windowStart: new Date(now - windowMs),
         windowEnd: new Date(now),
         actual,
-        expected: Math.round(expected * 10) / 10,
-        severity: ratio >= 2 ? 'high' : 'medium',
+        expected: rounded,
+        valueAtStake: actual * avgValue,
+        valueDelta: Math.round((actual - expected) * avgValue),
         entries: s.current.sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         ),
-      });
+      };
+
+      // Spike: unusually high lost volume/value
+      if (actual >= 5) {
+        const threshold = Math.max(expected * 1.5, expected + 2 * sd, 3);
+        if (actual >= threshold) {
+          const ratio = expected > 0 ? actual / expected : Infinity;
+          out.push({
+            ...base,
+            id: `${key}:spike:${dayStamp}`,
+            direction: 'spike',
+            title: `Spike in ${scopeLabel}`,
+            severity: ratio >= 2 ? 'high' : 'medium',
+          });
+          return;
+        }
+      }
+
+      // Drop: the series was consistently busy and has now fallen away
+      if (expected >= 5 && actual <= expected * 0.5) {
+        const ratio = expected > 0 ? actual / expected : 0;
+        out.push({
+          ...base,
+          id: `${key}:drop:${dayStamp}`,
+          direction: 'drop',
+          title: `Sudden drop in ${scopeLabel}`,
+          severity: ratio <= 0.25 ? 'high' : 'medium',
+        });
+      }
     });
 
     return out.sort((a, b) => {
       if (a.severity !== b.severity) return a.severity === 'high' ? -1 : 1;
-      return b.actual - a.actual;
+      return Math.abs(b.valueDelta) - Math.abs(a.valueDelta) || b.actual - a.actual;
     });
-  }, [rows, cvIndex]);
+  }, [rows, cvIndex, avgValue]);
 
-  return { alerts, isLoading };
+  return { alerts, isLoading, avgValue };
 };

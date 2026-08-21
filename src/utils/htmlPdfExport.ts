@@ -13,6 +13,14 @@ export interface PDFColumn {
 /** A cell can be plain text or raw HTML (e.g. for embedded images) */
 export type CellContent = string | { html: string };
 
+/** Optional per-tenant branding printed in the report header/footer */
+export interface PDFBranding {
+  orgName?: string;
+  logoDataUrl?: string | null;
+  footerNote?: string;
+  accentColor?: string;
+}
+
 export interface HTMLPDFExportOptions {
   title: string;
   subtitle?: string;
@@ -20,6 +28,7 @@ export interface HTMLPDFExportOptions {
   rows: CellContent[][];
   fileName?: string;
   orientation?: 'portrait' | 'landscape';
+  branding?: PDFBranding;
 }
 
 export function exportToPDFViaHTML({
@@ -29,7 +38,18 @@ export function exportToPDFViaHTML({
   rows,
   fileName = 'report',
   orientation = 'landscape',
+  branding,
 }: HTMLPDFExportOptions) {
+  const accent = /^#[0-9a-fA-F]{6}$/.test(branding?.accentColor || '') ? branding!.accentColor! : '#7c3aed';
+  const brandBlock = branding && (branding.logoDataUrl || branding.orgName)
+    ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        ${branding.logoDataUrl ? `<img src="${branding.logoDataUrl}" alt="" style="height:34px;width:auto;object-fit:contain;" />` : ''}
+        ${branding.orgName ? `<div style="font-size:13px;font-weight:700;color:${accent};">${escapeHtml(branding.orgName)}</div>` : ''}
+      </div>`
+    : '';
+  const footerBlock = branding?.footerNote
+    ? `<div style="margin-top:10px;padding-top:6px;border-top:1px solid #e5e7eb;font-size:8px;color:#64748b;">${escapeHtml(branding.footerNote)}</div>`
+    : '';
   const headerCells = columns
     .map(
       (col) =>
@@ -174,6 +194,7 @@ export function exportToPDFViaHTML({
 <body>
   <button class="print-btn no-print" onclick="window.print()">📄 Save as PDF</button>
 
+  ${brandBlock}
   <div class="report-header">
     <div class="report-meta">
       <div class="report-title">${escapeHtml(title)}</div>
@@ -190,6 +211,7 @@ export function exportToPDFViaHTML({
       ${bodyRows}
     </tbody>
   </table>
+  ${footerBlock}
 
   <script>
     // Auto-trigger print after fonts load, with fallback timeout
