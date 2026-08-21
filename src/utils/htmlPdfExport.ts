@@ -194,6 +194,7 @@ export function exportToPDFViaHTML({
 <body>
   <button class="print-btn no-print" onclick="window.print()">📄 Save as PDF</button>
 
+  ${brandBlock}
   <div class="report-header">
     <div class="report-meta">
       <div class="report-title">${escapeHtml(title)}</div>
@@ -210,6 +211,7 @@ export function exportToPDFViaHTML({
       ${bodyRows}
     </tbody>
   </table>
+  ${footerBlock}
 
   <script>
     // Auto-trigger print after fonts load, with fallback timeout
