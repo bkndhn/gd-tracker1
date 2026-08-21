@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, TrendingUp, X } from 'lucide-react';
+import { AlertTriangle, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,6 +17,7 @@ interface Props {
 }
 
 const fmt = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+const money = (n: number) => `Rs ${Math.abs(Math.round(n)).toLocaleString('en-IN')}`;
 
 export const AnomalyAlertsPanel = ({ alerts }: Props) => {
   const [selected, setSelected] = useState<AnomalyAlert | null>(null);
@@ -26,7 +27,7 @@ export const AnomalyAlertsPanel = ({ alerts }: Props) => {
       <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
         <TrendingUp className="h-8 w-8 mb-2 opacity-50" />
         <p className="text-sm">No unusual activity</p>
-        <p className="text-xs">Spikes by shop or reason will appear here</p>
+        <p className="text-xs">Spikes and drops by shop, reason or size will appear here</p>
       </div>
     );
   }
@@ -48,22 +49,27 @@ export const AnomalyAlertsPanel = ({ alerts }: Props) => {
                     a.severity === 'high' ? 'bg-destructive/10' : 'bg-primary/10'
                   }`}
                 >
-                  <AlertTriangle
-                    className={`h-4 w-4 ${
-                      a.severity === 'high' ? 'text-destructive' : 'text-primary'
-                    }`}
-                  />
+                  {a.direction === 'drop' ? (
+                    <TrendingDown
+                      className={`h-4 w-4 ${a.severity === 'high' ? 'text-destructive' : 'text-primary'}`}
+                    />
+                  ) : (
+                    <AlertTriangle
+                      className={`h-4 w-4 ${a.severity === 'high' ? 'text-destructive' : 'text-primary'}`}
+                    />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {a.reasonLabel
-                      ? `Spike in "${a.reasonLabel}"`
-                      : 'Spike in non-purchase visits'}
-                  </p>
+                  <p className="text-sm font-medium truncate">{a.title}</p>
                   <p className="text-xs text-muted-foreground truncate">{a.shopName}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {a.actual} vs {a.expected} expected · {fmt(a.windowStart)}–{fmt(a.windowEnd)}
                   </p>
+                  {a.valueDelta !== 0 && (
+                    <p className="text-xs font-medium mt-0.5">
+                      {a.valueDelta > 0 ? '+' : '−'}{money(a.valueDelta)} lost value vs usual
+                    </p>
+                  )}
                 </div>
                 <Button
                   variant="ghost"
@@ -89,16 +95,14 @@ export const AnomalyAlertsPanel = ({ alerts }: Props) => {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-base">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
-                  {selected.reasonLabel
-                    ? `Spike in "${selected.reasonLabel}"`
-                    : 'Spike in non-purchase visits'}
+                  {selected.title}
                 </DialogTitle>
                 <DialogDescription>
                   {selected.shopName} · {fmt(selected.windowStart)}–{fmt(selected.windowEnd)}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
                 <div className="rounded-lg border p-3">
                   <p className="text-xs text-muted-foreground">Actual</p>
                   <p className="text-xl font-semibold">{selected.actual}</p>
@@ -106,6 +110,10 @@ export const AnomalyAlertsPanel = ({ alerts }: Props) => {
                 <div className="rounded-lg border p-3">
                   <p className="text-xs text-muted-foreground">Expected</p>
                   <p className="text-xl font-semibold">{selected.expected}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Lost value</p>
+                  <p className="text-xl font-semibold">{money(selected.valueAtStake)}</p>
                 </div>
                 <div className="rounded-lg border p-3">
                   <p className="text-xs text-muted-foreground">Severity</p>
