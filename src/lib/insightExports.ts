@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { exportToPDFViaHTML } from '@/utils/htmlPdfExport';
 import { formatINR, type InsightEntry, type StockGapRow, type TopFix } from '@/lib/lostSaleInsights';
+import { DEFAULT_EXPORT_TEMPLATE, type ExportTemplate } from '@/lib/reportTemplate';
 
 export interface SheetTable {
   title: string;
@@ -13,12 +14,15 @@ export interface SheetTable {
   columns: string[];
   rows: (string | number)[][];
   fileName: string;
+  /** Human readable range covered by the report, printed when the template allows it */
+  dateRange?: string;
 }
 
 export function buildStockGapTable(rows: StockGapRow[], days: number): SheetTable {
   return {
     title: 'Stock & size gap report',
     subtitle: `Last ${days} days · generated ${format(new Date(), 'dd MMM yyyy HH:mm')}`,
+    dateRange: `${format(new Date(Date.now() - days * 86400000), 'dd MMM yyyy')} – ${format(new Date(), 'dd MMM yyyy')}`,
     columns: ['Category', 'Size', 'Misses', 'Trend %', 'Shops', 'Last seen'],
     rows: rows.map(r => [
       r.category,
@@ -33,6 +37,7 @@ export function buildStockGapTable(rows: StockGapRow[], days: number): SheetTabl
 }
 
 export function buildFixDrilldownTable(fix: TopFix, entries: InsightEntry[]): SheetTable {
+  const dates = entries.map(e => new Date(e.created_at).getTime()).filter(n => Number.isFinite(n));
   return {
     title: `${fix.headline}`,
     subtitle: [
@@ -41,6 +46,9 @@ export function buildFixDrilldownTable(fix: TopFix, entries: InsightEntry[]): Sh
       fix.estimatedValue > 0 ? `${formatINR(fix.estimatedValue)} recoverable` : null,
       `generated ${format(new Date(), 'dd MMM yyyy HH:mm')}`,
     ].filter(Boolean).join(' · '),
+    dateRange: dates.length
+      ? `${format(new Date(Math.min(...dates)), 'dd MMM yyyy')} – ${format(new Date(Math.max(...dates)), 'dd MMM yyyy')}`
+      : undefined,
     columns: ['Date', 'Shop', 'Reason', 'Size', 'Customer type', 'Reporter'],
     rows: entries.map(e => [
       format(new Date(e.created_at), 'dd MMM yyyy HH:mm'),
@@ -54,8 +62,18 @@ export function buildFixDrilldownTable(fix: TopFix, entries: InsightEntry[]): Sh
   };
 }
 
-export function exportTableToExcel(table: SheetTable) {
-  const aoa = [[table.title], table.subtitle ? [table.subtitle] : [], [], table.columns, ...table.rows];
+export function exportTableToExcel(table: SheetTable, template: ExportTemplate = DEFAULT_EXPORT_TEMPLATE) {
+  const head: (string | number)[][] = [];
+  if (template.orgName) head.push([template.orgName]);
+  head.push([table.title]);
+  if (table.subtitle) head.push([table.subtitle]);
+  if (template.showDateRange && table.dateRange) head.push([`Period: ${table.dateRange}`]);
+  if (template.headerNote) head.push([template.headerNote]);
+  head.push([]);
+
+  const foot: (string | number)[][] = template.footerNote ? [[], [template.footerNote]] : [];
+
+  const aoa = [...head, table.columns, ...table.rows, ...foot];
   const sheet = XLSX.utils.aoa_to_sheet(aoa);
   sheet['!cols'] = table.columns.map(c => ({ wch: Math.max(12, c.length + 4) }));
   const book = XLSX.utils.book_new();
@@ -63,13 +81,25 @@ export function exportTableToExcel(table: SheetTable) {
   XLSX.writeFile(book, `${table.fileName}.xlsx`);
 }
 
-export function exportTableToPDF(table: SheetTable) {
+export function exportTableToPDF(table: SheetTable, template: ExportTemplate = DEFAULT_EXPORT_TEMPLATE) {
+  const subtitleParts = [
+    table.subtitle,
+    template.showDateRange && table.dateRange ? `Period: ${table.dateRange}` : null,
+    template.headerNote || null,
+  ].filter(Boolean) as string[];
+
   exportToPDFViaHTML({
     title: table.title,
-    subtitle: table.subtitle,
+    subtitle: subtitleParts.join(' · ') || undefined,
     columns: table.columns.map(header => ({ header })),
     rows: table.rows.map(r => r.map(c => String(c))),
     fileName: table.fileName,
     orientation: 'landscape',
+    branding: {
+      orgName: template.orgName,
+      logoDataUrl: template.logoDataUrl,
+      footerNote: template.footerNote,
+      accentColor: template.accentColor,
+    },
   });
 }
