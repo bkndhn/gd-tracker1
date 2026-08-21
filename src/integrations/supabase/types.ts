@@ -423,6 +423,56 @@ export type Database = {
         }
         Relationships: []
       }
+      entry_evidence: {
+        Row: {
+          admin_id: string
+          caption: string | null
+          created_at: string
+          entry_id: string
+          file_name: string
+          file_size: number
+          id: string
+          mime_type: string
+          storage_path: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          admin_id: string
+          caption?: string | null
+          created_at?: string
+          entry_id: string
+          file_name: string
+          file_size?: number
+          id?: string
+          mime_type: string
+          storage_path: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          admin_id?: string
+          caption?: string | null
+          created_at?: string
+          entry_id?: string
+          file_name?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entry_evidence_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "goods_damaged_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follow_ups: {
         Row: {
           admin_id: string
@@ -871,6 +921,42 @@ export type Database = {
           report_time?: string
           timezone?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      settings_audit_log: {
+        Row: {
+          admin_id: string
+          changed_by: string
+          changed_by_name: string | null
+          created_at: string
+          id: string
+          new_value: Json
+          note: string | null
+          old_value: Json | null
+          setting_key: string
+        }
+        Insert: {
+          admin_id: string
+          changed_by: string
+          changed_by_name?: string | null
+          created_at?: string
+          id?: string
+          new_value: Json
+          note?: string | null
+          old_value?: Json | null
+          setting_key: string
+        }
+        Update: {
+          admin_id?: string
+          changed_by?: string
+          changed_by_name?: string | null
+          created_at?: string
+          id?: string
+          new_value?: Json
+          note?: string | null
+          old_value?: Json | null
+          setting_key?: string
         }
         Relationships: []
       }
