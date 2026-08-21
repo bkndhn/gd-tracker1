@@ -5,8 +5,9 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { SlidersHorizontal } from 'lucide-react';
-import { useScoringWeights } from '@/hooks/useScoringWeights';
-import { DEFAULT_SCORING_WEIGHTS, type FixKind, type ScoringWeights } from '@/lib/lostSaleInsights';
+import { useScoringWeights, SCORING_WEIGHTS_KEY } from '@/hooks/useScoringWeights';
+import { SettingsAuditLog } from '@/components/admin/SettingsAuditLog';
+import { DEFAULT_SCORING_WEIGHTS, normalizeWeights, type FixKind, type ScoringWeights } from '@/lib/lostSaleInsights';
 
 const SIGNALS: Array<{ key: keyof Omit<ScoringWeights, 'kindMultiplier'>; label: string; help: string }> = [
   { key: 'volume', label: 'Volume', help: 'How many lost visits this item caused in the last 7 days, compared to the busiest item.' },
@@ -22,7 +23,7 @@ const KINDS: Array<{ key: FixKind; label: string; help: string }> = [
 ];
 
 export const ScoringModelSettings = () => {
-  const { weights, loading, save, canEdit } = useScoringWeights();
+  const { weights, loading, save, canEdit, reload } = useScoringWeights();
   const [draft, setDraft] = useState<ScoringWeights>(weights);
   const [saving, setSaving] = useState(false);
 
@@ -35,7 +36,7 @@ export const ScoringModelSettings = () => {
   const commit = async () => {
     try {
       setSaving(true);
-      await save(draft);
+      await save(draft, 'Scoring weights updated');
       toast.success('Scoring model updated');
     } catch (e) {
       toast.error((e as Error).message || 'Could not save weights');
@@ -112,6 +113,12 @@ export const ScoringModelSettings = () => {
                 Reset to defaults
               </Button>
             </div>
+
+            <SettingsAuditLog
+              settingKey={SCORING_WEIGHTS_KEY}
+              onRollback={(value) => save(normalizeWeights(value), 'Rolled back to a previous version')}
+              onRolledBack={reload}
+            />
           </>
         )}
       </CardContent>
