@@ -15,6 +15,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useFollowUps, OUTCOME_LABELS, type FollowUpOutcome, type FollowUpRow } from '@/hooks/useFollowUps';
+import { RecoveryAttributionPanel } from '@/components/RecoveryAttributionPanel';
+
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const fmtDate = (d?: string | null) =>
@@ -139,8 +141,14 @@ export const FollowUpPanel = () => {
           <TabsTrigger value="reminders">Reminders</TabsTrigger>
           <TabsTrigger value="log">Audit trail</TabsTrigger>
           <TabsTrigger value="leaderboard">Leaderboards</TabsTrigger>
+          <TabsTrigger value="attribution">Revenue attribution</TabsTrigger>
           {isAdmin && <TabsTrigger value="targets">Targets</TabsTrigger>}
         </TabsList>
+
+        <TabsContent value="attribution" className="mt-3">
+          <RecoveryAttributionPanel rows={rows} targets={targets} monthKey={monthKey} />
+        </TabsContent>
+
 
         <TabsContent value="reminders" className="mt-3">
           <Card className="premium-card">
