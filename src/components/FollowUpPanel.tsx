@@ -15,6 +15,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useFollowUps, OUTCOME_LABELS, type FollowUpOutcome, type FollowUpRow } from '@/hooks/useFollowUps';
+import { RecoveryAttributionPanel } from '@/components/RecoveryAttributionPanel';
+
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const fmtDate = (d?: string | null) =>
