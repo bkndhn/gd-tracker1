@@ -139,8 +139,14 @@ export const FollowUpPanel = () => {
           <TabsTrigger value="reminders">Reminders</TabsTrigger>
           <TabsTrigger value="log">Audit trail</TabsTrigger>
           <TabsTrigger value="leaderboard">Leaderboards</TabsTrigger>
+          <TabsTrigger value="attribution">Revenue attribution</TabsTrigger>
           {isAdmin && <TabsTrigger value="targets">Targets</TabsTrigger>}
         </TabsList>
+
+        <TabsContent value="attribution" className="mt-3">
+          <RecoveryAttributionPanel rows={rows} targets={targets} monthKey={monthKey} />
+        </TabsContent>
+
 
         <TabsContent value="reminders" className="mt-3">
           <Card className="premium-card">
