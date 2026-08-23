@@ -4,13 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileSpreadsheet, FileText, IndianRupee, Trophy } from 'lucide-react';
+import { FileSpreadsheet, FileText, IndianRupee, Trophy, TrendingDown, TrendingUp, LineChart as LineChartIcon } from 'lucide-react';
+import {
+  Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis,
+} from 'recharts';
 import { toast } from 'sonner';
 import { exportTableToExcel, exportTableToPDF, type SheetTable } from '@/lib/insightExports';
 import { useExportTemplate } from '@/hooks/useExportTemplate';
+import { MetricInfo } from '@/components/MetricInfo';
 import type { FollowUpRow, ShopTarget } from '@/hooks/useFollowUps';
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
+
 
 type Dimension = 'staff' | 'shop' | 'template';
 
@@ -139,6 +144,73 @@ export const RecoveryAttributionPanel = ({
     return { recovered, converted, sent: scoped.length };
   }, [scoped]);
 
+  /** Same-length window immediately before the selected one. */
+  const previous = useMemo(() => {
+    if (period === 'all') return null;
+    const now = Date.now();
+    let start: number, end: number;
+    if (period === 'month') {
+      const d = new Date();
+      start = new Date(d.getFullYear(), d.getMonth() - 1, 1).getTime();
+      end = months.start;
+    } else {
+      const span = Number(period) * 86400000;
+      end = now - span;
+      start = end - span;
+    }
+    const prev = rows.filter(r => {
+      const t = new Date(r.sent_at).getTime();
+      return t >= start && t < end;
+    });
+    const recovered = prev.reduce((s, r) => s + (r.outcome === 'converted' ? Number(r.recovered_amount || 0) : 0), 0);
+    const converted = prev.filter(r => r.outcome === 'converted').length;
+    return {
+      recovered, converted, sent: prev.length,
+      conversionRate: prev.length ? (converted / prev.length) * 100 : 0,
+    };
+  }, [rows, period, months.start]);
+
+  /** Recovered rupees, conversion rate and target attainment for the last 6 months. */
+  const monthlyTrend = useMemo(() => {
+    const now = new Date();
+    const targetTotalFor = (key: string) =>
+      targets
+        .filter(t => String(t.period_month).slice(0, 7) === key)
+        .reduce((s, t) => s + Number(t.target_recovered || 0), 0);
+
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const start = d.getTime();
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const bucket = rows.filter(r => {
+        const t = new Date(r.sent_at).getTime();
+        return t >= start && t < end;
+      });
+      const conv = bucket.filter(r => r.outcome === 'converted');
+      const recovered = conv.reduce((s, r) => s + Number(r.recovered_amount || 0), 0);
+      const target = targetTotalFor(key);
+      return {
+        month: d.toLocaleDateString('en-IN', { month: 'short' }),
+        recovered: Math.round(recovered),
+        conversion: Number((bucket.length ? (conv.length / bucket.length) * 100 : 0).toFixed(1)),
+        attainment: target > 0 ? Number(((recovered / target) * 100).toFixed(0)) : 0,
+        sent: bucket.length,
+      };
+    });
+  }, [rows, targets]);
+
+  const momChange = useMemo(() => {
+    const a = monthlyTrend[monthlyTrend.length - 2]?.recovered ?? 0;
+    const b = monthlyTrend[monthlyTrend.length - 1]?.recovered ?? 0;
+    return a > 0 ? ((b - a) / a) * 100 : b > 0 ? 100 : 0;
+  }, [monthlyTrend]);
+
+  const periodChange = previous && previous.recovered > 0
+    ? ((totals.recovered - previous.recovered) / previous.recovered) * 100
+    : previous && totals.recovered > 0 ? 100 : 0;
+
+
   const tables = useMemo(() => ({
     staff: buildAttribution(scoped, 'staff', targets, monthKey),
     shop: buildAttribution(scoped, 'shop', targets, monthKey),
@@ -202,11 +274,12 @@ export const RecoveryAttributionPanel = ({
                   <th className="p-2 text-left">{DIM_LABEL[dim]}</th>
                   <th className="p-2 text-right">Sent</th>
                   <th className="p-2 text-right">Converted</th>
-                  <th className="p-2 text-right">Conv %</th>
-                  <th className="p-2 text-right">Recovered</th>
-                  <th className="p-2 text-right">Avg</th>
-                  <th className="p-2 text-right">Share</th>
-                  {dim === 'shop' && <th className="p-2 text-right">Target</th>}
+                  <th className="p-2 text-right"><span className="inline-flex items-center gap-1">Conv % <MetricInfo metric="conversionRate" /></span></th>
+                  <th className="p-2 text-right"><span className="inline-flex items-center gap-1">Recovered <MetricInfo metric="recovered" /></span></th>
+                  <th className="p-2 text-right"><span className="inline-flex items-center gap-1">Avg <MetricInfo metric="avgRecovered" /></span></th>
+                  <th className="p-2 text-right"><span className="inline-flex items-center gap-1">Share <MetricInfo metric="share" /></span></th>
+                  {dim === 'shop' && <th className="p-2 text-right"><span className="inline-flex items-center gap-1">Target <MetricInfo metric="attainment" /></span></th>}
+
                 </tr>
               </thead>
               <tbody>
@@ -268,7 +341,69 @@ export const RecoveryAttributionPanel = ({
         </Select>
       </div>
 
+      <Card className="premium-card">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <LineChartIcon className="h-4 w-4 text-primary" /> Trend · recovered rupees &amp; attainment
+            <MetricInfo metric="momTrend" />
+          </CardTitle>
+          <CardDescription>Last 6 months of recovered revenue, conversion rate and target attainment.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground">{periodLabel} recovered</p>
+              <p className="text-lg font-semibold">{inr(totals.recovered)}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground">Previous period</p>
+              <p className="text-lg font-semibold">{previous ? inr(previous.recovered) : '—'}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground">vs previous period</p>
+              <p className={`text-lg font-semibold flex items-center gap-1 ${periodChange >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                {previous ? (
+                  <>
+                    {periodChange >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                    {periodChange >= 0 ? '+' : ''}{periodChange.toFixed(0)}%
+                  </>
+                ) : '—'}
+              </p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground">Month over month</p>
+              <p className={`text-lg font-semibold flex items-center gap-1 ${momChange >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                {momChange >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                {momChange >= 0 ? '+' : ''}{momChange.toFixed(0)}%
+              </p>
+            </div>
+          </div>
+
+          <div className="h-[260px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={monthlyTrend} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
+                <RTooltip
+                  formatter={(value: any, name: any) =>
+                    name === 'Recovered ₹' ? inr(Number(value)) : `${value}%`
+                  }
+                  contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar yAxisId="left" dataKey="recovered" name="Recovered ₹" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Line yAxisId="right" type="monotone" dataKey="conversion" name="Conversion %" stroke="#0ea5e9" strokeWidth={2} dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="attainment" name="Attainment %" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 3" dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="staff">
+
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="staff">By staff</TabsTrigger>
           <TabsTrigger value="shop">By shop</TabsTrigger>
