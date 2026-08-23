@@ -274,11 +274,12 @@ export const RecoveryAttributionPanel = ({
                   <th className="p-2 text-left">{DIM_LABEL[dim]}</th>
                   <th className="p-2 text-right">Sent</th>
                   <th className="p-2 text-right">Converted</th>
-                  <th className="p-2 text-right">Conv %</th>
-                  <th className="p-2 text-right">Recovered</th>
-                  <th className="p-2 text-right">Avg</th>
-                  <th className="p-2 text-right">Share</th>
-                  {dim === 'shop' && <th className="p-2 text-right">Target</th>}
+                  <th className="p-2 text-right"><span className="inline-flex items-center gap-1">Conv % <MetricInfo metric="conversionRate" /></span></th>
+                  <th className="p-2 text-right"><span className="inline-flex items-center gap-1">Recovered <MetricInfo metric="recovered" /></span></th>
+                  <th className="p-2 text-right"><span className="inline-flex items-center gap-1">Avg <MetricInfo metric="avgRecovered" /></span></th>
+                  <th className="p-2 text-right"><span className="inline-flex items-center gap-1">Share <MetricInfo metric="share" /></span></th>
+                  {dim === 'shop' && <th className="p-2 text-right"><span className="inline-flex items-center gap-1">Target <MetricInfo metric="attainment" /></span></th>}
+
                 </tr>
               </thead>
               <tbody>
