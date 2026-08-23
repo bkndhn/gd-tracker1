@@ -4,13 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileSpreadsheet, FileText, IndianRupee, Trophy } from 'lucide-react';
+import { FileSpreadsheet, FileText, IndianRupee, Trophy, TrendingDown, TrendingUp, LineChart as LineChartIcon } from 'lucide-react';
+import {
+  Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis,
+} from 'recharts';
 import { toast } from 'sonner';
 import { exportTableToExcel, exportTableToPDF, type SheetTable } from '@/lib/insightExports';
 import { useExportTemplate } from '@/hooks/useExportTemplate';
+import { MetricInfo } from '@/components/MetricInfo';
 import type { FollowUpRow, ShopTarget } from '@/hooks/useFollowUps';
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
+
 
 type Dimension = 'staff' | 'shop' | 'template';
 
