@@ -341,7 +341,69 @@ export const RecoveryAttributionPanel = ({
         </Select>
       </div>
 
+      <Card className="premium-card">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <LineChartIcon className="h-4 w-4 text-primary" /> Trend · recovered rupees &amp; attainment
+            <MetricInfo metric="momTrend" />
+          </CardTitle>
+          <CardDescription>Last 6 months of recovered revenue, conversion rate and target attainment.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground">{periodLabel} recovered</p>
+              <p className="text-lg font-semibold">{inr(totals.recovered)}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground">Previous period</p>
+              <p className="text-lg font-semibold">{previous ? inr(previous.recovered) : '—'}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground">vs previous period</p>
+              <p className={`text-lg font-semibold flex items-center gap-1 ${periodChange >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                {previous ? (
+                  <>
+                    {periodChange >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                    {periodChange >= 0 ? '+' : ''}{periodChange.toFixed(0)}%
+                  </>
+                ) : '—'}
+              </p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground">Month over month</p>
+              <p className={`text-lg font-semibold flex items-center gap-1 ${momChange >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                {momChange >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                {momChange >= 0 ? '+' : ''}{momChange.toFixed(0)}%
+              </p>
+            </div>
+          </div>
+
+          <div className="h-[260px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={monthlyTrend} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
+                <RTooltip
+                  formatter={(value: any, name: any) =>
+                    name === 'Recovered ₹' ? inr(Number(value)) : `${value}%`
+                  }
+                  contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar yAxisId="left" dataKey="recovered" name="Recovered ₹" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Line yAxisId="right" type="monotone" dataKey="conversion" name="Conversion %" stroke="#0ea5e9" strokeWidth={2} dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="attainment" name="Attainment %" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 3" dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="staff">
+
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="staff">By staff</TabsTrigger>
           <TabsTrigger value="shop">By shop</TabsTrigger>
