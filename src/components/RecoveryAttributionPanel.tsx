@@ -144,6 +144,73 @@ export const RecoveryAttributionPanel = ({
     return { recovered, converted, sent: scoped.length };
   }, [scoped]);
 
+  /** Same-length window immediately before the selected one. */
+  const previous = useMemo(() => {
+    if (period === 'all') return null;
+    const now = Date.now();
+    let start: number, end: number;
+    if (period === 'month') {
+      const d = new Date();
+      start = new Date(d.getFullYear(), d.getMonth() - 1, 1).getTime();
+      end = months.start;
+    } else {
+      const span = Number(period) * 86400000;
+      end = now - span;
+      start = end - span;
+    }
+    const prev = rows.filter(r => {
+      const t = new Date(r.sent_at).getTime();
+      return t >= start && t < end;
+    });
+    const recovered = prev.reduce((s, r) => s + (r.outcome === 'converted' ? Number(r.recovered_amount || 0) : 0), 0);
+    const converted = prev.filter(r => r.outcome === 'converted').length;
+    return {
+      recovered, converted, sent: prev.length,
+      conversionRate: prev.length ? (converted / prev.length) * 100 : 0,
+    };
+  }, [rows, period, months.start]);
+
+  /** Recovered rupees, conversion rate and target attainment for the last 6 months. */
+  const monthlyTrend = useMemo(() => {
+    const now = new Date();
+    const targetTotalFor = (key: string) =>
+      targets
+        .filter(t => String(t.period_month).slice(0, 7) === key)
+        .reduce((s, t) => s + Number(t.target_recovered || 0), 0);
+
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const start = d.getTime();
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const bucket = rows.filter(r => {
+        const t = new Date(r.sent_at).getTime();
+        return t >= start && t < end;
+      });
+      const conv = bucket.filter(r => r.outcome === 'converted');
+      const recovered = conv.reduce((s, r) => s + Number(r.recovered_amount || 0), 0);
+      const target = targetTotalFor(key);
+      return {
+        month: d.toLocaleDateString('en-IN', { month: 'short' }),
+        recovered: Math.round(recovered),
+        conversion: Number((bucket.length ? (conv.length / bucket.length) * 100 : 0).toFixed(1)),
+        attainment: target > 0 ? Number(((recovered / target) * 100).toFixed(0)) : 0,
+        sent: bucket.length,
+      };
+    });
+  }, [rows, targets]);
+
+  const momChange = useMemo(() => {
+    const a = monthlyTrend[monthlyTrend.length - 2]?.recovered ?? 0;
+    const b = monthlyTrend[monthlyTrend.length - 1]?.recovered ?? 0;
+    return a > 0 ? ((b - a) / a) * 100 : b > 0 ? 100 : 0;
+  }, [monthlyTrend]);
+
+  const periodChange = previous && previous.recovered > 0
+    ? ((totals.recovered - previous.recovered) / previous.recovered) * 100
+    : previous && totals.recovered > 0 ? 100 : 0;
+
+
   const tables = useMemo(() => ({
     staff: buildAttribution(scoped, 'staff', targets, monthKey),
     shop: buildAttribution(scoped, 'shop', targets, monthKey),
