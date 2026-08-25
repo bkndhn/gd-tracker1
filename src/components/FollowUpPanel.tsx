@@ -65,7 +65,7 @@ export const FollowUpPanel = () => {
   const { isAdmin } = useAuth();
   const {
     rows, loading, reload, updateOutcome, snoozeReminder, saveTarget,
-    stats, dueReminders, shopLeaderboard, staffLeaderboard, timelineFor, targets, monthKey,
+    stats, dueReminders, timelineFor, targets, monthKey,
   } = useFollowUps();
 
   const [editing, setEditing] = useState<FollowUpRow | null>(null);
