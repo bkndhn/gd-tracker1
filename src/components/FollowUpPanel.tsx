@@ -385,6 +385,17 @@ export const FollowUpPanel = () => {
         )}
       </Tabs>
 
+      <ShopRecoveryDrilldown
+        open={!!drillShop}
+        onOpenChange={(v) => !v && setDrillShop(null)}
+        shopName={drillShop?.name || ''}
+        periodLabel={periodLabel(resetRule)}
+        rows={drillRows}
+        targetRecovered={drillTarget}
+      />
+
+
+
       {/* Outcome editor */}
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
         <DialogContent className="max-w-[95vw] sm:max-w-md">
