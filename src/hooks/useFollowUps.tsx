@@ -96,7 +96,7 @@ export interface ShopTarget {
 
 /** Loads follow-ups + shop targets for the current tenant with derived reporting. */
 export const useFollowUps = (days = 180) => {
-  const { adminId } = useAuth();
+  const { adminId, profile } = useAuth();
   const [rows, setRows] = useState<FollowUpRow[]>([]);
   const [targets, setTargets] = useState<ShopTarget[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,8 +137,16 @@ export const useFollowUps = (days = 180) => {
     await load();
   }, [load, rows]);
 
-  const saveTarget = useCallback(async (shopId: string, month: string, followups: number, recovered: number) => {
+  const saveTarget = useCallback(async (
+    shopId: string,
+    month: string,
+    followups: number,
+    recovered: number,
+    shopName?: string,
+  ) => {
     if (!adminId) return;
+    const previous = targets.find(t => t.shop_id === shopId && String(t.period_month).slice(0, 7) === month.slice(0, 7));
+
     const { error } = await (supabase.from('shop_targets') as any).upsert(
       {
         admin_id: adminId,
@@ -150,8 +158,32 @@ export const useFollowUps = (days = 180) => {
       { onConflict: 'admin_id,shop_id,period_month' },
     );
     if (error) throw error;
+
+    // Audit trail: who changed which shop's monthly target, and from what.
+    try {
+      const { data: me } = await supabase.auth.getUser();
+      await (supabase.from('settings_audit_log') as any).insert({
+        admin_id: adminId,
+        setting_key: 'shop_targets',
+        changed_by: me?.user?.id,
+        changed_by_name: (profile as any)?.name || me?.user?.email || null,
+        old_value: previous
+          ? {
+              shopId, shopName: shopName || null, month,
+              target_followups: previous.target_followups,
+              target_recovered: Number(previous.target_recovered),
+            }
+          : null,
+        new_value: { shopId, shopName: shopName || null, month, target_followups: followups, target_recovered: recovered },
+        note: shopName ? `${shopName} · ${month.slice(0, 7)}` : month.slice(0, 7),
+      });
+    } catch (e) {
+      if (import.meta.env.DEV) console.error('shop target audit failed', e);
+    }
+
     await load();
-  }, [adminId, load]);
+  }, [adminId, load, targets, profile]);
+
 
   const stats = useMemo(() => {
     const total = rows.length;

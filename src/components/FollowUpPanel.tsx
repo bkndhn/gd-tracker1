@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFollowUps, OUTCOME_LABELS, type FollowUpOutcome, type FollowUpRow } from '@/hooks/useFollowUps';
 import { RecoveryAttributionPanel } from '@/components/RecoveryAttributionPanel';
 import { ShopRecoveryDrilldown } from '@/components/ShopRecoveryDrilldown';
+import { SettingsAuditLog } from '@/components/admin/SettingsAuditLog';
 import { useAdminSetting } from '@/hooks/useAdminSetting';
 import {
   RESET_LABELS, normalizeReset, periodStart, periodLabel, type LeaderboardReset,
@@ -374,13 +375,28 @@ export const FollowUpPanel = () => {
                       shop={shop}
                       followups={t?.target_followups ?? 0}
                       recovered={Number(t?.target_recovered ?? 0)}
-                      onSave={(f, r) => saveTarget(shop.id, monthKey, f, r).then(() => toast.success(`${shop.name} target saved`))}
+                      onSave={(f, r) => saveTarget(shop.id, monthKey, f, r, shop.name).then(() => toast.success(`${shop.name} target saved`))}
                     />
                   );
                 })}
                 {shops.length === 0 && <p className="text-sm text-muted-foreground">Add shops first.</p>}
+
+                {/* Who changed which shop target, and when */}
+                <SettingsAuditLog
+                  settingKey="shop_targets"
+                  onRollback={(v: any) =>
+                    saveTarget(v.shopId, v.month, Number(v.target_followups || 0), Number(v.target_recovered || 0), v.shopName)
+                  }
+                />
+
+                {/* Leaderboard reset rule history */}
+                <SettingsAuditLog
+                  settingKey="leaderboard_reset"
+                  onRollback={(v: any) => saveReset(normalizeReset(v))}
+                />
               </CardContent>
             </Card>
+
           </TabsContent>
         )}
       </Tabs>
