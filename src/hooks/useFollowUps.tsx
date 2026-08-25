@@ -96,7 +96,7 @@ export interface ShopTarget {
 
 /** Loads follow-ups + shop targets for the current tenant with derived reporting. */
 export const useFollowUps = (days = 180) => {
-  const { adminId } = useAuth();
+  const { adminId, profile } = useAuth();
   const [rows, setRows] = useState<FollowUpRow[]>([]);
   const [targets, setTargets] = useState<ShopTarget[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,7 +166,7 @@ export const useFollowUps = (days = 180) => {
         admin_id: adminId,
         setting_key: 'shop_targets',
         changed_by: me?.user?.id,
-        changed_by_name: (profileRef as any)?.name || me?.user?.email || null,
+        changed_by_name: (profile as any)?.name || me?.user?.email || null,
         old_value: previous
           ? {
               shopId, shopName: shopName || null, month,
@@ -182,7 +182,7 @@ export const useFollowUps = (days = 180) => {
     }
 
     await load();
-  }, [adminId, load, targets, profileRef]);
+  }, [adminId, load, targets, profile]);
 
 
   const stats = useMemo(() => {
