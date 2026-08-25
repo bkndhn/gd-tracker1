@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFollowUps, OUTCOME_LABELS, type FollowUpOutcome, type FollowUpRow } from '@/hooks/useFollowUps';
 import { RecoveryAttributionPanel } from '@/components/RecoveryAttributionPanel';
 import { ShopRecoveryDrilldown } from '@/components/ShopRecoveryDrilldown';
+import { SettingsAuditLog } from '@/components/admin/SettingsAuditLog';
 import { useAdminSetting } from '@/hooks/useAdminSetting';
 import {
   RESET_LABELS, normalizeReset, periodStart, periodLabel, type LeaderboardReset,
