@@ -83,6 +83,57 @@ export const FollowUpPanel = () => {
     })();
   }, []);
 
+  // Leaderboard reset rule (per tenant) + the window it produces.
+  const { value: resetRule, save: saveReset, canEdit: canEditReset } =
+    useAdminSetting<LeaderboardReset>('leaderboard_reset', 'monthly', normalizeReset);
+  const [drillShop, setDrillShop] = useState<{ key: string; name: string } | null>(null);
+
+  const windowStart = useMemo(() => periodStart(resetRule), [resetRule]);
+  const windowRows = useMemo(
+    () => rows.filter(r => new Date(r.sent_at).getTime() >= windowStart),
+    [rows, windowStart],
+  );
+  const shopKey = (r: FollowUpRow) => r.shop_id || r.shop_name || 'unknown';
+
+  const periodShopBoard = useMemo(() => {
+    const map = new Map<string, { key: string; shopId: string | null; shop: string; sent: number; converted: number; recovered: number }>();
+    windowRows.forEach(r => {
+      const key = shopKey(r);
+      const cur = map.get(key) || { key, shopId: r.shop_id, shop: r.shop_name || 'Unknown shop', sent: 0, converted: 0, recovered: 0 };
+      cur.sent += 1;
+      if (r.outcome === 'converted') { cur.converted += 1; cur.recovered += Number(r.recovered_amount || 0); }
+      map.set(key, cur);
+    });
+    return Array.from(map.values())
+      .map(v => {
+        const t = targets.find(t => t.shop_id === v.shopId && String(t.period_month).slice(0, 7) === monthKey.slice(0, 7));
+        return {
+          ...v,
+          conversionRate: v.sent ? (v.converted / v.sent) * 100 : 0,
+          targetRecovered: Number(t?.target_recovered ?? 0),
+        };
+      })
+      .sort((a, b) => b.recovered - a.recovered || b.converted - a.converted);
+  }, [windowRows, targets, monthKey]);
+
+  const periodStaffBoard = useMemo(() => {
+    const map = new Map<string, { name: string; sent: number; converted: number; recovered: number }>();
+    windowRows.forEach(r => {
+      const cur = map.get(r.sent_by) || { name: r.sent_by_name || 'Unknown', sent: 0, converted: 0, recovered: 0 };
+      cur.sent += 1;
+      if (r.outcome === 'converted') { cur.converted += 1; cur.recovered += Number(r.recovered_amount || 0); }
+      map.set(r.sent_by, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.recovered - a.recovered || b.converted - a.converted);
+  }, [windowRows]);
+
+  const drillRows = useMemo(
+    () => (drillShop ? windowRows.filter(r => shopKey(r) === drillShop.key) : []),
+    [drillShop, windowRows],
+  );
+  const drillTarget = periodShopBoard.find(s => s.key === drillShop?.key)?.targetRecovered ?? 0;
+
+
   const openEdit = (r: FollowUpRow) => {
     setEditing(r);
     setOutcome(r.outcome);
