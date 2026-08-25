@@ -283,15 +283,40 @@ export const FollowUpPanel = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="leaderboard" className="mt-3 grid gap-3 lg:grid-cols-2">
+        <TabsContent value="leaderboard" className="mt-3 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              Showing <span className="font-medium text-foreground">{periodLabel(resetRule)}</span> · {windowRows.length} follow-ups
+            </p>
+            {canEditReset && (
+              <Select
+                value={resetRule}
+                onValueChange={(v) => saveReset(v as LeaderboardReset).then(() => toast.success('Leaderboard period updated'))}
+              >
+                <SelectTrigger className="h-8 w-[220px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(RESET_LABELS).map(([k, label]) => (
+                    <SelectItem key={k} value={k}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-2">
           <Card className="premium-card">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2"><Trophy className="h-4 w-4 text-amber-500" /> Shops</CardTitle>
-              <CardDescription>Recovered revenue vs this month's target.</CardDescription>
+              <CardDescription>Recovered revenue vs this month's target. Tap a shop for the breakdown.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {shopLeaderboard.map((s, i) => (
-                <div key={s.shop + i} className="rounded-lg border p-3">
+              {periodShopBoard.map((s, i) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => setDrillShop({ key: s.key, name: s.shop })}
+                  className="w-full text-left rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium truncate">{i + 1}. {s.shop}</span>
                     <span className="text-sm font-semibold">{inr(s.recovered)}</span>
@@ -305,9 +330,9 @@ export const FollowUpPanel = () => {
                       <div className="h-full bg-primary" style={{ width: `${Math.min(100, (s.recovered / s.targetRecovered) * 100)}%` }} />
                     </div>
                   )}
-                </div>
+                </button>
               ))}
-              {shopLeaderboard.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
+              {periodShopBoard.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
             </CardContent>
           </Card>
 
@@ -317,7 +342,7 @@ export const FollowUpPanel = () => {
               <CardDescription>Who is recovering the most lost sales.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {staffLeaderboard.map((s, i) => (
+              {periodStaffBoard.map((s, i) => (
                 <div key={s.name + i} className="flex items-center justify-between gap-2 rounded-lg border p-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{i + 1}. {s.name}</p>
@@ -326,10 +351,12 @@ export const FollowUpPanel = () => {
                   <span className="text-sm font-semibold">{inr(s.recovered)}</span>
                 </div>
               ))}
-              {staffLeaderboard.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
+              {periodStaffBoard.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
             </CardContent>
           </Card>
+          </div>
         </TabsContent>
+
 
         {isAdmin && (
           <TabsContent value="targets" className="mt-3">
