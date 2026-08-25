@@ -16,6 +16,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useFollowUps, OUTCOME_LABELS, type FollowUpOutcome, type FollowUpRow } from '@/hooks/useFollowUps';
 import { RecoveryAttributionPanel } from '@/components/RecoveryAttributionPanel';
+import { ShopRecoveryDrilldown } from '@/components/ShopRecoveryDrilldown';
+import { useAdminSetting } from '@/hooks/useAdminSetting';
+import {
+  RESET_LABELS, normalizeReset, periodStart, periodLabel, type LeaderboardReset,
+} from '@/lib/leaderboardPeriod';
 
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
