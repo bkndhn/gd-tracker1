@@ -81,6 +81,34 @@ export function exportTableToExcel(table: SheetTable, template: ExportTemplate =
   XLSX.writeFile(book, `${table.fileName}.xlsx`);
 }
 
+/** Plain CSV download (RFC-4180 quoting) for spreadsheet-agnostic consumers. */
+export function exportTableToCSV(table: SheetTable, template: ExportTemplate = DEFAULT_EXPORT_TEMPLATE) {
+  const esc = (v: string | number) => {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines: string[] = [];
+  if (template.orgName) lines.push(esc(template.orgName));
+  lines.push(esc(table.title));
+  if (table.subtitle) lines.push(esc(table.subtitle));
+  if (template.showDateRange && table.dateRange) lines.push(esc(`Period: ${table.dateRange}`));
+  if (template.headerNote) lines.push(esc(template.headerNote));
+  lines.push('');
+  lines.push(table.columns.map(esc).join(','));
+  table.rows.forEach(r => lines.push(r.map(esc).join(',')));
+  if (template.footerNote) { lines.push(''); lines.push(esc(template.footerNote)); }
+
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${table.fileName}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function exportTableToPDF(table: SheetTable, template: ExportTemplate = DEFAULT_EXPORT_TEMPLATE) {
   const subtitleParts = [
     table.subtitle,
