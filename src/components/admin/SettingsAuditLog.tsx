@@ -135,19 +135,30 @@ export const SettingsAuditLog = ({ settingKey, onRollback, onRolledBack, limit =
                     </Button>
                   </div>
                   {row.note && <p className="mt-1 text-[11px] text-muted-foreground">{row.note}</p>}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {diff.length === 0 ? (
-                      <Badge variant="secondary" className="text-[10px]">No field changes</Badge>
-                    ) : (
-                      diff.map(d => (
-                        <Badge key={d.path} variant="outline" className="text-[10px] font-normal">
-                          {d.path}: <span className="text-destructive line-through">{d.from}</span>
-                          {' → '}
-                          <span className="text-emerald-600 dark:text-emerald-400">{d.to}</span>
-                        </Badge>
-                      ))
-                    )}
-                  </div>
+                  {diff.length === 0 ? (
+                    <Badge variant="secondary" className="mt-2 text-[10px]">No field changes</Badge>
+                  ) : (
+                    <div className="mt-2 overflow-x-auto rounded-md border">
+                      <table className="w-full text-[11px]">
+                        <thead className="bg-muted/50 text-muted-foreground">
+                          <tr>
+                            <th className="p-1.5 text-left font-medium">Field</th>
+                            <th className="p-1.5 text-left font-medium">Before</th>
+                            <th className="p-1.5 text-left font-medium">After</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {diff.map(d => (
+                            <tr key={d.path} className="border-t">
+                              <td className="p-1.5 font-medium">{d.path}</td>
+                              <td className="p-1.5 text-destructive line-through">{d.from}</td>
+                              <td className="p-1.5 text-emerald-600 dark:text-emerald-400">{d.to}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               );
             })}
