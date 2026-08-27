@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { BarChart3, Plus, Settings, FileText, Shield, MessageCircle } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OnboardingWizard, hasCompletedOnboarding } from '@/components/OnboardingWizard';
+import { FeatureTour } from '@/components/FeatureTour';
 import { identifySession, addBreadcrumb } from '@/lib/errorTracking';
 import { supabase } from '@/integrations/supabase/client';
 
