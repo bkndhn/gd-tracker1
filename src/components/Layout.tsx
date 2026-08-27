@@ -26,6 +26,7 @@ export const Layout = ({ children }: LayoutProps) => {
   }, [signOut]);
 
   useSessionTimeout(handleSessionTimeout, !!profile);
+  useSessionTracking();
 
   const handleSignOut = async () => {
     setLoggingOut(true);
@@ -80,6 +81,8 @@ export const Layout = ({ children }: LayoutProps) => {
               <ThemeToggle />
               
               <NotificationBell />
+
+              <WhatsNew />
               
               <Button
                 variant="outline"

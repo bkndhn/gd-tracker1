@@ -13,6 +13,10 @@ import { ExportSettings } from '@/components/admin/ExportSettings';
 import { ScoringModelSettings } from '@/components/admin/ScoringModelSettings';
 import { DigestScheduleSettings } from '@/components/admin/DigestScheduleSettings';
 import { ExportTemplateSettings } from '@/components/admin/ExportTemplateSettings';
+import { RetentionSettings } from '@/components/admin/RetentionSettings';
+import { CustomerDataPrivacy } from '@/components/admin/CustomerDataPrivacy';
+import { SessionsPanel } from '@/components/admin/SessionsPanel';
+import { UsageMetering } from '@/components/admin/UsageMetering';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -97,6 +101,14 @@ export const AdminPanel = () => {
       <ScoringModelSettings />
 
       <DigestScheduleSettings />
+
+      <UsageMetering />
+
+      <RetentionSettings />
+
+      <CustomerDataPrivacy />
+
+      <SessionsPanel />
 
       <ExportTemplateSettings />
 
