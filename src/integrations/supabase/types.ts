@@ -250,6 +250,30 @@ export type Database = {
         }
         Relationships: []
       }
+      changelog: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          title: string
+          version: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          title: string
+          version?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          title?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
       client_errors: {
         Row: {
           admin_id: string | null
@@ -1057,6 +1081,53 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          admin_id: string | null
+          created_at: string
+          device_id: string
+          device_label: string | null
+          id: string
+          last_active_at: string
+          revoked_at: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string
+          device_id: string
+          device_label?: string | null
+          id?: string
+          last_active_at?: string
+          revoked_at?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string
+          device_id?: string
+          device_label?: string | null
+          id?: string
+          last_active_at?: string
+          revoked_at?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wa_contacts: {
         Row: {
