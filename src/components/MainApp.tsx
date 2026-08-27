@@ -150,6 +150,7 @@ export const MainApp = () => {
   return (
     <>
       <PWAInstallPrompt />
+      <FeatureTour />
       <OnboardingWizard open={onboardingOpen} onOpenChange={setOnboardingOpen} />
       <div className="sticky top-0 z-40"><OfflineStatusBar /></div>
       <Layout>
