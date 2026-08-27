@@ -7,7 +7,9 @@ import { NotificationBell } from './NotificationBell';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
+import { WhatsNew } from './WhatsNew';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
+import { useSessionTracking } from '@/hooks/useSessionTracking';
 
 interface LayoutProps {
   children: ReactNode;
@@ -24,6 +26,7 @@ export const Layout = ({ children }: LayoutProps) => {
   }, [signOut]);
 
   useSessionTimeout(handleSessionTimeout, !!profile);
+  useSessionTracking();
 
   const handleSignOut = async () => {
     setLoggingOut(true);
@@ -78,6 +81,8 @@ export const Layout = ({ children }: LayoutProps) => {
               <ThemeToggle />
               
               <NotificationBell />
+
+              <WhatsNew />
               
               <Button
                 variant="outline"
