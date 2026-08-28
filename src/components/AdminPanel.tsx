@@ -17,6 +17,7 @@ import { RetentionSettings } from '@/components/admin/RetentionSettings';
 import { CustomerDataPrivacy } from '@/components/admin/CustomerDataPrivacy';
 import { SessionsPanel } from '@/components/admin/SessionsPanel';
 import { UsageMetering } from '@/components/admin/UsageMetering';
+import { OpsHealthPanel } from '@/components/admin/OpsHealthPanel';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -93,6 +94,8 @@ export const AdminPanel = () => {
       <WhatsAppIntakeSettings />
       <WhatsAppWebhookMonitor />
 
+
+      <OpsHealthPanel />
 
       <UserManagement shops={shops} profiles={profiles} onRefresh={fetchData} />
 
