@@ -37,7 +37,7 @@ export const OpsHealthPanel = () => {
     setLoading(true);
     try {
       const [failedJobs, digest, backup, webhookErr] = await Promise.all([
-        (supabase.from('export_jobs') as any)
+        (supabase as any).from('export_jobs')
           .select('id', { count: 'exact', head: true })
           .eq('admin_id', adminId).eq('status', 'failed')
           .gte('created_at', new Date(Date.now() - 7 * 864e5).toISOString()),
