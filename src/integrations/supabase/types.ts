@@ -387,6 +387,7 @@ export type Database = {
           is_standard: boolean
           is_visible: boolean | null
           name: string
+          scope: string
           standard_key: string | null
           updated_at: string | null
         }
@@ -401,6 +402,7 @@ export type Database = {
           is_standard?: boolean
           is_visible?: boolean | null
           name: string
+          scope?: string
           standard_key?: string | null
           updated_at?: string | null
         }
@@ -415,6 +417,7 @@ export type Database = {
           is_standard?: boolean
           is_visible?: boolean | null
           name?: string
+          scope?: string
           standard_key?: string | null
           updated_at?: string | null
         }
@@ -609,6 +612,7 @@ export type Database = {
           custom_field_option_id: string | null
           gd_entry_id: string | null
           id: string
+          requirement_id: string | null
           value: string | null
         }
         Insert: {
@@ -617,6 +621,7 @@ export type Database = {
           custom_field_option_id?: string | null
           gd_entry_id?: string | null
           id?: string
+          requirement_id?: string | null
           value?: string | null
         }
         Update: {
@@ -625,6 +630,7 @@ export type Database = {
           custom_field_option_id?: string | null
           gd_entry_id?: string | null
           id?: string
+          requirement_id?: string | null
           value?: string | null
         }
         Relationships: [
@@ -647,6 +653,13 @@ export type Database = {
             columns: ["gd_entry_id"]
             isOneToOne: false
             referencedRelation: "goods_damaged_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_entry_custom_values_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "stock_requirements"
             referencedColumns: ["id"]
           },
         ]
@@ -786,14 +799,19 @@ export type Database = {
           max_entries: number | null
           max_images_per_entry: number | null
           max_images_total: number | null
+          max_requirements_monthly: number | null
           max_shops: number | null
           max_users: number | null
+          max_warehouse_users: number | null
           name: string
+          requirements_enabled: boolean
           role: string
           shop_id: string | null
           status: string
           updated_at: string | null
           user_id: string | null
+          warehouse_all_shops: boolean
+          warehouse_shop_ids: string[]
         }
         Insert: {
           admin_id?: string | null
@@ -810,14 +828,19 @@ export type Database = {
           max_entries?: number | null
           max_images_per_entry?: number | null
           max_images_total?: number | null
+          max_requirements_monthly?: number | null
           max_shops?: number | null
           max_users?: number | null
+          max_warehouse_users?: number | null
           name: string
+          requirements_enabled?: boolean
           role?: string
           shop_id?: string | null
           status?: string
           updated_at?: string | null
           user_id?: string | null
+          warehouse_all_shops?: boolean
+          warehouse_shop_ids?: string[]
         }
         Update: {
           admin_id?: string | null
@@ -834,14 +857,19 @@ export type Database = {
           max_entries?: number | null
           max_images_per_entry?: number | null
           max_images_total?: number | null
+          max_requirements_monthly?: number | null
           max_shops?: number | null
           max_users?: number | null
+          max_warehouse_users?: number | null
           name?: string
+          requirements_enabled?: boolean
           role?: string
           shop_id?: string | null
           status?: string
           updated_at?: string | null
           user_id?: string | null
+          warehouse_all_shops?: boolean
+          warehouse_shop_ids?: string[]
         }
         Relationships: [
           {
@@ -1081,6 +1109,157 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      stock_requirement_events: {
+        Row: {
+          actor_id: string
+          actor_name: string | null
+          admin_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          requirement_id: string
+          to_status: string
+        }
+        Insert: {
+          actor_id: string
+          actor_name?: string | null
+          admin_id: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          requirement_id: string
+          to_status: string
+        }
+        Update: {
+          actor_id?: string
+          actor_name?: string | null
+          admin_id?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          requirement_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_requirement_events_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "stock_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_requirements: {
+        Row: {
+          admin_id: string
+          category: string | null
+          created_at: string
+          id: string
+          moved_at: string | null
+          moved_by: string | null
+          moved_by_name: string | null
+          moved_note: string | null
+          note: string | null
+          packed_at: string | null
+          packed_by: string | null
+          packed_by_name: string | null
+          packed_note: string | null
+          packed_qty: number | null
+          quantity: number
+          received_at: string | null
+          received_by: string | null
+          received_by_name: string | null
+          reject_reason: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejected_by_name: string | null
+          requested_by: string
+          requested_by_name: string | null
+          shop_id: string | null
+          shop_name: string | null
+          size: string
+          status: string
+          updated_at: string
+          urgency: string
+        }
+        Insert: {
+          admin_id: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          moved_at?: string | null
+          moved_by?: string | null
+          moved_by_name?: string | null
+          moved_note?: string | null
+          note?: string | null
+          packed_at?: string | null
+          packed_by?: string | null
+          packed_by_name?: string | null
+          packed_note?: string | null
+          packed_qty?: number | null
+          quantity?: number
+          received_at?: string | null
+          received_by?: string | null
+          received_by_name?: string | null
+          reject_reason?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejected_by_name?: string | null
+          requested_by: string
+          requested_by_name?: string | null
+          shop_id?: string | null
+          shop_name?: string | null
+          size: string
+          status?: string
+          updated_at?: string
+          urgency?: string
+        }
+        Update: {
+          admin_id?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          moved_at?: string | null
+          moved_by?: string | null
+          moved_by_name?: string | null
+          moved_note?: string | null
+          note?: string | null
+          packed_at?: string | null
+          packed_by?: string | null
+          packed_by_name?: string | null
+          packed_note?: string | null
+          packed_qty?: number | null
+          quantity?: number
+          received_at?: string | null
+          received_by?: string | null
+          received_by_name?: string | null
+          reject_reason?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejected_by_name?: string | null
+          requested_by?: string
+          requested_by_name?: string | null
+          shop_id?: string | null
+          shop_name?: string | null
+          size?: string
+          status?: string
+          updated_at?: string
+          urgency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_requirements_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_sessions: {
         Row: {
@@ -1326,6 +1505,14 @@ export type Database = {
         Args: { _bucket_id: string; _object_name: string }
         Returns: boolean
       }
+      can_access_requirement: {
+        Args: { _admin_id: string; _requested_by: string; _shop_id: string }
+        Returns: boolean
+      }
+      can_fulfil_requirement: {
+        Args: { _admin_id: string; _shop_id: string }
+        Returns: boolean
+      }
       ensure_current_profile: {
         Args: never
         Returns: {
@@ -1343,14 +1530,19 @@ export type Database = {
           max_entries: number | null
           max_images_per_entry: number | null
           max_images_total: number | null
+          max_requirements_monthly: number | null
           max_shops: number | null
           max_users: number | null
+          max_warehouse_users: number | null
           name: string
+          requirements_enabled: boolean
           role: string
           shop_id: string | null
           status: string
           updated_at: string | null
           user_id: string | null
+          warehouse_all_shops: boolean
+          warehouse_shop_ids: string[]
         }
         SetofOptions: {
           from: "*"
