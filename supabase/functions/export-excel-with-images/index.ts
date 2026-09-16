@@ -29,8 +29,27 @@ interface GoodsEntry {
   gd_entry_images: EntryImage[];
 }
 
+/**
+ * Only images hosted on this project's own Supabase storage may be fetched.
+ * Prevents the export from being used as an SSRF proxy to arbitrary hosts.
+ */
+function isAllowedImageUrl(imageUrl: string): boolean {
+  try {
+    const url = new URL(imageUrl);
+    if (url.protocol !== 'https:') return false;
+    const base = new URL(Deno.env.get('SUPABASE_URL')!);
+    return url.hostname === base.hostname && url.pathname.startsWith('/storage/v1/');
+  } catch {
+    return false;
+  }
+}
+
 async function fetchImageAsBase64(imageUrl: string): Promise<{ base64: string; extension: 'jpeg' | 'png' | 'gif' } | null> {
   try {
+    if (!isAllowedImageUrl(imageUrl)) {
+      console.warn('Blocked non-storage image URL in export');
+      return null;
+    }
     const response = await fetch(imageUrl);
     if (!response.ok) return null;
     const arrayBuffer = await response.arrayBuffer();

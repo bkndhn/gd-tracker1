@@ -106,22 +106,41 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Create auth user with metadata (triggers handle_new_user)
+    // Create auth user. The signup trigger intentionally ignores any client
+    // metadata for role/admin_id, so the tenant assignment is applied here with
+    // the service role after the user exists.
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: {
-        name,
-        admin_id: userId,
-        role: role || 'user',
-        shop_id: shop_id || null,
-      },
+      user_metadata: { name },
     })
 
     if (createError) {
       return new Response(JSON.stringify({ error: createError.message }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { error: assignError } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        name,
+        role: role === 'manager' ? 'manager' : 'user',
+        admin_id: (callerProfile as any).role === 'super_admin'
+          ? userId
+          : ((callerProfile as any).admin_id || userId),
+        shop_id: shop_id || null,
+        status: 'active',
+      })
+      .eq('id', newUser.user.id)
+
+    if (assignError) {
+      // Roll back the orphaned auth user so no unassigned account is left behind
+      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
+      return new Response(JSON.stringify({ error: 'Could not assign the new user to your account' }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
