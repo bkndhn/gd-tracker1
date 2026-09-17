@@ -85,16 +85,19 @@ export const useRequirements = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Realtime: keep every open session in sync
+  // Realtime: keep every open session in sync with unique channel ID
   useEffect(() => {
     if (!tenantId) return;
+    const channelName = `stock_req_${tenantId}_${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
-      .channel(`stock_requirements_${tenantId}`)
+      .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_requirements' }, () => {
         fetchAll();
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      try { supabase.removeChannel(channel); } catch {}
+    };
   }, [tenantId, fetchAll]);
 
   const createRequirement = useCallback(async (input: NewRequirement) => {

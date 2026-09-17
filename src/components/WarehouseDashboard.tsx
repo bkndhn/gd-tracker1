@@ -1,54 +1,59 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useWarehouseInventory, type InventoryItem } from '@/hooks/useWarehouseInventory';
-import { useRequirements, type StockRequirement } from '@/hooks/useRequirements';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useRequirements, type StockRequirement, type RequirementStatus } from '@/hooks/useRequirements';
 import {
-  Warehouse,
-  AlertTriangle,
-  Package,
+  Clock,
+  PackageCheck,
   Truck,
   CheckCircle2,
-  PackageCheck,
-  Clock,
-  Plus,
-  RefreshCw,
-  ArrowDown,
-  ArrowUp,
   Layers,
   Store,
+  Search,
+  Filter,
+  Package,
+  Calendar,
+  User,
+  ArrowRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
+const statusConfig: Record<RequirementStatus, { label: string; badgeClass: string; icon: any }> = {
+  requested: {
+    label: 'Requested',
+    badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
+    icon: Clock,
+  },
+  packed: {
+    label: 'Packed & Staged',
+    badgeClass: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30',
+    icon: PackageCheck,
+  },
+  moved: {
+    label: 'In Transit',
+    badgeClass: 'bg-violet-500/15 text-violet-700 dark:text-violet-400 border-violet-500/30',
+    icon: Truck,
+  },
+  received: {
+    label: 'Delivered',
+    badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+    icon: CheckCircle2,
+  },
+  rejected: {
+    label: 'Cancelled',
+    badgeClass: 'bg-destructive/15 text-destructive border-destructive/30',
+    icon: Clock,
+  },
+};
+
 export const WarehouseDashboard = () => {
-  const {
-    inventory,
-    lowStockItems,
-    hasReplenishmentAlert,
-    loading: invLoading,
-    adjustStock,
-    setStockExact,
-    addInventoryItem,
-  } = useWarehouseInventory();
-
-  const { requirements, loading: reqLoading } = useRequirements();
-
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-  const [exactQtyInput, setExactQtyInput] = useState<number>(0);
-  const [thresholdInput, setThresholdInput] = useState<number>(5);
-  const [adjustModalOpen, setAdjustModalOpen] = useState(false);
-
-  const [addItemOpen, setAddItemOpen] = useState(false);
-  const [newSize, setNewSize] = useState('');
-  const [newCategory, setNewCategory] = useState('General');
-  const [newQty, setNewQty] = useState(20);
-  const [newThreshold, setNewThreshold] = useState(5);
+  const { requirements, loading } = useRequirements();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Metrics from real requirements
   const pendingRequests = requirements.filter(r => r.status === 'requested');
@@ -56,360 +61,227 @@ export const WarehouseDashboard = () => {
   const inTransitMoved = requirements.filter(r => r.status === 'moved');
   const completedReceived = requirements.filter(r => r.status === 'received');
 
-  const openAdjust = (item: InventoryItem) => {
-    setSelectedItem(item);
-    setExactQtyInput(item.on_hand);
-    setThresholdInput(item.min_threshold);
-    setAdjustModalOpen(true);
-  };
-
-  const handleSaveAdjustment = async () => {
-    if (!selectedItem) return;
-    await setStockExact(selectedItem.id, exactQtyInput, thresholdInput);
-    setAdjustModalOpen(false);
-    setSelectedItem(null);
-  };
-
-  const handleAddNewItem = async () => {
-    if (!newSize.trim()) return;
-    const ok = await addInventoryItem({
-      size: newSize.trim(),
-      category: newCategory.trim() || 'General',
-      on_hand: Number(newQty),
-      min_threshold: Number(newThreshold),
-      location: 'Main Warehouse',
+  // Filtered requirements list
+  const filteredRequirements = useMemo(() => {
+    return requirements.filter(r => {
+      const matchStatus = statusFilter === 'all' || r.status === statusFilter;
+      const matchSearch =
+        !searchTerm.trim() ||
+        r.size.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (r.shop_name && r.shop_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (r.note && r.note.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (r.requested_by_name && r.requested_by_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (r.packed_by_name && r.packed_by_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (r.moved_by_name && r.moved_by_name.toLowerCase().includes(searchTerm.toLowerCase()));
+      return matchStatus && matchSearch;
     });
-    if (ok) {
-      setNewSize('');
-      setAddItemOpen(false);
-    }
-  };
+  }, [requirements, searchTerm, statusFilter]);
 
   return (
     <div className="space-y-6">
-      {/* Replenishment Alert Banner */}
-      {hasReplenishmentAlert && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start sm:items-center gap-3">
-              <div className="rounded-lg bg-destructive/20 p-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-destructive">
-                  Replenishment Alert: {lowStockItems.length} Size{lowStockItems.length > 1 ? 's' : ''} Below Safety Threshold
-                </h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Critical sizes on hand are low. Prepare bulk reordering or manufacture immediately to avoid fulfillment delays.
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {lowStockItems.map(item => (
-                    <Badge key={item.id} variant="outline" className="border-destructive/40 text-destructive bg-destructive/10 text-xs">
-                      Size {item.size} ({item.on_hand} left / min {item.min_threshold})
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="shrink-0"
-              onClick={() => {
-                if (lowStockItems[0]) openAdjust(lowStockItems[0]);
-              }}
-            >
-              Restock Critical Items
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <Card>
+      {/* 4 Stage KPI Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent hover:shadow-md transition-shadow">
           <CardHeader className="p-4 pb-1">
-            <CardDescription className="flex items-center gap-1.5 text-xs">
-              <Clock className="h-3.5 w-3.5 text-amber-500" /> Pending Requests
+            <CardDescription className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+              <Clock className="h-4 w-4" /> Pending Requests
             </CardDescription>
-            <CardTitle className="text-2xl font-bold">{pendingRequests.length}</CardTitle>
+            <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              {pendingRequests.length}
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-1">
-            <span className="text-[11px] text-muted-foreground">Awaiting packing from shops</span>
+            <span className="text-[11px] text-muted-foreground">Awaiting packing</span>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent hover:shadow-md transition-shadow">
           <CardHeader className="p-4 pb-1">
-            <CardDescription className="flex items-center gap-1.5 text-xs">
-              <PackageCheck className="h-3.5 w-3.5 text-blue-500" /> Packed & Staged
+            <CardDescription className="flex items-center gap-1.5 text-xs font-medium text-blue-700 dark:text-blue-400">
+              <PackageCheck className="h-4 w-4" /> Packed & Staged
             </CardDescription>
-            <CardTitle className="text-2xl font-bold">{packedOrders.length}</CardTitle>
+            <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              {packedOrders.length}
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-1">
-            <span className="text-[11px] text-muted-foreground">Ready for vehicle dispatch</span>
+            <span className="text-[11px] text-muted-foreground">Ready for transit</span>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-violet-500/20 bg-gradient-to-br from-violet-500/5 to-transparent hover:shadow-md transition-shadow">
           <CardHeader className="p-4 pb-1">
-            <CardDescription className="flex items-center gap-1.5 text-xs">
-              <Truck className="h-3.5 w-3.5 text-violet-500" /> In Transit (Moved)
+            <CardDescription className="flex items-center gap-1.5 text-xs font-medium text-violet-700 dark:text-violet-400">
+              <Truck className="h-4 w-4" /> In Transit (Moved)
             </CardDescription>
-            <CardTitle className="text-2xl font-bold">{inTransitMoved.length}</CardTitle>
+            <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              {inTransitMoved.length}
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-1">
-            <span className="text-[11px] text-muted-foreground">En route to branch shops</span>
+            <span className="text-[11px] text-muted-foreground">En route to shops</span>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent hover:shadow-md transition-shadow">
           <CardHeader className="p-4 pb-1">
-            <CardDescription className="flex items-center gap-1.5 text-xs">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Completed Received
+            <CardDescription className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 className="h-4 w-4" /> Completed Delivered
             </CardDescription>
-            <CardTitle className="text-2xl font-bold">{completedReceived.length}</CardTitle>
+            <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              {completedReceived.length}
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-1">
-            <span className="text-[11px] text-muted-foreground">Successfully delivered</span>
+            <span className="text-[11px] text-muted-foreground">Received by shop</span>
           </CardContent>
         </Card>
       </div>
 
-      {/* Warehouse Inventory Management */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Live Requirement Status & Fulfillment Feed */}
+      <Card className="shadow-sm border-border/60">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Warehouse className="h-5 w-5 text-primary" /> Warehouse Inventory & Safety Thresholds
+                <Layers className="h-5 w-5 text-primary" /> Requirement Requests & Fulfillment Status
               </CardTitle>
               <CardDescription>
-                Track live on-hand quantities, safety stock levels, and replenishment alerts across all sizes.
+                Live status tracking for sizes requested by shops with pack, move, and delivery audit trails.
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setAddItemOpen(true)} className="gap-1">
-                <Plus className="h-4 w-4" /> Add Size / Item
-              </Button>
+            {/* Filter controls */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative w-full sm:w-56">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search shop, size, note..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="pl-8 h-9 text-xs"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px] h-9 text-xs">
+                  <Filter className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="requested">Pending (Requested)</SelectItem>
+                  <SelectItem value="packed">Packed</SelectItem>
+                  <SelectItem value="moved">In Transit (Moved)</SelectItem>
+                  <SelectItem value="received">Delivered</SelectItem>
+                  <SelectItem value="rejected">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Size</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">On Hand</TableHead>
-                  <TableHead className="text-right">Safety Threshold</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Quick Adjust</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {inventory.map((item) => {
-                  const isLow = item.on_hand <= item.min_threshold;
-                  const isOut = item.on_hand <= 0;
+          {loading ? (
+            <div className="space-y-3 py-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-20 rounded-lg bg-muted/60 animate-pulse" />
+              ))}
+            </div>
+          ) : filteredRequirements.length === 0 ? (
+            <div className="text-center py-12 px-4 border border-dashed rounded-lg bg-muted/10">
+              <Package className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+              <h3 className="font-semibold text-sm text-foreground">No requirement requests found</h3>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                {searchTerm || statusFilter !== 'all'
+                  ? 'Try clearing the search or status filter to see more requests.'
+                  : 'Shop staff can request required sizes from the Requirements tab.'}
+              </p>
+            </div>
+          ) : (
+            <ScrollArea className="max-h-[500px] pr-2">
+              <div className="space-y-3">
+                {filteredRequirements.map(req => {
+                  const statusInfo = statusConfig[req.status] || statusConfig.requested;
+                  const StatusIcon = statusInfo.icon;
                   return (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-semibold text-sm">{item.size}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{item.category}</TableCell>
-                      <TableCell className="text-right font-medium text-sm">
-                        <span className={isOut ? 'text-destructive font-bold' : isLow ? 'text-amber-600 font-semibold' : ''}>
-                          {item.on_hand} pcs
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right text-xs text-muted-foreground">
-                        {item.min_threshold} pcs
-                      </TableCell>
-                      <TableCell>
-                        {isOut ? (
-                          <Badge variant="destructive">Out of stock</Badge>
-                        ) : isLow ? (
-                          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300" variant="secondary">
-                            Low stock
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" variant="secondary">
-                            Healthy
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => adjustStock(item.id, 1)}
-                            title="Add 1"
-                          >
-                            +1
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => adjustStock(item.id, -1)}
-                            disabled={item.on_hand <= 0}
-                            title="Deduct 1"
-                          >
-                            -1
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => openAdjust(item)}
-                          >
-                            Adjust
-                          </Button>
+                    <div
+                      key={req.id}
+                      className="group rounded-xl border border-border/70 p-3.5 sm:p-4 bg-card hover:bg-muted/20 hover:border-border transition-all shadow-2xs"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          {/* Size, Quantity & Shop Badge */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-sm sm:text-base text-foreground">
+                              Size {req.size}
+                            </span>
+                            <Badge variant="outline" className="font-semibold px-2 py-0 text-xs">
+                              × {req.quantity} pcs
+                            </Badge>
+                            <Badge
+                              variant="outline"
+                              className={`gap-1 text-xs capitalize ${statusInfo.badgeClass}`}
+                            >
+                              <StatusIcon className="h-3 w-3" />
+                              {statusInfo.label}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground inline-flex items-center gap-1 font-medium ml-1">
+                              <Store className="h-3.5 w-3.5 text-primary" />
+                              {req.shop_name || 'Shop'}
+                            </span>
+                          </div>
+
+                          {/* Progress Audit Trail */}
+                          <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-x-2 gap-y-1 pt-1">
+                            <span className="inline-flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              Requested by <strong className="text-foreground font-medium">{req.requested_by_name || 'Staff'}</strong>
+                              {' on '}{format(new Date(req.created_at), 'dd MMM, HH:mm')}
+                            </span>
+                            {req.packed_by_name && (
+                              <>
+                                <ArrowRight className="h-3 w-3 text-muted-foreground/50 hidden sm:inline" />
+                                <span>
+                                  Packed by <strong className="text-foreground font-medium">{req.packed_by_name}</strong>
+                                  {req.packed_at && ` (${format(new Date(req.packed_at), 'dd MMM, HH:mm')})`}
+                                </span>
+                              </>
+                            )}
+                            {req.moved_by_name && (
+                              <>
+                                <ArrowRight className="h-3 w-3 text-muted-foreground/50 hidden sm:inline" />
+                                <span>
+                                  Moved by <strong className="text-foreground font-medium">{req.moved_by_name}</strong>
+                                  {req.moved_at && ` (${format(new Date(req.moved_at), 'dd MMM, HH:mm')})`}
+                                </span>
+                              </>
+                            )}
+                            {req.received_by_name && (
+                              <>
+                                <ArrowRight className="h-3 w-3 text-muted-foreground/50 hidden sm:inline" />
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                  Received by {req.received_by_name}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </TableCell>
-                    </TableRow>
+
+                        {/* Optional notes */}
+                        {req.note && (
+                          <div className="sm:text-right shrink-0">
+                            <span className="inline-block text-xs bg-muted/60 border rounded-md px-2.5 py-1 text-muted-foreground max-w-xs truncate" title={req.note}>
+                              {req.note}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </div>
+              </div>
+            </ScrollArea>
+          )}
         </CardContent>
       </Card>
-
-      {/* Live Warehouse Movement & Fulfillment Feed */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Layers className="h-4 w-4 text-primary" /> Live Warehouse Movement & Fulfillment Activity
-          </CardTitle>
-          <CardDescription>
-            Real orders connected from shop requests with pack and move audit logs.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="max-h-[320px]">
-            {requirements.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">No orders logged yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {requirements.slice(0, 10).map((req) => (
-                  <div key={req.id} className="rounded-lg border p-3 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">Size {req.size} × {req.quantity}</span>
-                        <Badge variant="secondary" className="capitalize">{req.status}</Badge>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Store className="h-3 w-3" /> {req.shop_name || 'Shop'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Requested by {req.requested_by_name || 'Staff'} on {format(new Date(req.created_at), 'dd MMM HH:mm')}
-                        {req.packed_by_name && ` · Packed by ${req.packed_by_name} (${format(new Date(req.packed_at!), 'HH:mm')})`}
-                        {req.moved_by_name && ` · Moved by ${req.moved_by_name} (${format(new Date(req.moved_at!), 'HH:mm')})`}
-                        {req.received_by_name && ` · Received by ${req.received_by_name}`}
-                      </p>
-                    </div>
-                    {req.note && (
-                      <span className="text-xs bg-muted px-2 py-1 rounded max-w-xs truncate text-muted-foreground">
-                        Note: {req.note}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
-
-      {/* Adjust Inventory Modal */}
-      <Dialog open={adjustModalOpen} onOpenChange={setAdjustModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Adjust Stock for Size {selectedItem?.size}</DialogTitle>
-            <DialogDescription>
-              Category: {selectedItem?.category} · Current: {selectedItem?.on_hand} pcs
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Exact On-Hand Quantity</Label>
-              <Input
-                type="number"
-                min={0}
-                value={exactQtyInput}
-                onChange={e => setExactQtyInput(Number(e.target.value))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Safety Replenishment Threshold (Alert below this)</Label>
-              <Input
-                type="number"
-                min={0}
-                value={thresholdInput}
-                onChange={e => setThresholdInput(Number(e.target.value))}
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setAdjustModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleSaveAdjustment}>Save Inventory</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add New Item Modal */}
-      <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add New Warehouse Stock Item</DialogTitle>
-            <DialogDescription>Define a new size and initial safety threshold for warehouse tracking.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Size (e.g. 46, XXL, 10 UK)</Label>
-              <Input
-                placeholder="e.g. 46"
-                value={newSize}
-                onChange={e => setNewSize(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Input
-                placeholder="General / Footwear / Apparel"
-                value={newCategory}
-                onChange={e => setNewCategory(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Starting Stock</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={newQty}
-                  onChange={e => setNewQty(Number(e.target.value))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Min Threshold</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={newThreshold}
-                  onChange={e => setNewThreshold(Number(e.target.value))}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setAddItemOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddNewItem}>Add Item</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

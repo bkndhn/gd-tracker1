@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { TrendingUp, TrendingDown, Package, Calendar, CalendarDays, Sparkles, Filter, X, ArrowUpDown, BarChart3, FileDown, FileSpreadsheet, LineChart, LayoutGrid, Users, UserCheck, Store, Warehouse } from 'lucide-react';
+import { TrendingUp, TrendingDown, Package, Calendar, CalendarDays, Sparkles, Filter, X, ArrowUpDown, BarChart3, FileDown, FileSpreadsheet, LineChart, LayoutGrid, Users, UserCheck, Store, Warehouse, ClipboardList } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WarehouseDashboard } from './WarehouseDashboard';
 import { exportToPDFViaHTML, makeImageCell } from '@/utils/htmlPdfExport';
@@ -36,6 +36,7 @@ import { WhatsAppFollowUpButton } from '@/components/WhatsAppFollowUpButton';
 import { CustomerProfileDialog } from '@/components/CustomerProfileDialog';
 
 import { isValidPhone, type FollowUpContext } from '@/lib/whatsappFollowUp';
+import { DashboardSkeleton } from '@/components/PageSkeleton';
 
 const DASHBOARD_CACHE_KEY = 'dashboard:entries';
 const DASHBOARD_SHOPS_CACHE_KEY = 'dashboard:shops';
@@ -579,12 +580,7 @@ export const Dashboard = () => {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col justify-center items-center h-64 gap-3">
-        <Sparkles className="h-8 w-8 text-primary animate-pulse" />
-        <div className="text-lg font-medium text-primary">Loading dashboard...</div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Show empty state only when there's truly no data in the database
@@ -714,7 +710,7 @@ export const Dashboard = () => {
               <BarChart3 className="h-4 w-4" /> Visit Analytics
             </TabsTrigger>
             <TabsTrigger value="warehouse" className="gap-2">
-              <Warehouse className="h-4 w-4" /> Requirements & Warehouse
+              <ClipboardList className="h-4 w-4" /> Requirements Status
             </TabsTrigger>
           </TabsList>
         </div>

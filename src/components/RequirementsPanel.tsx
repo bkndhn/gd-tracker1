@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequirements, type StockRequirement, type RequirementStatus } from '@/hooks/useRequirements';
-import { WarehouseDashboard } from '@/components/WarehouseDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -223,10 +222,9 @@ export const RequirementsPanel = () => {
   return (
     <div className="space-y-4">
       <Tabs defaultValue="raise" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="raise">Raise</TabsTrigger>
           <TabsTrigger value="queue">Queue ({filtered.length})</TabsTrigger>
-          <TabsTrigger value="inventory">Warehouse Inventory</TabsTrigger>
         </TabsList>
 
         {/* ---------- Raise ---------- */}
@@ -234,9 +232,9 @@ export const RequirementsPanel = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <PackagePlus className="h-5 w-5 text-primary" /> Request stock from the warehouse
+                <PackagePlus className="h-5 w-5 text-primary" /> Request stock from shop
               </CardTitle>
-              <CardDescription>Tell the warehouse which size you need and where to send it.</CardDescription>
+              <CardDescription>Select the shop and the required size.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -266,8 +264,19 @@ export const RequirementsPanel = () => {
                   </div>
                 )}
 
-                {/* Size dropdown with quick chips and custom input option */}
+                {/* Quantity */}
                 <div className="space-y-2">
+                  <Label>Quantity *</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={form.quantity}
+                    onChange={e => setForm({ ...form, quantity: Math.max(1, Number(e.target.value)) })}
+                  />
+                </div>
+
+                {/* Size dropdown with quick chips and custom input option */}
+                <div className="space-y-2 sm:col-span-2">
                   <div className="flex items-center justify-between">
                     <Label>Size *</Label>
                     {isCustomSize ? (
@@ -347,53 +356,6 @@ export const RequirementsPanel = () => {
                     ))}
                   </div>
                 </div>
-
-                {/* Category with quick chips */}
-                <div className="space-y-2">
-                  <Label>Category</Label>
-                  <Select value={form.category || 'none'} onValueChange={v => setForm({ ...form, category: v === 'none' ? '' : v })}>
-                    <SelectTrigger><SelectValue placeholder="Optional category" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Not specified</SelectItem>
-                      {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  {categories.length > 0 && categories.length <= 6 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {categories.map(c => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => setForm(f => ({ ...f, category: f.category === c.name ? '' : c.name }))}
-                          className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
-                            form.category === c.name
-                              ? 'bg-secondary text-secondary-foreground border-secondary shadow-xs'
-                              : 'bg-muted/40 hover:bg-muted text-foreground border-border/80'
-                          }`}
-                        >
-                          {c.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Quantity</Label>
-                    <Input type="number" min={1} value={form.quantity}
-                      onChange={e => setForm({ ...form, quantity: Number(e.target.value) })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Urgency</Label>
-                    <Select value={form.urgency} onValueChange={v => setForm({ ...form, urgency: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="normal">Normal</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
               </div>
 
               {/* Dynamic Requirement Custom Fields */}
@@ -446,12 +408,17 @@ export const RequirementsPanel = () => {
               )}
 
               <div className="space-y-2">
-                <Label>Note</Label>
-                <Textarea rows={2} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })}
-                  placeholder="Anything the warehouse should know" />
+                <Label>Note (Optional)</Label>
+                <Textarea
+                  rows={2}
+                  value={form.note}
+                  onChange={e => setForm({ ...form, note: e.target.value })}
+                  placeholder="Add any specific instructions or notes"
+                />
               </div>
-              <Button onClick={submit} disabled={saving} className="w-full sm:w-auto">
-                {saving ? 'Sending…' : 'Send requirement'}
+              <Button onClick={submit} disabled={saving} className="w-full sm:w-auto gap-2">
+                <PackagePlus className="h-4 w-4" />
+                {saving ? 'Requesting…' : 'Request Stock'}
               </Button>
             </CardContent>
           </Card>
@@ -531,7 +498,14 @@ export const RequirementsPanel = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               {loading ? (
-                <div className="py-10 text-center text-sm text-muted-foreground">Loading requirements…</div>
+                <div className="space-y-3 py-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-20 rounded-lg border border-border/50 bg-muted/40 p-3 space-y-2 animate-pulse">
+                      <div className="h-4 w-1/3 bg-muted rounded" />
+                      <div className="h-3 w-1/2 bg-muted rounded" />
+                    </div>
+                  ))}
+                </div>
               ) : filtered.length === 0 ? (
                 <div className="py-10 text-center text-sm text-muted-foreground">No requirements yet.</div>
               ) : (
@@ -610,11 +584,6 @@ export const RequirementsPanel = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* ---------- Warehouse Inventory ---------- */}
-        <TabsContent value="inventory" className="mt-4">
-          <WarehouseDashboard />
         </TabsContent>
       </Tabs>
 

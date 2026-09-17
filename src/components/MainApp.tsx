@@ -18,6 +18,7 @@ import { identifySession, addBreadcrumb } from '@/lib/errorTracking';
 import { supabase } from '@/integrations/supabase/client';
 import { useRequirementsAccess } from '@/hooks/useRequirementsAccess';
 import { ClipboardList } from 'lucide-react';
+import { PageSkeleton } from '@/components/PageSkeleton';
 
 // Lazy load heavy components with prefetch helpers for instant nav
 const importDashboard = () => import('@/components/Dashboard').then(m => ({ default: m.Dashboard }));
@@ -45,6 +46,18 @@ export const MainApp = () => {
   );
   const notesInputRef = useRef<HTMLTextAreaElement>(null);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+
+  // Track all visited tabs to keep them mounted in DOM for instant (0ms) navigation
+  const [visitedTabs, setVisitedTabs] = useState<Set<ActiveTab>>(() => new Set([activeTab]));
+
+  useEffect(() => {
+    setVisitedTabs(prev => {
+      if (prev.has(activeTab)) return prev;
+      const next = new Set(prev);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
 
   // Force logout handler
   const { handleProfileDeleted, handleProfilePaused } = useForceLogoutOnDelete(user?.id, adminId, signOut);
@@ -107,55 +120,87 @@ export const MainApp = () => {
     }
   }, [activeTab]);
 
-  // Prefetch all heavy panels right after first paint so tab clicks are instant
+  // Prefetch all panels right after first paint so clicks are instantaneous
   useEffect(() => {
-    const idle = (cb: () => void) => (window as any).requestIdleCallback?.(cb) ?? setTimeout(cb, 600);
+    const idle = (cb: () => void) => (window as any).requestIdleCallback?.(cb) ?? setTimeout(cb, 400);
     idle(() => {
       importDashboard();
       importReports();
+      importRequirements();
       if (isAdmin) importAdmin();
+      if (isAdmin || isManager) importFollowUps();
       if (isSuperAdmin) importSuperAdmin();
     });
-  }, [isAdmin, isSuperAdmin]);
+  }, [isAdmin, isManager, isSuperAdmin]);
 
-  const LoadingSpinner = () => (
-    <div className="flex justify-center items-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
-  );
-
-  const renderContent = () => {
-    switch (activeTab) {
+  const renderTab = (tab: ActiveTab) => {
+    switch (tab) {
       case 'super_admin':
         return isSuperAdmin ? (
-          <ErrorBoundary boundary="SuperAdminDashboard"><Suspense fallback={<LoadingSpinner />}><SuperAdminDashboard /></Suspense></ErrorBoundary>
+          <ErrorBoundary boundary="SuperAdminDashboard">
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <SuperAdminDashboard />
+            </Suspense>
+          </ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'gd':
-        return !isSuperAdmin ? <ErrorBoundary boundary="gd-form"><LostVisitForm /></ErrorBoundary> : <div className="text-center text-muted-foreground">Access denied</div>;
+        return !isSuperAdmin ? (
+          <ErrorBoundary boundary="gd-form">
+            <LostVisitForm />
+          </ErrorBoundary>
+        ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'dashboard':
         return (isAdmin || isManager) && !isSuperAdmin ? (
-          <ErrorBoundary boundary="Dashboard"><Suspense fallback={<LoadingSpinner />}><Dashboard /></Suspense></ErrorBoundary>
+          <ErrorBoundary boundary="Dashboard">
+            <Suspense fallback={<PageSkeleton variant="dashboard" />}>
+              <Dashboard />
+            </Suspense>
+          </ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'admin':
         return isAdmin && !isSuperAdmin ? (
-          <ErrorBoundary boundary="AdminPanel"><Suspense fallback={<LoadingSpinner />}><AdminPanel /></Suspense></ErrorBoundary>
+          <ErrorBoundary boundary="AdminPanel">
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <AdminPanel />
+            </Suspense>
+          </ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'followups':
         return (isAdmin || isManager) && !isSuperAdmin ? (
-          <ErrorBoundary boundary="FollowUpPanel"><Suspense fallback={<LoadingSpinner />}><FollowUpPanel /></Suspense></ErrorBoundary>
+          <ErrorBoundary boundary="FollowUpPanel">
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <FollowUpPanel />
+            </Suspense>
+          </ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'requirements':
         return requirementsEnabled && !isSuperAdmin ? (
-          <ErrorBoundary boundary="RequirementsPanel"><Suspense fallback={<LoadingSpinner />}><RequirementsPanel /></Suspense></ErrorBoundary>
+          <ErrorBoundary boundary="RequirementsPanel">
+            <Suspense fallback={<PageSkeleton variant="requirements" />}>
+              <RequirementsPanel />
+            </Suspense>
+          </ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'reports':
         return (isAdmin || isManager || isWarehouse) && !isSuperAdmin ? (
-          <ErrorBoundary boundary="ReportsPanel"><Suspense fallback={<LoadingSpinner />}><ReportsPanel defaultTab={isWarehouse ? 'requirements' : 'visits'} /></Suspense></ErrorBoundary>
+          <ErrorBoundary boundary="ReportsPanel">
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <ReportsPanel defaultTab={isWarehouse ? 'requirements' : 'visits'} />
+            </Suspense>
+          </ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       default:
         return isSuperAdmin ? (
-          <ErrorBoundary boundary="SuperAdminDashboard"><Suspense fallback={<LoadingSpinner />}><SuperAdminDashboard /></Suspense></ErrorBoundary>
-        ) : <ErrorBoundary boundary="gd-form"><LostVisitForm /></ErrorBoundary>;
+          <ErrorBoundary boundary="SuperAdminDashboard">
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <SuperAdminDashboard />
+            </Suspense>
+          </ErrorBoundary>
+        ) : (
+          <ErrorBoundary boundary="gd-form">
+            <LostVisitForm />
+          </ErrorBoundary>
+        );
     }
   };
 
@@ -232,7 +277,20 @@ export const MainApp = () => {
             )}
           </div>
 
-          <div className="w-full min-w-0">{renderContent()}</div>
+          <div className="w-full min-w-0">
+            {Array.from(visitedTabs).map(tab => {
+              const isCurrent = activeTab === tab;
+              return (
+                <div
+                  key={tab}
+                  className={isCurrent ? 'block w-full min-w-0 animate-in fade-in-50 duration-150' : 'hidden'}
+                  aria-hidden={!isCurrent}
+                >
+                  {renderTab(tab)}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <MobileBottomNav

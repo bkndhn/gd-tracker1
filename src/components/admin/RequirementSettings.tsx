@@ -117,7 +117,7 @@ export const RequirementSettings = () => {
                 </h4>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Shop staff open <strong>Requirements / Stock</strong> (default tab is <strong>Raise</strong>), select the desired size, category, urgency, and optional custom fields, then submit.
+                Shop staff open <strong>Requirements</strong> (default tab is <strong>Raise</strong>), select the required size and quantity with optional custom fields, then submit.
               </p>
             </div>
 
@@ -127,11 +127,11 @@ export const RequirementSettings = () => {
                   3
                 </div>
                 <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                  <PackageCheck className="h-4 w-4 text-primary" /> Pack & Auto-Deduct
+                  <PackageCheck className="h-4 w-4 text-primary" /> Pack & Stage
                 </h4>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Warehouse staff view pending orders in the Queue. Marking an order <strong>Packed</strong> captures the packer name, timestamp, notes, and <strong>automatically deducts inventory</strong>.
+                Warehouse staff view pending orders in the Queue. Marking an order <strong>Packed</strong> captures the packer name, timestamp, and packaging notes.
               </p>
             </div>
 
@@ -182,13 +182,13 @@ export const RequirementSettings = () => {
           <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-primary" />
-              Warehouse Dashboard & Replenishment Alerts
+              Requirement Tracking & Audit Trail
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <ClipboardList className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <span>
-                  <strong>Safety Stock Thresholds:</strong> The Warehouse Inventory tab alerts you in real time when any size falls below its minimum safety stock level.
+                  <strong>Full Request Lifecycle:</strong> Track sizes requested by shops through Pending, Packed, In Transit, and Received stages in real time.
                 </span>
               </div>
               <div className="flex items-start gap-2">
