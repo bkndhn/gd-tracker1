@@ -45,6 +45,9 @@ interface AdminProfile {
   requirements_enabled?: boolean;
   max_requirements_monthly?: number | null;
   max_warehouse_users?: number | null;
+  custom_fields_enabled?: boolean;
+  max_custom_fields?: number | null;
+  max_options_per_field?: number | null;
 }
 
 export const SuperAdminDashboard = () => {
@@ -70,6 +73,9 @@ export const SuperAdminDashboard = () => {
   const [reqEnabled, setReqEnabled] = useState<boolean>(true);
   const [maxReqMonthly, setMaxReqMonthly] = useState<number | ''>('');
   const [maxWarehouseUsers, setMaxWarehouseUsers] = useState<number | ''>(3);
+  const [customFieldsEnabled, setCustomFieldsEnabled] = useState<boolean>(true);
+  const [maxCustomFields, setMaxCustomFields] = useState<number | ''>(5);
+  const [maxOptionsPerField, setMaxOptionsPerField] = useState<number | ''>(20);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused'>('all');
   const [sortKey, setSortKey] = useState<'name' | 'created_at' | 'last_login_at' | 'entries'>('name');
@@ -346,12 +352,15 @@ export const SuperAdminDashboard = () => {
         requirements_enabled: reqEnabled,
         max_requirements_monthly: maxReqMonthly === '' ? null : maxReqMonthly,
         max_warehouse_users: maxWarehouseUsers === '' ? null : maxWarehouseUsers,
+        custom_fields_enabled: customFieldsEnabled,
+        max_custom_fields: maxCustomFields === '' ? null : maxCustomFields,
+        max_options_per_field: maxOptionsPerField === '' ? null : maxOptionsPerField,
       }).eq('id', selectedAdmin.id);
       if (error) throw error;
       toast.success('Limits updated successfully');
       setLimitsDialogOpen(false);
     } catch (error: any) { toast.error(error.message || 'Failed to update limits'); }
-  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled, aiDaily, aiMonthly, aiLifetime, reqEnabled, maxReqMonthly, maxWarehouseUsers]);
+  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled, aiDaily, aiMonthly, aiLifetime, reqEnabled, maxReqMonthly, maxWarehouseUsers, customFieldsEnabled, maxCustomFields, maxOptionsPerField]);
 
   const openLimitsDialog = useCallback((admin: AdminProfile) => {
     setSelectedAdmin(admin);
@@ -367,6 +376,9 @@ export const SuperAdminDashboard = () => {
     setReqEnabled(admin.requirements_enabled !== false);
     setMaxReqMonthly(admin.max_requirements_monthly ?? '');
     setMaxWarehouseUsers(admin.max_warehouse_users ?? 3);
+    setCustomFieldsEnabled(admin.custom_fields_enabled !== false);
+    setMaxCustomFields(admin.max_custom_fields ?? 5);
+    setMaxOptionsPerField(admin.max_options_per_field ?? 20);
     setLimitsDialogOpen(true);
   }, []);
 
@@ -637,6 +649,30 @@ export const SuperAdminDashboard = () => {
                   <Input type="number" min={0} placeholder="∞" value={maxWarehouseUsers}
                     onChange={e => setMaxWarehouseUsers(e.target.value === '' ? '' : Number(e.target.value))} />
                 </div>
+              </div>
+            )}
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <Label>Custom Fields Permission</Label>
+                <p className="text-xs text-muted-foreground">Allow this tenant to create custom fields. Toggle off to restrict to standard fields only.</p>
+              </div>
+              <Switch checked={customFieldsEnabled} onCheckedChange={setCustomFieldsEnabled} />
+            </div>
+            {customFieldsEnabled && (
+              <div className="grid grid-cols-2 gap-2 rounded-md border p-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Max Custom Fields</Label>
+                  <Input type="number" min={1} placeholder="5" value={maxCustomFields}
+                    onChange={e => setMaxCustomFields(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Max Options Per Field</Label>
+                  <Input type="number" min={1} placeholder="20" value={maxOptionsPerField}
+                    onChange={e => setMaxOptionsPerField(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <p className="text-[11px] text-muted-foreground col-span-2">
+                  Stops clients from bypassing shop/resource limits by creating fake branches as custom field options.
+                </p>
               </div>
             )}
           </div>

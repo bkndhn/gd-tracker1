@@ -37,13 +37,14 @@ export const UsageMetering = () => {
         const monthStart = new Date();
         monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
 
-        const [adminProf, entries, users, shops, images, ai] = await Promise.all([
-          supabase.from('profiles').select('max_entries, max_users, max_shops, max_images_total, ai_monthly_limit').eq('id', adminId).single(),
+        const [adminProf, entries, users, shops, images, ai, customFields] = await Promise.all([
+          supabase.from('profiles').select('max_entries, max_users, max_shops, max_images_total, ai_monthly_limit, max_custom_fields, custom_fields_enabled' as any).eq('id', adminId).single(),
           supabase.from('goods_damaged_entries').select('id', { count: 'exact', head: true }).eq('admin_id', adminId).gte('created_at', monthStart.toISOString()),
           supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('admin_id', adminId).is('deleted_at', null),
           supabase.from('shops').select('id', { count: 'exact', head: true }).eq('admin_id', adminId).is('deleted_at', null),
           supabase.from('gd_entry_images').select('id', { count: 'exact', head: true }),
           supabase.from('ai_usage_log').select('id', { count: 'exact', head: true }).eq('admin_id', adminId).gte('created_at', monthStart.toISOString()),
+          (supabase.from('custom_fields') as any).select('id', { count: 'exact', head: true }).eq('admin_id', adminId).is('deleted_at', null),
         ]);
 
         const p = (adminProf.data || {}) as any;
@@ -51,6 +52,7 @@ export const UsageMetering = () => {
           { label: 'Entries this month', used: entries.count || 0, limit: p.max_entries ?? null },
           { label: 'Team members', used: users.count || 0, limit: p.max_users ?? null },
           { label: 'Shops', used: shops.count || 0, limit: p.max_shops ?? null },
+          { label: 'Custom Fields', used: customFields?.count || 0, limit: p.custom_fields_enabled === false ? 0 : (p.max_custom_fields ?? null) },
           { label: 'Images stored', used: images.count || 0, limit: p.max_images_total ?? null },
           { label: 'AI insights this month', used: ai.count || 0, limit: p.ai_monthly_limit ?? null },
         ]);

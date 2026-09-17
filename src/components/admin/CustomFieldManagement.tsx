@@ -155,6 +155,12 @@ export const CustomFieldManagement = () => {
   const [deleteOption, setDeleteOption] = useState<CustomFieldOption | null>(null);
   const [isDeletingOption, setIsDeletingOption] = useState(false);
 
+  // Plan limits & loophole protection
+  const [customFieldsEnabled, setCustomFieldsEnabled] = useState(true);
+  const [maxCustomFields, setMaxCustomFields] = useState<number | null>(5);
+  const [maxOptionsPerField, setMaxOptionsPerField] = useState<number | null>(20);
+  const [maxShops, setMaxShops] = useState<number | null>(5);
+
   useEffect(() => {
     fetchFields();
   }, []);
@@ -162,6 +168,23 @@ export const CustomFieldManagement = () => {
   const fetchFields = async () => {
     try {
       setLoading(true);
+
+      const adminId = (profile as any)?.admin_id || profile?.id;
+      if (adminId) {
+        const { data: profData } = await supabase
+          .from('profiles')
+          .select('max_shops, custom_fields_enabled, max_custom_fields, max_options_per_field' as any)
+          .eq('id', adminId)
+          .single();
+        if (profData) {
+          const p = profData as any;
+          setCustomFieldsEnabled(p.custom_fields_enabled !== false);
+          setMaxCustomFields(p.max_custom_fields ?? 5);
+          setMaxOptionsPerField(p.max_options_per_field ?? 20);
+          setMaxShops(p.max_shops ?? 5);
+        }
+      }
+
       const { data, error } = await (supabase.from('custom_fields') as any)
         .select('*')
         .is('deleted_at', null)
@@ -231,6 +254,15 @@ export const CustomFieldManagement = () => {
   const editFieldError = editingField ? validateName(editFieldName, editingField.id) : null;
 
   const handleCreateField = async () => {
+    if (!customFieldsEnabled) {
+      toast.error('Custom fields are not enabled for your plan. Please contact Super Admin to unlock custom fields.');
+      return;
+    }
+    const nonStandardCount = fields.filter(f => !(f as any).is_standard).length;
+    if (maxCustomFields !== null && nonStandardCount >= maxCustomFields) {
+      toast.error(`Custom field limit reached (${nonStandardCount}/${maxCustomFields}). Contact Super Admin to upgrade your plan.`);
+      return;
+    }
     if (newFieldError) {
       toast.error(newFieldError);
       return;
@@ -379,12 +411,30 @@ export const CustomFieldManagement = () => {
   // Options management
   const handleAddOption = async () => {
     if (!managingField || !newOptionValue.trim()) return;
+    const trimmed = newOptionValue.trim();
+    const currentOptions = options[managingField.id] || [];
+
+    if (currentOptions.some(o => o.value.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error('This option already exists');
+      return;
+    }
+
+    const isShopField = (managingField as any).standard_key === 'shop' || managingField.name.toLowerCase() === 'shop';
+    if (isShopField && maxShops !== null && currentOptions.length >= maxShops) {
+      toast.error(`Shop limit reached (${currentOptions.length}/${maxShops}). You cannot add more shops. Contact Super Admin to increase your limit.`);
+      return;
+    }
+
+    if (maxOptionsPerField !== null && currentOptions.length >= maxOptionsPerField) {
+      toast.error(`Maximum option limit reached (${maxOptionsPerField} per field). Contact Super Admin to increase limits.`);
+      return;
+    }
+
     try {
-      const currentOptions = options[managingField.id] || [];
       const { error } = await (supabase.from('custom_field_options') as any)
         .insert({
           custom_field_id: managingField.id,
-          value: newOptionValue.trim(),
+          value: trimmed,
           display_order: currentOptions.length,
         });
       if (error) throw error;
@@ -465,12 +515,23 @@ export const CustomFieldManagement = () => {
                   ? 'Configure custom fields that appear in the Log Non-Purchase Visit form'
                   : 'Configure custom fields that appear when shop staff raise stock requirements'}
               </CardDescription>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <Badge variant={!customFieldsEnabled ? 'destructive' : 'outline'} className="text-xs font-normal">
+                  {!customFieldsEnabled ? 'Custom fields disabled on current plan' : `Custom fields: ${fields.filter(f => !(f as any).is_standard).length} / ${maxCustomFields ?? '∞'}`}
+                </Badge>
+                {customFieldsEnabled && maxOptionsPerField && (
+                  <Badge variant="secondary" className="text-xs font-normal text-muted-foreground">
+                    Max {maxOptionsPerField} options/field
+                  </Badge>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
               {activeScope === 'requirement' && (
                 <Button
                   variant="outline"
                   size="sm"
+                  disabled={!customFieldsEnabled}
                   onClick={() => {
                     setSelectedReuseFieldId('');
                     setIsReuseDialogOpen(true);
@@ -481,7 +542,23 @@ export const CustomFieldManagement = () => {
                   Reuse from Visit Form
                 </Button>
               )}
-              <Button onClick={() => setIsAddFieldOpen(true)} size="sm" className="w-full sm:w-auto shrink-0">
+              <Button
+                onClick={() => {
+                  if (!customFieldsEnabled) {
+                    toast.error('Custom fields are not enabled on your plan.');
+                    return;
+                  }
+                  const nonStandardCount = fields.filter(f => !(f as any).is_standard).length;
+                  if (maxCustomFields !== null && nonStandardCount >= maxCustomFields) {
+                    toast.error(`Custom field limit reached (${nonStandardCount}/${maxCustomFields}). Contact Super Admin to upgrade.`);
+                    return;
+                  }
+                  setIsAddFieldOpen(true);
+                }}
+                disabled={!customFieldsEnabled || (maxCustomFields !== null && fields.filter(f => !(f as any).is_standard).length >= maxCustomFields)}
+                size="sm"
+                className="w-full sm:w-auto shrink-0"
+              >
                 <Plus className="h-4 w-4 mr-1" />
                 {activeScope === 'requirement' ? 'Add Requirement Field' : 'Add Visit Field'}
               </Button>
@@ -614,11 +691,25 @@ export const CustomFieldManagement = () => {
                   </div>
 
                   {/* Options list (dropdown + radio) */}
-                  {HAS_OPTIONS(field.field_type) && (
+                  {HAS_OPTIONS(field.field_type) && (() => {
+                    const isShopField = (field as any).standard_key === 'shop' || field.name.toLowerCase() === 'shop';
+                    const optLimit = isShopField ? maxShops : maxOptionsPerField;
+                    const optCount = (options[field.id] || []).length;
+                    const isOptLimitReached = optLimit !== null && optCount >= optLimit;
+                    return (
                     <div className="pl-4 border-l-2 border-muted space-y-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Selectable Options ({optCount}{optLimit ? ` / ${optLimit}` : ''})</span>
+                        {isOptLimitReached && (
+                          <span className="text-amber-600 dark:text-amber-400 font-medium">
+                            {isShopField ? 'Shop limit reached' : 'Option cap reached'}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex gap-2">
                         <Input
-                          placeholder={`Add option to "${field.name}"`}
+                          placeholder={isOptLimitReached ? `${isShopField ? 'Shop' : 'Option'} cap reached` : `Add option to "${field.name}"`}
+                          disabled={isOptLimitReached}
                           value={managingField?.id === field.id ? newOptionValue : ''}
                           onChange={(e) => {
                             setManagingField(field);
@@ -626,7 +717,7 @@ export const CustomFieldManagement = () => {
                           }}
                           onFocus={() => setManagingField(field)}
                           onKeyPress={(e) => {
-                            if (e.key === 'Enter' && managingField?.id === field.id) {
+                            if (e.key === 'Enter' && managingField?.id === field.id && !isOptLimitReached) {
                               handleAddOption();
                             }
                           }}
@@ -639,7 +730,7 @@ export const CustomFieldManagement = () => {
                             setManagingField(field);
                             handleAddOption();
                           }}
-                          disabled={managingField?.id !== field.id || !newOptionValue.trim()}
+                          disabled={isOptLimitReached || managingField?.id !== field.id || !newOptionValue.trim()}
                         >
                           <Plus className="h-3.5 w-3.5" />
                         </Button>
@@ -675,7 +766,8 @@ export const CustomFieldManagement = () => {
                         )}
                       </div>
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
               ))}
             </div>
