@@ -1,6 +1,6 @@
 
-import { Button } from '@/components/ui/button';
-import { BarChart3, Plus, Settings, FileText, Shield, MessageCircle, ClipboardList } from 'lucide-react';
+import { useMemo } from 'react';
+import { BarChart3, Plus, Settings, FileText, Shield, MessageCircle, ClipboardList, type LucideIcon } from 'lucide-react';
 
 type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'followups' | 'requirements' | 'super_admin';
 
@@ -14,65 +14,86 @@ interface MobileBottomNavProps {
   isWarehouse?: boolean;
 }
 
-export const MobileBottomNav = ({ activeTab, setActiveTab, isAdmin, isManager, isSuperAdmin, showRequirements, isWarehouse }: MobileBottomNavProps) => {
-  return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border">
-      <div className="flex justify-around items-center py-2 px-4">
-        {/* Super Admin: only SA tab, no profile */}
-        {isSuperAdmin && (
-          <Button
-            variant={activeTab === 'super_admin' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('super_admin')}
-            className="flex flex-col items-center gap-1 h-auto py-2 px-3"
-            size="sm"
-          >
-            <Shield className="h-4 w-4" />
-            <span className="text-xs">SA</span>
-          </Button>
-        )}
+interface NavItem {
+  id: ActiveTab;
+  label: string;
+  icon: LucideIcon;
+}
 
-        {/* Regular users */}
-        {!isSuperAdmin && (
-          <>
-            {!isWarehouse && (
-              <Button variant={activeTab === 'gd' ? 'default' : 'ghost'} onClick={() => setActiveTab('gd')}
-                className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
-                <Plus className="h-4 w-4" /><span className="text-xs">Log</span>
-              </Button>
-            )}
-            {showRequirements && (
-              <Button variant={activeTab === 'requirements' ? 'default' : 'ghost'} onClick={() => setActiveTab('requirements')}
-                className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
-                <ClipboardList className="h-4 w-4" /><span className="text-xs">Stock</span>
-              </Button>
-            )}
-            {(isAdmin || isManager) && (
-              <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} onClick={() => setActiveTab('dashboard')}
-                className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
-                <BarChart3 className="h-4 w-4" /><span className="text-xs">Dashboard</span>
-              </Button>
-            )}
-            {(isAdmin || isManager || isWarehouse) && (
-              <Button variant={activeTab === 'reports' ? 'default' : 'ghost'} onClick={() => setActiveTab('reports')}
-                className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
-                <FileText className="h-4 w-4" /><span className="text-xs">Reports</span>
-              </Button>
-            )}
-            {(isAdmin || isManager) && (
-              <Button variant={activeTab === 'followups' ? 'default' : 'ghost'} onClick={() => setActiveTab('followups')}
-                className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
-                <MessageCircle className="h-4 w-4" /><span className="text-xs">Follow</span>
-              </Button>
-            )}
-            {isAdmin && (
-              <Button variant={activeTab === 'admin' ? 'default' : 'ghost'} onClick={() => setActiveTab('admin')}
-                className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
-                <Settings className="h-4 w-4" /><span className="text-xs">Admin</span>
-              </Button>
-            )}
-          </>
-        )}
+export const MobileBottomNav = ({
+  activeTab,
+  setActiveTab,
+  isAdmin,
+  isManager,
+  isSuperAdmin,
+  showRequirements,
+  isWarehouse,
+}: MobileBottomNavProps) => {
+  const items = useMemo<NavItem[]>(() => {
+    if (isSuperAdmin) {
+      return [{ id: 'super_admin', label: 'Admin', icon: Shield }];
+    }
+
+    const list: NavItem[] = [];
+
+    if (!isWarehouse) {
+      list.push({ id: 'gd', label: 'Log', icon: Plus });
+    }
+
+    if (showRequirements) {
+      list.push({ id: 'requirements', label: 'Stock', icon: ClipboardList });
+    }
+
+    if (isAdmin || isManager) {
+      list.push({ id: 'dashboard', label: 'Dash', icon: BarChart3 });
+    }
+
+    if (isAdmin || isManager || isWarehouse) {
+      list.push({ id: 'reports', label: 'Reports', icon: FileText });
+    }
+
+    if (isAdmin || isManager) {
+      list.push({ id: 'followups', label: 'Follow', icon: MessageCircle });
+    }
+
+    if (isAdmin) {
+      list.push({ id: 'admin', label: 'Admin', icon: Settings });
+    }
+
+    return list;
+  }, [isSuperAdmin, isWarehouse, showRequirements, isAdmin, isManager]);
+
+  if (items.length === 0) return null;
+
+  return (
+    <nav
+      aria-label="Mobile Navigation"
+      className="md:hidden fixed bottom-3 inset-x-3 z-50 max-w-lg mx-auto select-none pointer-events-auto"
+    >
+      <div className="flex items-center justify-between gap-1 p-1.5 rounded-2xl bg-card/90 dark:bg-card/95 backdrop-blur-xl border border-border/80 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] ring-1 ring-black/5 dark:ring-white/5 transition-all">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveTab(item.id)}
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none ${
+                isActive
+                  ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/30 font-semibold'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal'
+              }`}
+            >
+              <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-[1.75]'}`} />
+              <span className="text-[10px] leading-tight tracking-tight mt-0.5 truncate max-w-full text-center">
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
-    </div>
+    </nav>
   );
 };

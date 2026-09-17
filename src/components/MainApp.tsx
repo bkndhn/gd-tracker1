@@ -213,7 +213,7 @@ export const MainApp = () => {
       <OnboardingWizard open={onboardingOpen} onOpenChange={setOnboardingOpen} />
       <div className="sticky top-0 z-40"><OfflineStatusBar /></div>
       <Layout>
-        <div className="space-y-4 sm:space-y-6 pb-20 md:pb-6 w-full min-w-0">
+        <div className="space-y-4 sm:space-y-6 pb-24 md:pb-6 w-full min-w-0">
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex flex-wrap gap-1 p-1 rounded-xl border border-border/60 bg-card/60 backdrop-blur-sm shadow-sm overflow-x-auto">

@@ -140,6 +140,12 @@ All colors MUST be HSL.
     font-family: var(--tamil-font) !important;
   }
 
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
   body {
     @apply bg-background text-foreground;
     background: var(--gradient-background);
