@@ -16,6 +16,8 @@ import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog'
 import { PasswordInput } from '@/components/ui/password-input';
 import { validatePassword } from '@/utils/passwordPolicy';
 import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Profile = Database['public']['Tables']['profiles']['Row'] & {
   email?: string;
@@ -408,21 +410,50 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
                   <SelectContent>
                     <SelectItem value="user">User</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="warehouse">Warehouse staff</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Shop</Label>
-                <Select value={newUser.shop_id} onValueChange={v => setNewUser({ ...newUser, shop_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select shop" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Select a shop</SelectItem>
-                    {shops.map(shop => (
-                      <SelectItem key={shop.id} value={shop.id}>{shop.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {newUser.role !== 'warehouse' ? (
+                <div className="space-y-2">
+                  <Label>Shop</Label>
+                  <Select value={newUser.shop_id} onValueChange={v => setNewUser({ ...newUser, shop_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select shop" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Select a shop</SelectItem>
+                      {shops.map(shop => (
+                        <SelectItem key={shop.id} value={shop.id}>{shop.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Handles all shops</Label>
+                    <Switch checked={newUser.warehouse_all_shops}
+                      onCheckedChange={v => setNewUser({ ...newUser, warehouse_all_shops: v })} />
+                  </div>
+                  {!newUser.warehouse_all_shops && (
+                    <div className="max-h-40 space-y-2 overflow-y-auto pt-1">
+                      {shops.map(shop => (
+                        <label key={shop.id} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={newUser.warehouse_shop_ids.includes(shop.id)}
+                            onCheckedChange={(c) => setNewUser({
+                              ...newUser,
+                              warehouse_shop_ids: c
+                                ? [...newUser.warehouse_shop_ids, shop.id]
+                                : newUser.warehouse_shop_ids.filter(id => id !== shop.id),
+                            })}
+                          />
+                          {shop.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex gap-2 pt-2">
                 <Button onClick={handleCreateSubUser} disabled={creating} className="flex-1">
                   {creating ? 'Creating...' : 'Create User'}
