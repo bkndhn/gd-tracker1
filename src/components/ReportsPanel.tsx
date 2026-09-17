@@ -233,8 +233,9 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
         .filter(f => !f.is_standard)
         .map(f => ({ id: f.id, name: f.name, is_visible: f.is_visible, is_mandatory: f.is_mandatory, display_order: f.display_order, field_type: f.field_type }));
 
-      const enrichedEntries = entriesData.map(entry => {
-        const shop = shopsRes.data.find(s => s.id === entry.shop_id);
+      const shopsList = shopsRes.data || [];
+      const enrichedEntries = (entriesData || []).map(entry => {
+        const shop = shopsList.find(s => s.id === entry.shop_id);
         const entryImages = imagesData.filter(img => img.gd_entry_id === entry.id);
         const customerTypeValue = stdValue(cvIndex, entry.id, 'customer_type');
 
@@ -251,7 +252,7 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
 
       const snapshot: ReportsSnapshot = {
         entries: enrichedEntries,
-        shops: shopsRes.data,
+        shops: shopsList,
         categoryOptions: stdOptions(cvIndex, 'category'),
         sizeOptions: stdOptions(cvIndex, 'size'),
         customerTypeOptions: stdOptions(cvIndex, 'customer_type'),
