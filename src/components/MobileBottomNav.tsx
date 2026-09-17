@@ -1,8 +1,8 @@
 
 import { Button } from '@/components/ui/button';
-import { BarChart3, Plus, Settings, FileText, Shield, MessageCircle } from 'lucide-react';
+import { BarChart3, Plus, Settings, FileText, Shield, MessageCircle, ClipboardList } from 'lucide-react';
 
-type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'followups' | 'super_admin';
+type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'followups' | 'requirements' | 'super_admin';
 
 interface MobileBottomNavProps {
   activeTab: ActiveTab;
@@ -10,9 +10,11 @@ interface MobileBottomNavProps {
   isAdmin: boolean;
   isManager?: boolean;
   isSuperAdmin?: boolean;
+  showRequirements?: boolean;
+  isWarehouse?: boolean;
 }
 
-export const MobileBottomNav = ({ activeTab, setActiveTab, isAdmin, isManager, isSuperAdmin }: MobileBottomNavProps) => {
+export const MobileBottomNav = ({ activeTab, setActiveTab, isAdmin, isManager, isSuperAdmin, showRequirements, isWarehouse }: MobileBottomNavProps) => {
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border">
       <div className="flex justify-around items-center py-2 px-4">
@@ -32,10 +34,18 @@ export const MobileBottomNav = ({ activeTab, setActiveTab, isAdmin, isManager, i
         {/* Regular users */}
         {!isSuperAdmin && (
           <>
-            <Button variant={activeTab === 'gd' ? 'default' : 'ghost'} onClick={() => setActiveTab('gd')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
-              <Plus className="h-4 w-4" /><span className="text-xs">Log</span>
-            </Button>
+            {!isWarehouse && (
+              <Button variant={activeTab === 'gd' ? 'default' : 'ghost'} onClick={() => setActiveTab('gd')}
+                className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
+                <Plus className="h-4 w-4" /><span className="text-xs">Log</span>
+              </Button>
+            )}
+            {showRequirements && (
+              <Button variant={activeTab === 'requirements' ? 'default' : 'ghost'} onClick={() => setActiveTab('requirements')}
+                className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
+                <ClipboardList className="h-4 w-4" /><span className="text-xs">Stock</span>
+              </Button>
+            )}
             {(isAdmin || isManager) && (
               <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} onClick={() => setActiveTab('dashboard')}
                 className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">

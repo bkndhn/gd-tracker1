@@ -9,6 +9,7 @@ import { WhatsAppFollowUpSettings } from '@/components/admin/WhatsAppFollowUpSet
 import { WhatsAppIntakeSettings } from '@/components/admin/WhatsAppIntakeSettings';
 import { WhatsAppWebhookMonitor } from '@/components/admin/WhatsAppWebhookMonitor';
 import { CustomFieldManagement } from '@/components/admin/CustomFieldManagement';
+import { RequirementSettings } from '@/components/admin/RequirementSettings';
 import { ExportSettings } from '@/components/admin/ExportSettings';
 import { ScoringModelSettings } from '@/components/admin/ScoringModelSettings';
 import { DigestScheduleSettings } from '@/components/admin/DigestScheduleSettings';
@@ -100,6 +101,9 @@ export const AdminPanel = () => {
       <UserManagement shops={shops} profiles={profiles} onRefresh={fetchData} />
 
       <CustomFieldManagement />
+
+      <RequirementSettings />
+
 
       <ScoringModelSettings />
 
