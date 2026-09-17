@@ -1,7 +1,8 @@
 import { ReactNode, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, Package, User, Moon, Sun, Languages } from 'lucide-react';
+import { LogOut, Package, User, Moon, Sun, Languages, Download, CheckCircle2 } from 'lucide-react';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { toast } from 'sonner';
 import { NotificationBell } from './NotificationBell';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
@@ -32,6 +33,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const { profile, signOut, isSuperAdmin, isAdmin, isManager } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang, t } = useTranslation();
+  const { canInstall, isInstalled, promptInstall } = usePWAInstall();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -97,6 +99,18 @@ export const Layout = ({ children }: LayoutProps) => {
               <NotificationBell />
               <WhatsNew />
               
+              {!isInstalled && canInstall && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => promptInstall()}
+                  className="hidden lg:flex items-center gap-1.5 text-xs h-9 border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>Install App</span>
+                </Button>
+              )}
+
               <Button
                 variant="outline"
                 size="sm"
@@ -136,6 +150,37 @@ export const Layout = ({ children }: LayoutProps) => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+
+                  {!isInstalled && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => promptInstall()}
+                        className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer text-primary focus:text-primary focus:bg-primary/10"
+                      >
+                        <span className="flex items-center gap-2 text-xs font-semibold">
+                          <Download className="h-4 w-4" />
+                          Install App on Phone
+                        </span>
+                        <Badge variant="secondary" className="text-[10px] bg-primary/15 text-primary border-0 font-bold">
+                          PWA
+                        </Badge>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+
+                  {isInstalled && (
+                    <>
+                      <div className="flex items-center justify-between px-2 py-1.5 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          App Installed
+                        </span>
+                        <span className="text-[10px] font-mono opacity-70">PWA Active</span>
+                      </div>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
 
                   <DropdownMenuItem
                     onClick={toggleTheme}

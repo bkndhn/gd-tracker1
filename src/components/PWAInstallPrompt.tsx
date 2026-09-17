@@ -1,125 +1,122 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
-import { X, Download, Share } from 'lucide-react';
+import { X, Download, Share, Smartphone, PlusSquare, Check } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
-const DISMISS_KEY = 'pwa-install-dismissed-at';
-const DISMISS_DAYS = 7;
+export const PWAInstallPrompt: React.FC = () => {
+  const {
+    isInstalled,
+    isIOS,
+    promptInstall,
+    initialPromptVisible,
+    dismissInitialPrompt,
+    iosModalOpen,
+    setIosModalOpen,
+  } = usePWAInstall();
 
-const isStandalone = () =>
-  typeof window !== 'undefined' &&
-  (window.matchMedia?.('(display-mode: standalone)').matches ||
-    // @ts-ignore - iOS Safari
-    window.navigator.standalone === true);
+  if (isInstalled) return null;
 
-const isIOS = () =>
-  typeof navigator !== 'undefined' &&
-  /iphone|ipad|ipod/i.test(navigator.userAgent) &&
-  !/crios|fxios|edgios/i.test(navigator.userAgent);
-
-const wasRecentlyDismissed = () => {
-  try {
-    const ts = localStorage.getItem(DISMISS_KEY);
-    if (!ts) return false;
-    const ageMs = Date.now() - Number(ts);
-    return ageMs < DISMISS_DAYS * 86_400_000;
-  } catch {
-    return false;
-  }
-};
-
-export const PWAInstallPrompt = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [iosHint, setIosHint] = useState(false);
-
-  useEffect(() => {
-    if (isStandalone() || wasRecentlyDismissed()) return;
-
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowPrompt(true);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-
-    // iOS Safari has no beforeinstallprompt — show a manual hint once
-    if (isIOS()) {
-      const t = setTimeout(() => setIosHint(true), 4000);
-      return () => {
-        clearTimeout(t);
-        window.removeEventListener('beforeinstallprompt', handler);
-      };
-    }
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted' || outcome === 'dismissed') {
-      setDeferredPrompt(null);
-      setShowPrompt(false);
-      try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
-    }
-  };
-
-  const handleDismiss = () => {
-    setShowPrompt(false);
-    setIosHint(false);
-    setDeferredPrompt(null);
-    try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
-  };
-
-  if (showPrompt && deferredPrompt) {
-    return (
-      <div className="fixed bottom-20 md:bottom-6 left-3 right-3 md:left-auto md:right-6 md:w-96 z-50 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl shadow-2xl border border-primary-foreground/10">
-        <div className="flex items-center justify-between gap-3 p-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="rounded-full bg-primary-foreground/15 p-2 shrink-0">
-              <Download className="h-5 w-5" />
+  return (
+    <>
+      {/* Floating Initial Banner for Non-Installed Phones */}
+      {initialPromptVisible && (
+        <div className="fixed bottom-24 inset-x-4 max-w-sm mx-auto md:bottom-6 md:right-6 md:left-auto md:w-96 z-40 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-card/95 dark:bg-card/95 backdrop-blur-xl border border-border/80 shadow-[0_16px_36px_-6px_rgba(0,0,0,0.28)] ring-1 ring-black/5 dark:ring-white/10">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary to-primary/80 flex items-center justify-center text-primary-foreground shadow-md shadow-primary/25 shrink-0">
+                <Smartphone className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs sm:text-sm font-semibold text-foreground truncate">
+                  Install GD Tracker App
+                </h4>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  Fast 0ms load • Works 100% offline
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <div className="text-sm font-semibold">Install Lost Sale Insights</div>
-              <div className="text-xs opacity-90 truncate">Faster, works offline, native feel</div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                size="sm"
+                onClick={promptInstall}
+                className="h-8 px-3 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+              >
+                {isIOS ? 'How to Add' : 'Install'}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={dismissInitialPrompt}
+                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
+                aria-label="Dismiss install prompt"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button size="sm" variant="secondary" onClick={handleInstall} className="text-xs h-8">Install</Button>
-            <Button size="icon" variant="ghost" onClick={handleDismiss}
-              className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/15">
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  if (iosHint) {
-    return (
-      <div className="fixed bottom-20 md:bottom-6 left-3 right-3 md:left-auto md:right-6 md:w-96 z-50 bg-card text-card-foreground rounded-2xl shadow-2xl border border-border">
-        <div className="flex items-start justify-between gap-3 p-4">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="rounded-full bg-primary/15 text-primary p-2 shrink-0">
-              <Share className="h-5 w-5" />
+      {/* iOS Step-by-Step Installation Dialog */}
+      <Dialog open={iosModalOpen} onOpenChange={setIosModalOpen}>
+        <DialogContent className="max-w-sm rounded-2xl p-6 sm:max-w-md">
+          <DialogHeader className="text-left space-y-2">
+            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-1">
+              <Smartphone className="h-6 w-6" />
             </div>
-            <div className="min-w-0 text-sm">
-              <div className="font-semibold">Install on iPhone</div>
-              <div className="text-muted-foreground text-xs mt-1">
-                Tap <Share className="inline h-3 w-3 mx-0.5" /> Share, then
-                <span className="font-medium"> "Add to Home Screen"</span>.
+            <DialogTitle className="text-base sm:text-lg font-bold">
+              Install on iPhone or iPad
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+              Follow these simple steps in Safari to add GD Tracker to your Home Screen:
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3.5 my-2">
+            <div className="flex items-start gap-3 p-2.5 rounded-xl bg-muted/50 border border-border/50">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                1
+              </span>
+              <div className="text-xs text-foreground leading-relaxed">
+                Tap the <span className="font-semibold inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-background border text-primary"><Share className="h-3 w-3" /> Share</span> button at the bottom of Safari.
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-2.5 rounded-xl bg-muted/50 border border-border/50">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                2
+              </span>
+              <div className="text-xs text-foreground leading-relaxed">
+                Scroll down and tap <span className="font-semibold inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-background border"><PlusSquare className="h-3 w-3 text-foreground" /> Add to Home Screen</span>.
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-2.5 rounded-xl bg-muted/50 border border-border/50">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                3
+              </span>
+              <div className="text-xs text-foreground leading-relaxed">
+                Tap <span className="font-semibold text-primary">Add</span> in the top right corner. The app icon will appear on your phone home screen!
               </div>
             </div>
           </div>
-          <Button size="icon" variant="ghost" onClick={handleDismiss} className="h-8 w-8 shrink-0">
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
-  return null;
+          <Button
+            onClick={() => setIosModalOpen(false)}
+            className="w-full rounded-xl mt-2 font-medium"
+          >
+            Got It
+          </Button>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 };
