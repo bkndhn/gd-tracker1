@@ -54,6 +54,8 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
     password: '',
     role: 'user',
     shop_id: 'none',
+    warehouse_all_shops: true,
+    warehouse_shop_ids: [] as string[],
   });
 
   useEffect(() => {
@@ -119,8 +121,12 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
       toast.error('Password does not meet requirements: ' + pwValidation.errors.join(', '));
       return;
     }
-    if (newUser.shop_id === 'none') {
+    if (newUser.role !== 'warehouse' && newUser.shop_id === 'none') {
       toast.error('Please select a shop');
+      return;
+    }
+    if (newUser.role === 'warehouse' && !newUser.warehouse_all_shops && newUser.warehouse_shop_ids.length === 0) {
+      toast.error('Pick at least one shop for this warehouse staff member');
       return;
     }
 
