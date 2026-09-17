@@ -1,10 +1,12 @@
 import { ReactNode, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, Package, User, Moon, Sun, Languages, Download, CheckCircle2, Lock } from 'lucide-react';
+import { LogOut, Package, User, Moon, Sun, Languages, Download, CheckCircle2, Lock, Bell } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { toast } from 'sonner';
 import { NotificationBell } from './NotificationBell';
+import { NotificationPromptBanner } from './NotificationPromptBanner';
+import { NotificationSettingsModal } from './NotificationSettingsModal';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
@@ -38,6 +40,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const { canInstall, isInstalled, promptInstall } = usePWAInstall();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
   const [isLocked, setIsLocked] = useState(() => isScreenLocked());
 
@@ -214,6 +217,19 @@ export const Layout = ({ children }: LayoutProps) => {
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem
+                    onClick={() => setShowNotificationSettings(true)}
+                    className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2 text-xs font-medium text-foreground">
+                      <Bell className="h-4 w-4 text-primary" />
+                      Alert Settings
+                    </span>
+                    <Badge variant="outline" className="text-[10px] font-mono">
+                      Push &amp; Sound
+                    </Badge>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
                     onClick={lockNow}
                     className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer"
                   >
@@ -240,10 +256,17 @@ export const Layout = ({ children }: LayoutProps) => {
         </div>
         <div className="h-[2px] w-full bg-gradient-to-r from-primary via-accent to-secondary opacity-70" />
       </nav>
+
+      <NotificationPromptBanner />
       
       <main className="max-w-7xl mx-auto py-3 sm:py-6 px-3 sm:px-4 lg:px-8 w-full min-w-0 pb-28 md:pb-8">
         {children}
       </main>
+
+      <NotificationSettingsModal
+        open={showNotificationSettings}
+        onOpenChange={setShowNotificationSettings}
+      />
 
       <DeleteConfirmationDialog
         open={showLogoutConfirm}

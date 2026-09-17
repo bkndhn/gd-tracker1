@@ -27,6 +27,7 @@ import { useFieldLabels } from '@/hooks/useFieldLabels';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { TopFixesCard } from './TopFixesCard';
 import { StockGapReport } from './StockGapReport';
+import { PredictiveReorderPanel } from './PredictiveReorderPanel';
 import { useFollowUps } from '@/hooks/useFollowUps';
 import { useCustomValueIndex, stdValue, stdOptions } from '@/hooks/useEntryCustomValues';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
@@ -705,6 +706,9 @@ export const Dashboard = () => {
     stock_gap: allEntries && allEntries.length > 0 ? (
       <div className="mt-6"><StockGapReport entries={allEntries as any} onDrill={openDrill} /></div>
     ) : null,
+    predictive: allEntries && allEntries.length > 0 ? (
+      <div className="mt-6"><PredictiveReorderPanel entries={allEntries as any} /></div>
+    ) : null,
     charts: showCharts && allEntries && allEntries.length > 0 ? (
       <div className="mt-6"><AnalyticsCharts entries={allEntries} /></div>
     ) : null,
@@ -721,7 +725,7 @@ export const Dashboard = () => {
     <div className="space-y-6 pb-6">
       <Tabs defaultValue="visits" className="w-full space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b">
-          <TabsList className="grid w-full sm:w-auto grid-cols-2 p-1.5 bg-muted/60 border rounded-xl gap-1.5 h-auto">
+          <TabsList className="grid w-full sm:w-auto grid-cols-3 p-1.5 bg-muted/60 border rounded-xl gap-1.5 h-auto">
             <TabsTrigger
               value="visits"
               className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
@@ -736,11 +740,22 @@ export const Dashboard = () => {
               <ClipboardList className="h-4 w-4 text-amber-500 group-data-[state=active]:text-white transition-colors" />
               <span className="font-semibold">Requirements Status</span>
             </TabsTrigger>
+            <TabsTrigger
+              value="predictive"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-violet-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+            >
+              <Sparkles className="h-4 w-4 text-violet-500 group-data-[state=active]:text-white transition-colors" />
+              <span className="font-semibold">AI Demand &amp; Re-orders</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="warehouse" className="space-y-4">
           <WarehouseDashboard />
+        </TabsContent>
+
+        <TabsContent value="predictive" className="space-y-4">
+          <PredictiveReorderPanel entries={allEntries as any} />
         </TabsContent>
 
         <TabsContent value="visits" className="space-y-4">

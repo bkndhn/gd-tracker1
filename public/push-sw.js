@@ -3,38 +3,88 @@
 
 const ICON = '/lovable-uploads/d9731f6e-4026-4be4-aaf0-1a401d8ba7be.png';
 
-self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'New visit logged', {
-      body: data.body || 'A new visit entry has been added',
+const EVENT_TITLES = {
+  STOCK_REQUIREMENT_NEW: '🚨 Urgent Stock Request',
+  STOCK_DISPATCHED: '🚚 Stock Dispatched',
+  STOCK_RECEIVED: '📦 Stock Arrived at Counter',
+  FOLLOW_UP_DUE: '📞 Customer Follow-up Reminder',
+  REORDER_ALERT: '⚠️ Low Stock & Demand Alert',
+  TEST_ALERT: '🔔 Push Notifications Active',
+  NEW_GD_ENTRY: '📝 New Lost Visit Logged',
+};
+
+function buildNotificationOptions(data) {
+  const eventType = data.type || 'NEW_GD_ENTRY';
+  const defaultTitle = EVENT_TITLES[eventType] || 'Store Notification';
+  const title = data.title || defaultTitle;
+  const body = data.body || 'A new store event requires your attention';
+  const url = data.url || '/';
+
+  return {
+    title,
+    options: {
+      body,
       icon: ICON,
       badge: ICON,
-      data: data.url || '/',
-      requireInteraction: true,
-      tag: 'gd-notification',
+      data: { url, eventType },
+      requireInteraction: data.requireInteraction !== false,
+      tag: `gd-${eventType.toLowerCase()}-${Date.now()}`,
       renotify: true,
-    })
-  );
+      vibrate: [200, 100, 200, 100, 300],
+      actions: [
+        { action: 'open_view', title: 'Open View' },
+        { action: 'dismiss', title: 'Dismiss' },
+      ],
+    },
+  };
+}
+
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+  const { title, options } = buildNotificationOptions(data);
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data || '/'));
+
+  if (event.action === 'dismiss') return;
+
+  const targetUrl = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // If a tab is already open, focus it and navigate
+      for (const client of windowClients) {
+        if ('focus' in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      // Otherwise open a new window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
 });
 
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'NEW_GD_ENTRY') {
-    const { title, body, url } = event.data;
-    self.registration.showNotification(title || 'New visit logged', {
-      body: body || 'A new visit entry has been added',
-      icon: ICON,
-      badge: ICON,
-      data: url || '/',
-      requireInteraction: true,
-      tag: 'gd-notification',
-      renotify: true,
-    });
+  if (!event.data) return;
+  const { type } = event.data;
+
+  // Handle all supported in-app notification types
+  if (
+    type === 'NEW_GD_ENTRY' ||
+    type === 'STOCK_REQUIREMENT_NEW' ||
+    type === 'STOCK_DISPATCHED' ||
+    type === 'STOCK_RECEIVED' ||
+    type === 'FOLLOW_UP_DUE' ||
+    type === 'REORDER_ALERT' ||
+    type === 'TEST_ALERT'
+  ) {
+    const { title, options } = buildNotificationOptions(event.data);
+    self.registration.showNotification(title, options);
   }
 });
 

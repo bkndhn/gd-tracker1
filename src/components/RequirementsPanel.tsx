@@ -25,6 +25,7 @@ import {
 import {
   PackagePlus, Filter, Search, Truck, PackageCheck, CheckCircle2, XCircle,
   ClipboardList, Warehouse, Printer, Download, FileText, FileSpreadsheet, User, RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import { formatISTDateTime, formatISTShort } from '@/lib/dateUtils';
 import {
@@ -34,6 +35,8 @@ import {
   exportFulfillmentSheetToCSV,
 } from '@/lib/manualFulfillmentSheet';
 import { toast } from 'sonner';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { PredictiveReorderPanel } from './PredictiveReorderPanel';
 
 const STATUS_TONE: Record<string, string> = {
   requested: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
@@ -46,6 +49,7 @@ const STATUS_TONE: Record<string, string> = {
 export const RequirementsPanel = () => {
   const { t } = useTranslation();
   const { profile, user } = useAuth();
+  const { notifyNewRequirement, notifyDispatched, notifyReceived } = usePushNotifications();
   const p = profile as any;
   const role = p?.role as string | undefined;
   const isWarehouse = role === 'warehouse';
@@ -311,6 +315,12 @@ export const RequirementsPanel = () => {
       custom_values: customFormValues,
     });
     if (ok) {
+      notifyNewRequirement({
+        size: form.size.trim(),
+        quantity: Number(form.quantity),
+        shop_name: visibleShops.find(s => s.id === form.shop_id)?.name,
+        urgency: form.urgency,
+      });
       setForm(f => ({ ...f, size: '', category: '', quantity: 1, urgency: 'normal', note: '' }));
       setCustomFormValues({});
     }
@@ -329,7 +339,14 @@ export const RequirementsPanel = () => {
       packed_qty: actionQty === '' ? null : Number(actionQty),
       note: actionNote.trim() || null,
     });
-    if (ok) setAction(null);
+    if (ok) {
+      if (action.to === 'moved') {
+        notifyDispatched({ count: 1, shop_name: action.req.shop_name });
+      } else if (action.to === 'received') {
+        notifyReceived({ size: action.req.size, shop_name: action.req.shop_name });
+      }
+      setAction(null);
+    }
   };
 
   const canFulfil = (r: StockRequirement) => isWarehouse || isAdmin;
@@ -341,7 +358,7 @@ export const RequirementsPanel = () => {
   return (
     <div className="space-y-4">
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 p-1.5 bg-muted/60 border rounded-xl gap-1.5 h-auto">
+        <TabsList className="grid w-full grid-cols-3 p-1.5 bg-muted/60 border rounded-xl gap-1.5 h-auto">
           <TabsTrigger
             value="raise"
             className="group flex items-center justify-center gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
@@ -358,6 +375,13 @@ export const RequirementsPanel = () => {
             <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 group-data-[state=active]:bg-white/25 group-data-[state=active]:text-white font-bold">
               {filtered.length}
             </span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="predictive"
+            className="group flex items-center justify-center gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-violet-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+          >
+            <Sparkles className="h-4 w-4 text-violet-500 group-data-[state=active]:text-white transition-colors" />
+            <span className="font-semibold">AI Demand</span>
           </TabsTrigger>
         </TabsList>
 
@@ -842,6 +866,9 @@ export const RequirementsPanel = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="predictive" className="mt-4">
+          <PredictiveReorderPanel />
         </TabsContent>
       </Tabs>
 
