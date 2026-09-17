@@ -85,13 +85,16 @@ export const MainApp = () => {
       if (activeTab !== 'super_admin') {
         setActiveTab('super_admin');
       }
-    } else if (!isAdmin && !isManager && activeTab !== 'gd') {
+    } else if (!isAdmin && !isManager && activeTab !== 'gd' && activeTab !== 'requirements') {
       setActiveTab('gd');
+    }
+    if (isWarehouse && activeTab !== 'requirements' && requirementsEnabled) {
+      setActiveTab('requirements');
     }
     if (isManager && !isAdmin && activeTab === 'admin') {
       setActiveTab('dashboard');
     }
-  }, [isAdmin, isManager, isSuperAdmin, activeTab]);
+  }, [isAdmin, isManager, isSuperAdmin, activeTab, isWarehouse, requirementsEnabled]);
 
   // Auto-focus notes input when switching to the log-visit tab
   useEffect(() => {
@@ -140,6 +143,10 @@ export const MainApp = () => {
       case 'followups':
         return (isAdmin || isManager) && !isSuperAdmin ? (
           <ErrorBoundary boundary="FollowUpPanel"><Suspense fallback={<LoadingSpinner />}><FollowUpPanel /></Suspense></ErrorBoundary>
+        ) : <div className="text-center text-muted-foreground">Access denied</div>;
+      case 'requirements':
+        return requirementsEnabled && !isSuperAdmin ? (
+          <ErrorBoundary boundary="RequirementsPanel"><Suspense fallback={<LoadingSpinner />}><RequirementsPanel /></Suspense></ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'reports':
         return (isAdmin || isManager) && !isSuperAdmin ? (
