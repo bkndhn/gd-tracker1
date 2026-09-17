@@ -3,32 +3,21 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { brokeredPreviewStorage } from './previewAuthStorage';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL ||
+  "https://jlmkvvhmtpuplnpunbhc.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  const missing = [
-    !SUPABASE_URL && 'VITE_SUPABASE_URL',
-    !SUPABASE_PUBLISHABLE_KEY && 'VITE_SUPABASE_PUBLISHABLE_KEY / VITE_SUPABASE_ANON_KEY',
-  ]
-    .filter(Boolean)
-    .join(', ');
-
-  console.error(
-    `[Security / Configuration Alert]: Missing required environment variable(s): ${missing}. ` +
-      `Ensure .env or hosting platform environment variables are properly set.`
-  );
-}
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsbWt2dmhtdHB1cGxucHVuYmhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzI4MzYsImV4cCI6MjA5NTQ0ODgzNn0.Se-a_ZydTdV6EIt5X6IUumJhJBS7wr3fcCVrVqUdqbs";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(
-  SUPABASE_URL || '',
-  SUPABASE_PUBLISHABLE_KEY || '',
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY,
   {
     auth: {
       storage: brokeredPreviewStorage(),
