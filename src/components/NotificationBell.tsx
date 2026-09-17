@@ -53,57 +53,68 @@ export const NotificationBell = () => {
   useEffect(() => {
     if (!isAdmin && !isManager) return;
 
-    const channel = supabase
-      .channel('gd-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'goods_damaged_entries'
-        },
-        async (payload) => {
-          if (import.meta.env.DEV) console.log('New lost sale notification:', payload);
-          
-          const newEntry = payload.new as any;
-          
-          // For managers, only show notifications for their shop
-          if (isManager && userShopId && newEntry.shop_id !== userShopId) {
-            return;
+    const channelName = `notif_${userShopId || 'all'}_${Math.random().toString(36).substring(2, 9)}`;
+    let channel: any = null;
+
+    try {
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'goods_damaged_entries'
+          },
+          async (payload) => {
+            if (import.meta.env.DEV) console.log('New lost sale notification:', payload);
+            
+            const newEntry = payload.new as any;
+            
+            // For managers, only show notifications for their shop
+            if (isManager && userShopId && newEntry.shop_id !== userShopId) {
+              return;
+            }
+            
+            // Fetch related shop and category names
+            const [shopRes, categoryRes] = await Promise.all([
+              supabase.from('shops').select('name').eq('id', newEntry.shop_id).single(),
+              supabase.from('categories').select('name').eq('id', newEntry.category_id).single()
+            ]);
+            
+            const shopName = shopRes.data?.name || 'Unknown Shop';
+            const categoryName = categoryRes.data?.name || 'Unknown Category';
+            
+            const notification: Notification = {
+              id: newEntry.id,
+              message: `New lost sale: ${categoryName}`,
+              shopName,
+              categoryName,
+              timestamp: new Date(newEntry.created_at),
+              read: false
+            };
+            
+            setNotifications(prev => [notification, ...prev].slice(0, 50)); // Keep last 50
+            playNotificationSound();
+            
+            // Show toast notification
+            toast.info(`New lost sale from ${shopName}`, {
+              description: categoryName,
+              duration: 4000,
+            });
           }
-          
-          // Fetch related shop and category names
-          const [shopRes, categoryRes] = await Promise.all([
-            supabase.from('shops').select('name').eq('id', newEntry.shop_id).single(),
-            supabase.from('categories').select('name').eq('id', newEntry.category_id).single()
-          ]);
-          
-          const shopName = shopRes.data?.name || 'Unknown Shop';
-          const categoryName = categoryRes.data?.name || 'Unknown Category';
-          
-          const notification: Notification = {
-            id: newEntry.id,
-            message: `New lost sale: ${categoryName}`,
-            shopName,
-            categoryName,
-            timestamp: new Date(newEntry.created_at),
-            read: false
-          };
-          
-          setNotifications(prev => [notification, ...prev].slice(0, 50)); // Keep last 50
-          playNotificationSound();
-          
-          // Show toast notification
-          toast.info(`New lost sale from ${shopName}`, {
-            description: categoryName,
-            duration: 4000,
-          });
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('NotificationBell realtime error', err);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {}
+      }
     };
   }, [isAdmin, isManager, userShopId]);
 

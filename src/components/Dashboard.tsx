@@ -349,24 +349,35 @@ export const Dashboard = () => {
   useEffect(() => {
     if (!profile || !isAdmin) return;
 
-    const channel = supabase
-      .channel('dashboard-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'goods_damaged_entries'
-        },
-        () => {
-          if (import.meta.env.DEV) console.log('visit entry changed, refreshing dashboard...');
-          refetch();
-        }
-      )
-      .subscribe();
+    const channelName = `dash_${profile.id}_${Math.random().toString(36).substring(2, 9)}`;
+    let channel: any = null;
+
+    try {
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'goods_damaged_entries'
+          },
+          () => {
+            if (import.meta.env.DEV) console.log('visit entry changed, refreshing dashboard...');
+            refetch();
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('Dashboard realtime error', err);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {}
+      }
     };
   }, [profile, isAdmin, refetch]);
 

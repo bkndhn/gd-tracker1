@@ -175,14 +175,28 @@ export const SuperAdminDashboard = () => {
   }, []);
 
   useEffect(() => {
-    const channel = supabase
-      .channel('sa-profiles-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shops' }, () => fetchData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'goods_damaged_entries' }, () => fetchData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'gd_entry_images' }, () => fetchData())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const channelName = `sa_rt_${Math.random().toString(36).substring(2, 9)}`;
+    let channel: any = null;
+
+    try {
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'shops' }, () => fetchData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'goods_damaged_entries' }, () => fetchData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'gd_entry_images' }, () => fetchData())
+        .subscribe();
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('SuperAdminDashboard realtime error', err);
+    }
+
+    return () => {
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {}
+      }
+    };
   }, [fetchData]);
 
   const admins = useMemo(() => allProfiles.filter(p => p.role === 'admin'), [allProfiles]);

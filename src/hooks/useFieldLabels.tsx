@@ -69,17 +69,25 @@ export const useFieldLabels = () => {
 
   useEffect(() => {
     if (!adminId) return;
-    const chSettings = supabase
-      .channel(`field-labels-settings-${adminId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings', filter: `admin_id=eq.${adminId}` }, () => load())
-      .subscribe();
-    const chFields = supabase
-      .channel(`field-labels-fields-${adminId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_fields', filter: `admin_id=eq.${adminId}` }, () => load())
-      .subscribe();
+    const channelName = `fl_${adminId}_${Math.random().toString(36).substring(2, 9)}`;
+    let channel: any = null;
+
+    try {
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings', filter: `admin_id=eq.${adminId}` }, () => load())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_fields', filter: `admin_id=eq.${adminId}` }, () => load())
+        .subscribe();
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('useFieldLabels realtime subscription error', err);
+    }
+
     return () => {
-      supabase.removeChannel(chSettings);
-      supabase.removeChannel(chFields);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {}
+      }
     };
   }, [adminId, load]);
 

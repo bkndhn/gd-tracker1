@@ -62,43 +62,52 @@ export const useRealtimeSync = ({
   useEffect(() => {
     if (!enabled) return;
 
-    const channel = supabase.channel('realtime-sync', {
-      config: { broadcast: { self: true } },
-    });
+    const channelName = `rt_sync_${Math.random().toString(36).substring(2, 9)}`;
+    let channel: any = null;
 
-    tables.forEach((table) => {
-      channel.on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table },
-        (payload) => {
-          if (import.meta.env.DEV) console.log(`Realtime update on ${table}:`, payload.eventType);
-          
-          if (table === 'profiles') {
-            if (payload.eventType === 'DELETE') {
-              const deletedId = (payload.old as any)?.id;
-              if (deletedId && onProfileDeleted) onProfileDeleted(deletedId);
-            } else if (payload.eventType === 'UPDATE') {
-              const updatedProfile = payload.new as any;
-              if (updatedProfile?.deleted_at && onProfileDeleted) {
-                onProfileDeleted(updatedProfile.id);
-              }
-              if (updatedProfile?.status === 'paused' && onProfilePaused) {
-                onProfilePaused(updatedProfile.id, updatedProfile.admin_id);
+    try {
+      channel = supabase.channel(channelName, {
+        config: { broadcast: { self: true } },
+      });
+
+      tables.forEach((table) => {
+        channel.on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table },
+          (payload: any) => {
+            if (import.meta.env.DEV) console.log(`Realtime update on ${table}:`, payload.eventType);
+            
+            if (table === 'profiles') {
+              if (payload.eventType === 'DELETE') {
+                const deletedId = (payload.old as any)?.id;
+                if (deletedId && onProfileDeleted) onProfileDeleted(deletedId);
+              } else if (payload.eventType === 'UPDATE') {
+                const updatedProfile = payload.new as any;
+                if (updatedProfile?.deleted_at && onProfileDeleted) {
+                  onProfileDeleted(updatedProfile.id);
+                }
+                if (updatedProfile?.status === 'paused' && onProfilePaused) {
+                  onProfilePaused(updatedProfile.id, updatedProfile.admin_id);
+                }
               }
             }
+            
+            invalidateQueries(table);
           }
-          
-          invalidateQueries(table);
-        }
-      );
-    });
+        );
+      });
 
-    channel.subscribe();
-    channelRef.current = channel;
+      channel.subscribe();
+      channelRef.current = channel;
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('useRealtimeSync error', err);
+    }
 
     return () => {
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch {}
         channelRef.current = null;
       }
     };
