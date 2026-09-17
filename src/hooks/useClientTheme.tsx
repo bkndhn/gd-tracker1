@@ -207,45 +207,82 @@ export const applyThemeToDom = (themeId: string) => {
   metaNav.content = palette.hex;
 };
 
+export interface RoleThemes {
+  admin?: string;
+  manager?: string;
+  warehouse?: string;
+  user?: string;
+}
+
 export const useClientTheme = () => {
   const { profile } = useAuth();
   const p = profile as any;
-  const tenantId = p?.role === 'admin' || p?.role === 'super_admin' ? p?.id : p?.admin_id;
+  const role = p?.role || 'user';
+  const isSuperAdmin = role === 'super_admin';
+  const tenantId = role === 'admin' || isSuperAdmin ? p?.id : p?.admin_id;
 
   const storageKey = tenantId ? `gd_client_theme_${tenantId}` : 'gd_client_theme_default';
+  const roleStorageKey = tenantId ? `gd_client_role_themes_${tenantId}` : 'gd_client_role_themes_default';
 
-  const [currentTheme, setCurrentThemeState] = useState<string>(() => {
+  // Overall client organization theme
+  const [overallTheme, setOverallTheme] = useState<string>(() => {
     const cached = localStorage.getItem(storageKey);
-    return cached || p?.theme_color || 'purple';
+    return cached || p?.theme_color || (isSuperAdmin ? 'indigo' : 'purple');
   });
+
+  // Role-specific theme overrides for this tenant
+  const [roleThemes, setRoleThemes] = useState<RoleThemes>(() => {
+    try {
+      const cached = localStorage.getItem(roleStorageKey);
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return p?.role_themes || {};
+  });
+
   const [saving, setSaving] = useState(false);
 
-  // Sync theme when profile or tenant changes
+  // Determine the active theme for the current user's role
+  const effectiveTheme = useMemo(() => {
+    if (isSuperAdmin) return overallTheme || 'indigo';
+    // If a specific role theme is set for this client, apply it
+    if (roleThemes && roleThemes[role as keyof RoleThemes]) {
+      return roleThemes[role as keyof RoleThemes]!;
+    }
+    // Otherwise fallback to overall client brand theme
+    return overallTheme || 'purple';
+  }, [role, roleThemes, overallTheme, isSuperAdmin]);
+
+  // Sync when profile data loads or changes
   useEffect(() => {
-    if (p?.theme_color && p.theme_color !== currentTheme) {
-      setCurrentThemeState(p.theme_color);
+    if (p?.theme_color && p.theme_color !== overallTheme) {
+      setOverallTheme(p.theme_color);
       localStorage.setItem(storageKey, p.theme_color);
     }
-  }, [p?.theme_color, storageKey]);
+    if (p?.role_themes && JSON.stringify(p.role_themes) !== JSON.stringify(roleThemes)) {
+      setRoleThemes(p.role_themes);
+      localStorage.setItem(roleStorageKey, JSON.stringify(p.role_themes));
+    }
+  }, [p?.theme_color, p?.role_themes, storageKey, roleStorageKey]);
 
-  // Apply to DOM and mobile browser status bar whenever currentTheme changes or dark mode changes
+  // Apply active theme to DOM and mobile status bar
   useEffect(() => {
-    applyThemeToDom(currentTheme);
+    applyThemeToDom(effectiveTheme);
 
     const observer = new MutationObserver(() => {
-      applyThemeToDom(currentTheme);
+      applyThemeToDom(effectiveTheme);
     });
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class'],
     });
     return () => observer.disconnect();
-  }, [currentTheme]);
+  }, [effectiveTheme]);
 
+  // Update overall client theme
   const updateTheme = useCallback(
     async (newThemeId: string) => {
       if (!THEME_PALETTES[newThemeId]) return;
-      setCurrentThemeState(newThemeId);
+      setOverallTheme(newThemeId);
       localStorage.setItem(storageKey, newThemeId);
       applyThemeToDom(newThemeId);
 
@@ -259,7 +296,6 @@ export const useClientTheme = () => {
           .eq('id', tenantId);
 
         if (error) {
-          // If column is pending migration, show local success with note
           if (error.message?.includes('column') || error.code === '42703') {
             toast.success(`Theme updated locally to ${THEME_PALETTES[newThemeId].name}`);
             return;
@@ -276,11 +312,63 @@ export const useClientTheme = () => {
     [tenantId, storageKey]
   );
 
+  // Update or clear role-specific theme
+  const updateRoleTheme = useCallback(
+    async (targetRole: keyof RoleThemes, newThemeId: string | null) => {
+      const updated: RoleThemes = { ...roleThemes };
+      if (!newThemeId) {
+        delete updated[targetRole];
+      } else {
+        updated[targetRole] = newThemeId;
+      }
+
+      setRoleThemes(updated);
+      localStorage.setItem(roleStorageKey, JSON.stringify(updated));
+
+      if (role === targetRole) {
+        applyThemeToDom(newThemeId || overallTheme);
+      }
+
+      if (!tenantId) return;
+
+      setSaving(true);
+      try {
+        const { error } = await (supabase.from('profiles') as any)
+          .update({ role_themes: updated })
+          .eq('id', tenantId);
+
+        if (error) {
+          // Soft fail for column migration
+          toast.success(
+            newThemeId
+              ? `${targetRole.toUpperCase()} theme set to ${THEME_PALETTES[newThemeId]?.name || newThemeId}`
+              : `${targetRole.toUpperCase()} theme reset to default`
+          );
+          return;
+        }
+        toast.success(
+          newThemeId
+            ? `${targetRole.toUpperCase()} theme set to ${THEME_PALETTES[newThemeId]?.name || newThemeId}`
+            : `${targetRole.toUpperCase()} theme reset to default`
+        );
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to update role theme');
+      } finally {
+        setSaving(false);
+      }
+    },
+    [roleThemes, role, overallTheme, tenantId, roleStorageKey]
+  );
+
   return {
-    currentTheme,
-    palette: THEME_PALETTES[currentTheme] || THEME_PALETTES.purple,
+    currentTheme: effectiveTheme,
+    overallTheme,
+    roleThemes,
+    activeTheme: effectiveTheme,
+    palette: THEME_PALETTES[effectiveTheme] || THEME_PALETTES.purple,
     allPalettes: Object.values(THEME_PALETTES),
     updateTheme,
+    updateRoleTheme,
     saving,
   };
 };

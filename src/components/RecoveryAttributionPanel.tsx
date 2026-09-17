@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileSpreadsheet, FileText, IndianRupee, Trophy, TrendingDown, TrendingUp, LineChart as LineChartIcon } from 'lucide-react';
+import { FileSpreadsheet, FileText, IndianRupee, Trophy, TrendingDown, TrendingUp, LineChart as LineChartIcon, Users, Store, MessageSquare } from 'lucide-react';
 import {
   Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis,
 } from 'recharts';
@@ -404,11 +404,31 @@ export const RecoveryAttributionPanel = ({
 
       <Tabs defaultValue="staff">
 
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="staff">By staff</TabsTrigger>
-          <TabsTrigger value="shop">By shop</TabsTrigger>
-          <TabsTrigger value="template">By template</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto no-scrollbar pb-1">
+          <TabsList className="inline-flex sm:grid sm:grid-cols-3 h-auto p-1.5 gap-1.5 bg-muted/60 border rounded-xl min-w-max sm:min-w-0">
+            <TabsTrigger
+              value="staff"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-cyan-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+            >
+              <Users className="h-4 w-4 text-cyan-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+              <span>By staff</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="shop"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+            >
+              <Store className="h-4 w-4 text-emerald-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+              <span>By shop</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="template"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+            >
+              <MessageSquare className="h-4 w-4 text-amber-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+              <span>By template</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="staff" className="mt-3">{renderTable('staff')}</TabsContent>
         <TabsContent value="shop" className="mt-3">{renderTable('shop')}</TabsContent>
         <TabsContent value="template" className="mt-3">{renderTable('template')}</TabsContent>

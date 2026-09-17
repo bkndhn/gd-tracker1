@@ -311,9 +311,24 @@ export const RequirementsPanel = () => {
   return (
     <div className="space-y-4">
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="raise">{t('req.raise')}</TabsTrigger>
-          <TabsTrigger value="queue">{t('req.queue')} ({filtered.length})</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 p-1.5 bg-muted/60 border rounded-xl gap-1.5 h-auto">
+          <TabsTrigger
+            value="raise"
+            className="group flex items-center justify-center gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+          >
+            <PackagePlus className="h-4 w-4 text-indigo-500 group-data-[state=active]:text-white transition-colors" />
+            <span className="font-semibold">{t('req.raise')}</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="queue"
+            className="group flex items-center justify-center gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+          >
+            <ClipboardList className="h-4 w-4 text-amber-500 group-data-[state=active]:text-white transition-colors" />
+            <span className="font-semibold">{t('req.queue')}</span>
+            <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 group-data-[state=active]:bg-white/25 group-data-[state=active]:text-white font-bold">
+              {filtered.length}
+            </span>
+          </TabsTrigger>
         </TabsList>
 
         {/* ---------- Raise ---------- */}

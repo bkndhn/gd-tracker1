@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import {
-  BellRing, IndianRupee, MessageCircle, Target, TrendingUp, Trophy, User, Sparkles, RefreshCw,
+  BellRing, IndianRupee, MessageCircle, Target, TrendingUp, Trophy, User, Sparkles, RefreshCw, Clock, FileText,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -194,14 +194,56 @@ export const FollowUpPanel = () => {
         )}
       </div>
 
-      <Tabs defaultValue="reminders">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="reminders">Reminders</TabsTrigger>
-          <TabsTrigger value="log">Audit trail</TabsTrigger>
-          <TabsTrigger value="leaderboard">Leaderboards</TabsTrigger>
-          <TabsTrigger value="attribution">Revenue attribution</TabsTrigger>
-          {isAdmin && <TabsTrigger value="targets">Targets</TabsTrigger>}
-        </TabsList>
+      <Tabs defaultValue="attribution" className="space-y-4">
+        <div className="overflow-x-auto no-scrollbar pb-1">
+          <TabsList className="w-full inline-flex sm:grid sm:grid-cols-5 h-auto p-1.5 gap-1.5 bg-muted/60 border rounded-xl min-w-max sm:min-w-0">
+            <TabsTrigger
+              value="attribution"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+            >
+              <TrendingUp className="h-4 w-4 shrink-0 text-emerald-500 group-data-[state=active]:text-white transition-colors" />
+              <span>Revenue attribution</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="reminders"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+            >
+              <Clock className="h-4 w-4 shrink-0 text-amber-500 group-data-[state=active]:text-white transition-colors" />
+              <span>Reminders</span>
+              {dueReminders.length > 0 && (
+                <span className="ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 group-data-[state=active]:bg-white/25 group-data-[state=active]:text-white font-bold">
+                  {dueReminders.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="leaderboard"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+            >
+              <Trophy className="h-4 w-4 shrink-0 text-violet-500 group-data-[state=active]:text-white transition-colors" />
+              <span>Leaderboards</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="log"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+            >
+              <FileText className="h-4 w-4 shrink-0 text-blue-500 group-data-[state=active]:text-white transition-colors" />
+              <span>Audit trail</span>
+              <span className="ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-muted-foreground/15 text-foreground group-data-[state=active]:bg-white/25 group-data-[state=active]:text-white font-bold">
+                {rows.length}
+              </span>
+            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger
+                value="targets"
+                className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-rose-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-rose-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+              >
+                <Target className="h-4 w-4 shrink-0 text-rose-500 group-data-[state=active]:text-white transition-colors" />
+                <span>Targets</span>
+              </TabsTrigger>
+            )}
+          </TabsList>
+        </div>
 
         <TabsContent value="attribution" className="mt-3">
           <RecoveryAttributionPanel rows={rows} targets={targets} monthKey={monthKey} />

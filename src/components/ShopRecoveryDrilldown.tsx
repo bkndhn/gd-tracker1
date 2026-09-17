@@ -11,7 +11,7 @@ import { useExportTemplate } from '@/hooks/useExportTemplate';
 import { exportTableToExcel, exportTableToPDF, exportTableToCSV, type SheetTable } from '@/lib/insightExports';
 import {
   ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ExternalLink, FileDown,
-  FileSpreadsheet, FileText, Filter, Search, X,
+  FileSpreadsheet, FileText, Filter, Search, X, BarChart3, Users, HelpCircle, ListFilter,
 } from 'lucide-react';
 import { formatISTDateTime, formatISTDate, formatISTShort, formatISTFileName } from '@/lib/dateUtils';
 import {
@@ -311,14 +311,49 @@ export const ShopRecoveryDrilldown = ({
             </div>
           </div>
 
-          <Tabs defaultValue="entries">
-            <TabsList className="flex-wrap h-auto">
-              <TabsTrigger value="entries">Recovered entries ({converted.length})</TabsTrigger>
-              <TabsTrigger value="charts">Charts</TabsTrigger>
-              <TabsTrigger value="staff">Staff attribution</TabsTrigger>
-              <TabsTrigger value="explain">Attribution breakdown</TabsTrigger>
-              <TabsTrigger value="all">All follow-ups ({rows.length})</TabsTrigger>
-            </TabsList>
+          <Tabs defaultValue="entries" className="space-y-4">
+            <div className="overflow-x-auto no-scrollbar pb-1">
+              <TabsList className="w-full inline-flex sm:grid sm:grid-cols-5 h-auto p-1.5 gap-1.5 bg-muted/60 border rounded-xl min-w-max sm:min-w-0">
+                <TabsTrigger
+                  value="entries"
+                  className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+                >
+                  <ListFilter className="h-4 w-4 text-emerald-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+                  <span>Recovered</span>
+                  <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 group-data-[state=active]:bg-white/25 group-data-[state=active]:text-white font-bold">
+                    {converted.length}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="charts"
+                  className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+                >
+                  <BarChart3 className="h-4 w-4 text-indigo-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+                  <span>Charts</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="staff"
+                  className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-cyan-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+                >
+                  <Users className="h-4 w-4 text-cyan-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+                  <span>Staff</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="explain"
+                  className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+                >
+                  <HelpCircle className="h-4 w-4 text-purple-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+                  <span>Breakdown</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="all"
+                  className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+                >
+                  <FileText className="h-4 w-4 text-amber-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+                  <span>All ({rows.length})</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="entries" className="mt-3 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">

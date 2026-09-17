@@ -503,14 +503,52 @@ export const SuperAdminDashboard = () => {
           <Input placeholder="Search by name or email..." value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
         </div>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-          <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active only</SelectItem>
-            <SelectItem value="paused">Paused only</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-1 p-1 bg-muted/60 border rounded-xl overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              statusFilter === 'all'
+                ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm shadow-indigo-500/25 font-semibold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+            }`}
+          >
+            <span>All</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${statusFilter === 'all' ? 'bg-white/20 text-white font-bold' : 'bg-muted-foreground/15 text-foreground'}`}>
+              {admins.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('active')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              statusFilter === 'active'
+                ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-sm shadow-emerald-500/25 font-semibold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+            }`}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span>Active</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${statusFilter === 'active' ? 'bg-white/20 text-white font-bold' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'}`}>
+              {activeAdmins.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('paused')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              statusFilter === 'paused'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm shadow-amber-500/25 font-semibold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+            }`}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            <span>Paused</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${statusFilter === 'paused' ? 'bg-white/20 text-white font-bold' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'}`}>
+              {pausedAdmins.length}
+            </span>
+          </button>
+        </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setBulkAction('activate')} className="flex items-center gap-1 flex-1 sm:flex-none">
             <Play className="h-3 w-3" /> Activate all
