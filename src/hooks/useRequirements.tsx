@@ -74,14 +74,39 @@ export const useRequirements = () => {
         supabase.from('shops').select('id, name').is('deleted_at', null).order('name'),
       ]);
       if (reqRes.error) throw reqRes.error;
-      setRequirements((reqRes.data || []) as StockRequirement[]);
+      const rawData = (reqRes.data || []) as StockRequirement[];
+
+      // Strict role-based data isolation (defense-in-depth on client side)
+      let roleFiltered = rawData;
+      if (role === 'super_admin' || role === 'admin') {
+        // Admins see all requirements across all shops
+        roleFiltered = rawData;
+      } else if (role === 'warehouse') {
+        // Warehouse staff: can view all shops if warehouse_all_shops, or only assigned shops
+        if (p?.warehouse_all_shops) {
+          roleFiltered = rawData;
+        } else {
+          const allowedIds: string[] = p?.warehouse_shop_ids || [];
+          roleFiltered = rawData.filter(r => r.shop_id && allowedIds.includes(r.shop_id));
+        }
+      } else if (role === 'manager') {
+        // Shop Manager: strictly isolated to requirements for their managed shop
+        roleFiltered = rawData.filter(r => p?.shop_id && r.shop_id === p.shop_id);
+      } else {
+        // Shop Staff / User: strictly isolated to requirements for their assigned shop or requested by themselves
+        roleFiltered = rawData.filter(r =>
+          r.requested_by === user?.id || (p?.shop_id && r.shop_id === p.shop_id)
+        );
+      }
+
+      setRequirements(roleFiltered);
       if (!shopRes.error) setShops((shopRes.data || []) as any);
     } catch (e: any) {
       if (import.meta.env.DEV) console.error('useRequirements fetch', e);
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, role, p?.shop_id, p?.warehouse_all_shops, p?.warehouse_shop_ids, user?.id]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -242,11 +267,17 @@ export const useRequirements = () => {
   }, [user?.id, p?.name, p?.email, fetchAll]);
 
   const visibleShops = useMemo(() => {
-    if (!isWarehouse) return shops;
-    if (p?.warehouse_all_shops) return shops;
-    const ids: string[] = p?.warehouse_shop_ids || [];
-    return shops.filter(s => ids.includes(s.id));
-  }, [shops, isWarehouse, p?.warehouse_all_shops, p?.warehouse_shop_ids]);
+    if (role === 'super_admin' || role === 'admin') return shops;
+    if (isWarehouse) {
+      if (p?.warehouse_all_shops) return shops;
+      const ids: string[] = p?.warehouse_shop_ids || [];
+      return shops.filter(s => ids.includes(s.id));
+    }
+    if ((role === 'manager' || role === 'user') && p?.shop_id) {
+      return shops.filter(s => s.id === p.shop_id);
+    }
+    return shops;
+  }, [shops, role, isWarehouse, p?.warehouse_all_shops, p?.warehouse_shop_ids, p?.shop_id]);
 
   return {
     requirements, shops, visibleShops, loading, saving,

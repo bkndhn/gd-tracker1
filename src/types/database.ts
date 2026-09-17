@@ -140,7 +140,7 @@ export interface Database {
           id: string;
           name: string;
           user_id: string;
-          role: 'super_admin' | 'admin' | 'user' | 'manager';
+          role: 'super_admin' | 'admin' | 'user' | 'manager' | 'warehouse';
           shop_id: string | null;
           default_category_id: string | null;
           default_size_id: string | null;
@@ -153,12 +153,21 @@ export interface Database {
           max_shops: number | null;
           max_users: number | null;
           last_login_at?: string | null;
+          custom_fields_enabled?: boolean;
+          max_custom_fields?: number | null;
+          max_options_per_field?: number | null;
+          theme_color?: string | null;
+          warehouse_shop_ids?: string[];
+          warehouse_all_shops?: boolean;
+          requirements_enabled?: boolean;
+          max_requirements_monthly?: number | null;
+          max_warehouse_users?: number | null;
         };
         Insert: {
           id: string;
           name: string;
           user_id: string;
-          role?: 'super_admin' | 'admin' | 'user' | 'manager';
+          role?: 'super_admin' | 'admin' | 'user' | 'manager' | 'warehouse';
           shop_id?: string | null;
           default_category_id?: string | null;
           default_size_id?: string | null;
@@ -171,12 +180,21 @@ export interface Database {
           max_shops?: number | null;
           max_users?: number | null;
           last_login_at?: string | null;
+          custom_fields_enabled?: boolean;
+          max_custom_fields?: number | null;
+          max_options_per_field?: number | null;
+          theme_color?: string | null;
+          warehouse_shop_ids?: string[];
+          warehouse_all_shops?: boolean;
+          requirements_enabled?: boolean;
+          max_requirements_monthly?: number | null;
+          max_warehouse_users?: number | null;
         };
         Update: {
           id?: string;
           name?: string;
           user_id?: string;
-          role?: 'super_admin' | 'admin' | 'user' | 'manager';
+          role?: 'super_admin' | 'admin' | 'user' | 'manager' | 'warehouse';
           shop_id?: string | null;
           default_category_id?: string | null;
           default_size_id?: string | null;
@@ -189,6 +207,15 @@ export interface Database {
           max_shops?: number | null;
           max_users?: number | null;
           last_login_at?: string | null;
+          custom_fields_enabled?: boolean;
+          max_custom_fields?: number | null;
+          max_options_per_field?: number | null;
+          theme_color?: string | null;
+          warehouse_shop_ids?: string[];
+          warehouse_all_shops?: boolean;
+          requirements_enabled?: boolean;
+          max_requirements_monthly?: number | null;
+          max_warehouse_users?: number | null;
         };
       };
       goods_damaged_entries: {

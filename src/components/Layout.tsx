@@ -10,12 +10,14 @@ import { LanguageToggle } from './LanguageToggle';
 import { WhatsNew } from './WhatsNew';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 import { useSessionTracking } from '@/hooks/useSessionTracking';
+import { useClientTheme } from '@/hooks/useClientTheme';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export const Layout = ({ children }: LayoutProps) => {
+  useClientTheme();
   const { profile, signOut, isSuperAdmin, isAdmin, isManager } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);

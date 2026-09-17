@@ -48,6 +48,7 @@ interface AdminProfile {
   custom_fields_enabled?: boolean;
   max_custom_fields?: number | null;
   max_options_per_field?: number | null;
+  theme_color?: string | null;
 }
 
 export const SuperAdminDashboard = () => {

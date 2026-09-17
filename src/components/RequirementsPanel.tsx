@@ -109,19 +109,29 @@ export const RequirementsPanel = () => {
       if (!catRes.error) setCategories((catRes.data || []) as any);
 
       if (cfRes?.data && cfRes.data.length > 0) {
-        setReqCustomFields(cfRes.data);
-        const cfIds = cfRes.data.map((f: any) => f.id);
-        const { data: optData } = await (supabase.from('custom_field_options') as any)
-          .select('*')
-          .in('custom_field_id', cfIds)
-          .is('deleted_at', null)
-          .order('display_order');
-        const grp: Record<string, any[]> = {};
-        (optData || []).forEach((o: any) => {
-          if (!grp[o.custom_field_id]) grp[o.custom_field_id] = [];
-          grp[o.custom_field_id].push(o);
-        });
-        setReqCustomOptions(grp);
+        // Exclude standard or core fields (e.g. Shop, Size, Quantity) so they never create duplicate form inputs
+        const CORE_REQ_FIELDS = new Set([
+          'shop', 'shops', 'store', 'stores', 'branch', 'branches', 'shop name',
+          'size', 'sizes', 'quantity', 'urgency', 'note', 'notes', 'category', 'categories',
+        ]);
+        const validFields = cfRes.data.filter(
+          (f: any) => !f.is_standard && !CORE_REQ_FIELDS.has(f.name.trim().toLowerCase())
+        );
+        setReqCustomFields(validFields);
+        const cfIds = validFields.map((f: any) => f.id);
+        if (cfIds.length > 0) {
+          const { data: optData } = await (supabase.from('custom_field_options') as any)
+            .select('*')
+            .in('custom_field_id', cfIds)
+            .is('deleted_at', null)
+            .order('display_order');
+          const grp: Record<string, any[]> = {};
+          (optData || []).forEach((o: any) => {
+            if (!grp[o.custom_field_id]) grp[o.custom_field_id] = [];
+            grp[o.custom_field_id].push(o);
+          });
+          setReqCustomOptions(grp);
+        }
       }
 
       if (cvRes?.data) {
@@ -219,9 +229,11 @@ export const RequirementsPanel = () => {
   const canReceive = (r: StockRequirement) =>
     isAdmin || isManager || (r.requested_by === user?.id) || (p?.shop_id && r.shop_id === p.shop_id);
 
+  const defaultTab = isWarehouse ? 'queue' : 'raise';
+
   return (
     <div className="space-y-4">
-      <Tabs defaultValue="raise" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="raise">Raise</TabsTrigger>
           <TabsTrigger value="queue">Queue ({filtered.length})</TabsTrigger>
@@ -444,6 +456,20 @@ export const RequirementsPanel = () => {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input className="pl-8" placeholder="Search shop, size, staff, status…"
                   value={search} onChange={e => setSearch(e.target.value)} />
+              </div>
+
+              {/* Strict role-isolated context badge */}
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border text-xs text-muted-foreground mt-2">
+                <span className="h-2 w-2 rounded-full bg-primary shrink-0 animate-pulse" />
+                <span>
+                  {isAdmin
+                    ? 'Admin Access: Viewing requirements across all branches.'
+                    : isWarehouse
+                    ? `Warehouse Access: Showing fulfillment queue from ${p?.warehouse_all_shops ? 'all branches' : `${visibleShops.length} assigned branch(es)`}.`
+                    : isManager
+                    ? `Manager Access: Strictly isolated to ${userShop?.name || 'your assigned store'}.`
+                    : `Staff Access: Strictly isolated to ${userShop?.name ? `${userShop.name} store` : 'your store'} and your requests.`}
+                </span>
               </div>
               <Collapsible open={showFilters} onOpenChange={setShowFilters}>
                 <CollapsibleContent className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

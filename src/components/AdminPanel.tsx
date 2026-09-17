@@ -20,6 +20,7 @@ import { CustomerDataPrivacy } from '@/components/admin/CustomerDataPrivacy';
 import { SessionsPanel } from '@/components/admin/SessionsPanel';
 import { UsageMetering } from '@/components/admin/UsageMetering';
 import { OpsHealthPanel } from '@/components/admin/OpsHealthPanel';
+import { ThemeSettings } from '@/components/admin/ThemeSettings';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -236,6 +237,15 @@ export const AdminPanel = () => {
         render: () => <SessionsPanel key="sessions" />,
       },
       {
+        id: 'theme-settings',
+        tab: 'security',
+        tabLabel: 'Privacy & System',
+        title: 'Client Theme & Notification Bar Color',
+        description: 'Customize your organization brand theme color and sync with the mobile status/notification bar',
+        keywords: ['theme', 'color', 'brand', 'notification bar', 'status bar', 'palette', 'purple', 'blue', 'emerald', 'rose', 'appearance', 'branding'],
+        render: () => <ThemeSettings key="theme-settings" />,
+      },
+      {
         id: 'ops-health',
         tab: 'security',
         tabLabel: 'Privacy & System',
@@ -267,7 +277,7 @@ export const AdminPanel = () => {
     { id: 'fields', label: 'Forms & Fields', icon: SlidersHorizontal, count: 2 },
     { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, count: 4 },
     { id: 'scoring', label: 'Scoring & Reports', icon: BarChart3, count: 4 },
-    { id: 'security', label: 'Privacy & System', icon: ShieldCheck, count: 4 },
+    { id: 'security', label: 'Privacy & System', icon: ShieldCheck, count: 5 },
   ] as const;
 
   if (loading) {
@@ -460,7 +470,10 @@ export const AdminPanel = () => {
 
           {/* Tab 5: Privacy & System */}
           <TabsContent value="security" className="space-y-6 mt-0">
-            {/* 1. Customer Data Privacy & Masking */}
+            {/* 1. Client Theme & Notification Bar Color */}
+            <ThemeSettings />
+
+            {/* 2. Customer Data Privacy & Masking */}
             <CustomerDataPrivacy />
 
             {/* 2. Data Retention & Purge */}
