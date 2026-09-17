@@ -618,6 +618,27 @@ export const SuperAdminDashboard = () => {
                 <p className="text-xs text-muted-foreground col-span-3">Blank = unlimited. Counters reset at midnight (daily) and on the 1st (monthly).</p>
               </div>
             )}
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <Label>Stock Requirements</Label>
+                <p className="text-xs text-muted-foreground">Allow this tenant to raise and fulfil stock requirements.</p>
+              </div>
+              <Switch checked={reqEnabled} onCheckedChange={setReqEnabled} />
+            </div>
+            {reqEnabled && (
+              <div className="grid grid-cols-2 gap-2 rounded-md border p-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Requirements per month</Label>
+                  <Input type="number" min={0} placeholder="∞" value={maxReqMonthly}
+                    onChange={e => setMaxReqMonthly(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Max warehouse staff</Label>
+                  <Input type="number" min={0} placeholder="∞" value={maxWarehouseUsers}
+                    onChange={e => setMaxWarehouseUsers(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex gap-2 justify-end border-t px-6 py-3 shrink-0 bg-background">
             <Button variant="outline" onClick={() => setLimitsDialogOpen(false)}>Cancel</Button>
