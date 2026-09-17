@@ -343,12 +343,15 @@ export const SuperAdminDashboard = () => {
         ai_daily_limit: aiDaily === '' ? null : aiDaily,
         ai_monthly_limit: aiMonthly === '' ? null : aiMonthly,
         ai_lifetime_limit: aiLifetime === '' ? null : aiLifetime,
+        requirements_enabled: reqEnabled,
+        max_requirements_monthly: maxReqMonthly === '' ? null : maxReqMonthly,
+        max_warehouse_users: maxWarehouseUsers === '' ? null : maxWarehouseUsers,
       }).eq('id', selectedAdmin.id);
       if (error) throw error;
       toast.success('Limits updated successfully');
       setLimitsDialogOpen(false);
     } catch (error: any) { toast.error(error.message || 'Failed to update limits'); }
-  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled, aiDaily, aiMonthly, aiLifetime]);
+  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled, aiDaily, aiMonthly, aiLifetime, reqEnabled, maxReqMonthly, maxWarehouseUsers]);
 
   const openLimitsDialog = useCallback((admin: AdminProfile) => {
     setSelectedAdmin(admin);
@@ -361,6 +364,9 @@ export const SuperAdminDashboard = () => {
     setAiDaily(admin.ai_daily_limit ?? '');
     setAiMonthly(admin.ai_monthly_limit ?? '');
     setAiLifetime(admin.ai_lifetime_limit ?? '');
+    setReqEnabled(admin.requirements_enabled !== false);
+    setMaxReqMonthly(admin.max_requirements_monthly ?? '');
+    setMaxWarehouseUsers(admin.max_warehouse_users ?? 3);
     setLimitsDialogOpen(true);
   }, []);
 
