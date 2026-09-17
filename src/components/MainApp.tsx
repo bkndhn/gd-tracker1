@@ -187,10 +187,19 @@ export const MainApp = () => {
             {/* Regular user tabs */}
             {!isSuperAdmin && (
               <>
-                <Button variant={activeTab === 'gd' ? 'default' : 'ghost'} onClick={() => setActiveTab('gd')}
-                  className="flex items-center gap-2 flex-shrink-0">
-                  <Plus className="h-4 w-4" />Log Visit
-                </Button>
+                {!isWarehouse && (
+                  <Button variant={activeTab === 'gd' ? 'default' : 'ghost'} onClick={() => setActiveTab('gd')}
+                    className="flex items-center gap-2 flex-shrink-0">
+                    <Plus className="h-4 w-4" />Log Visit
+                  </Button>
+                )}
+                {requirementsEnabled && (
+                  <Button variant={activeTab === 'requirements' ? 'default' : 'ghost'} onClick={() => setActiveTab('requirements')}
+                    onMouseEnter={() => importRequirements()} onFocus={() => importRequirements()}
+                    className="flex items-center gap-2 flex-shrink-0">
+                    <ClipboardList className="h-4 w-4" />Requirements
+                  </Button>
+                )}
                 {(isAdmin || isManager) && (
                   <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} onClick={() => setActiveTab('dashboard')}
                     onMouseEnter={() => importDashboard()} onFocus={() => importDashboard()}
@@ -232,6 +241,8 @@ export const MainApp = () => {
           isAdmin={isAdmin}
           isManager={isManager}
           isSuperAdmin={isSuperAdmin}
+          showRequirements={requirementsEnabled}
+          isWarehouse={isWarehouse}
         />
       </Layout>
     </>
