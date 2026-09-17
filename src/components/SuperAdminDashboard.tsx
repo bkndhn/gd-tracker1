@@ -42,6 +42,9 @@ interface AdminProfile {
   ai_daily_limit?: number | null;
   ai_monthly_limit?: number | null;
   ai_lifetime_limit?: number | null;
+  requirements_enabled?: boolean;
+  max_requirements_monthly?: number | null;
+  max_warehouse_users?: number | null;
 }
 
 export const SuperAdminDashboard = () => {
@@ -64,6 +67,9 @@ export const SuperAdminDashboard = () => {
   const [aiDaily, setAiDaily] = useState<number | ''>('');
   const [aiMonthly, setAiMonthly] = useState<number | ''>('');
   const [aiLifetime, setAiLifetime] = useState<number | ''>('');
+  const [reqEnabled, setReqEnabled] = useState<boolean>(true);
+  const [maxReqMonthly, setMaxReqMonthly] = useState<number | ''>('');
+  const [maxWarehouseUsers, setMaxWarehouseUsers] = useState<number | ''>(3);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused'>('all');
   const [sortKey, setSortKey] = useState<'name' | 'created_at' | 'last_login_at' | 'entries'>('name');
@@ -337,12 +343,15 @@ export const SuperAdminDashboard = () => {
         ai_daily_limit: aiDaily === '' ? null : aiDaily,
         ai_monthly_limit: aiMonthly === '' ? null : aiMonthly,
         ai_lifetime_limit: aiLifetime === '' ? null : aiLifetime,
+        requirements_enabled: reqEnabled,
+        max_requirements_monthly: maxReqMonthly === '' ? null : maxReqMonthly,
+        max_warehouse_users: maxWarehouseUsers === '' ? null : maxWarehouseUsers,
       }).eq('id', selectedAdmin.id);
       if (error) throw error;
       toast.success('Limits updated successfully');
       setLimitsDialogOpen(false);
     } catch (error: any) { toast.error(error.message || 'Failed to update limits'); }
-  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled, aiDaily, aiMonthly, aiLifetime]);
+  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled, aiDaily, aiMonthly, aiLifetime, reqEnabled, maxReqMonthly, maxWarehouseUsers]);
 
   const openLimitsDialog = useCallback((admin: AdminProfile) => {
     setSelectedAdmin(admin);
@@ -355,6 +364,9 @@ export const SuperAdminDashboard = () => {
     setAiDaily(admin.ai_daily_limit ?? '');
     setAiMonthly(admin.ai_monthly_limit ?? '');
     setAiLifetime(admin.ai_lifetime_limit ?? '');
+    setReqEnabled(admin.requirements_enabled !== false);
+    setMaxReqMonthly(admin.max_requirements_monthly ?? '');
+    setMaxWarehouseUsers(admin.max_warehouse_users ?? 3);
     setLimitsDialogOpen(true);
   }, []);
 
@@ -604,6 +616,27 @@ export const SuperAdminDashboard = () => {
                     onChange={e => setAiLifetime(e.target.value === '' ? '' : Number(e.target.value))} />
                 </div>
                 <p className="text-xs text-muted-foreground col-span-3">Blank = unlimited. Counters reset at midnight (daily) and on the 1st (monthly).</p>
+              </div>
+            )}
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <Label>Stock Requirements</Label>
+                <p className="text-xs text-muted-foreground">Allow this tenant to raise and fulfil stock requirements.</p>
+              </div>
+              <Switch checked={reqEnabled} onCheckedChange={setReqEnabled} />
+            </div>
+            {reqEnabled && (
+              <div className="grid grid-cols-2 gap-2 rounded-md border p-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Requirements per month</Label>
+                  <Input type="number" min={0} placeholder="∞" value={maxReqMonthly}
+                    onChange={e => setMaxReqMonthly(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Max warehouse staff</Label>
+                  <Input type="number" min={0} placeholder="∞" value={maxWarehouseUsers}
+                    onChange={e => setMaxWarehouseUsers(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
               </div>
             )}
           </div>

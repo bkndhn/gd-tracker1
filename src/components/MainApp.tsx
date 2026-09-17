@@ -16,6 +16,8 @@ import { OnboardingWizard, hasCompletedOnboarding } from '@/components/Onboardin
 import { FeatureTour } from '@/components/FeatureTour';
 import { identifySession, addBreadcrumb } from '@/lib/errorTracking';
 import { supabase } from '@/integrations/supabase/client';
+import { useRequirementsAccess } from '@/hooks/useRequirementsAccess';
+import { ClipboardList } from 'lucide-react';
 
 // Lazy load heavy components with prefetch helpers for instant nav
 const importDashboard = () => import('@/components/Dashboard').then(m => ({ default: m.Dashboard }));
@@ -27,13 +29,17 @@ const Dashboard = React.lazy(importDashboard);
 const ReportsPanel = React.lazy(importReports);
 const AdminPanel = React.lazy(importAdmin);
 const FollowUpPanel = React.lazy(importFollowUps);
+const importRequirements = () => import('@/components/RequirementsPanel').then(m => ({ default: m.RequirementsPanel }));
 const SuperAdminDashboard = React.lazy(importSuperAdmin);
+const RequirementsPanel = React.lazy(importRequirements);
 
-type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'followups' | 'super_admin';
+type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'followups' | 'requirements' | 'super_admin';
 
 export const MainApp = () => {
   const { isSuperAdmin, isAdmin, isManager, profile, user, signOut, adminId } = useAuth();
   const { permission } = usePushNotifications();
+  const isWarehouse = (profile as any)?.role === 'warehouse';
+  const { enabled: requirementsEnabled } = useRequirementsAccess();
   const [activeTab, setActiveTab] = useState<ActiveTab>(
     isSuperAdmin ? 'super_admin' : (isAdmin || isManager) ? 'dashboard' : 'gd'
   );
@@ -79,13 +85,16 @@ export const MainApp = () => {
       if (activeTab !== 'super_admin') {
         setActiveTab('super_admin');
       }
-    } else if (!isAdmin && !isManager && activeTab !== 'gd') {
+    } else if (!isAdmin && !isManager && activeTab !== 'gd' && activeTab !== 'requirements') {
       setActiveTab('gd');
+    }
+    if (isWarehouse && activeTab !== 'requirements' && requirementsEnabled) {
+      setActiveTab('requirements');
     }
     if (isManager && !isAdmin && activeTab === 'admin') {
       setActiveTab('dashboard');
     }
-  }, [isAdmin, isManager, isSuperAdmin, activeTab]);
+  }, [isAdmin, isManager, isSuperAdmin, activeTab, isWarehouse, requirementsEnabled]);
 
   // Auto-focus notes input when switching to the log-visit tab
   useEffect(() => {
@@ -135,6 +144,10 @@ export const MainApp = () => {
         return (isAdmin || isManager) && !isSuperAdmin ? (
           <ErrorBoundary boundary="FollowUpPanel"><Suspense fallback={<LoadingSpinner />}><FollowUpPanel /></Suspense></ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
+      case 'requirements':
+        return requirementsEnabled && !isSuperAdmin ? (
+          <ErrorBoundary boundary="RequirementsPanel"><Suspense fallback={<LoadingSpinner />}><RequirementsPanel /></Suspense></ErrorBoundary>
+        ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'reports':
         return (isAdmin || isManager) && !isSuperAdmin ? (
           <ErrorBoundary boundary="ReportsPanel"><Suspense fallback={<LoadingSpinner />}><ReportsPanel /></Suspense></ErrorBoundary>
@@ -174,10 +187,19 @@ export const MainApp = () => {
             {/* Regular user tabs */}
             {!isSuperAdmin && (
               <>
-                <Button variant={activeTab === 'gd' ? 'default' : 'ghost'} onClick={() => setActiveTab('gd')}
-                  className="flex items-center gap-2 flex-shrink-0">
-                  <Plus className="h-4 w-4" />Log Visit
-                </Button>
+                {!isWarehouse && (
+                  <Button variant={activeTab === 'gd' ? 'default' : 'ghost'} onClick={() => setActiveTab('gd')}
+                    className="flex items-center gap-2 flex-shrink-0">
+                    <Plus className="h-4 w-4" />Log Visit
+                  </Button>
+                )}
+                {requirementsEnabled && (
+                  <Button variant={activeTab === 'requirements' ? 'default' : 'ghost'} onClick={() => setActiveTab('requirements')}
+                    onMouseEnter={() => importRequirements()} onFocus={() => importRequirements()}
+                    className="flex items-center gap-2 flex-shrink-0">
+                    <ClipboardList className="h-4 w-4" />Requirements
+                  </Button>
+                )}
                 {(isAdmin || isManager) && (
                   <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} onClick={() => setActiveTab('dashboard')}
                     onMouseEnter={() => importDashboard()} onFocus={() => importDashboard()}
@@ -219,6 +241,8 @@ export const MainApp = () => {
           isAdmin={isAdmin}
           isManager={isManager}
           isSuperAdmin={isSuperAdmin}
+          showRequirements={requirementsEnabled}
+          isWarehouse={isWarehouse}
         />
       </Layout>
     </>

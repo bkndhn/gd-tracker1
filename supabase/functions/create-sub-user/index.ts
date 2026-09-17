@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json()
-    const { name, email, password, role, shop_id } = body
+    const { name, email, password, role, shop_id, warehouse_all_shops, warehouse_shop_ids } = body
 
     if (!name || !email || !password) {
       return new Response(JSON.stringify({ error: 'Name, email, and password are required' }), {
@@ -75,8 +75,8 @@ Deno.serve(async (req) => {
       })
     }
 
-    if (role && !['user', 'manager'].includes(role)) {
-      return new Response(JSON.stringify({ error: 'Role must be user or manager' }), {
+    if (role && !['user', 'manager', 'warehouse'].includes(role)) {
+      return new Response(JSON.stringify({ error: 'Role must be user, manager or warehouse' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -106,6 +106,46 @@ Deno.serve(async (req) => {
       })
     }
 
+    const tenantId = (callerProfile as any).role === 'super_admin'
+      ? userId
+      : ((callerProfile as any).admin_id || userId)
+
+    let whAll = false
+    let whShops: string[] = []
+
+    if (role === 'warehouse') {
+      const { count: whCount } = await supabaseAdmin
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('admin_id', tenantId)
+        .eq('role', 'warehouse')
+        .is('deleted_at', null)
+
+      const maxWarehouse = (callerProfile as any).max_warehouse_users ?? 3
+      if ((whCount || 0) >= maxWarehouse) {
+        return new Response(JSON.stringify({
+          error: `Warehouse staff limit reached (${maxWarehouse}). Contact super admin to increase your limit.`
+        }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
+      whAll = warehouse_all_shops !== false
+      if (!whAll) {
+        const requested: string[] = Array.isArray(warehouse_shop_ids) ? warehouse_shop_ids : []
+        const { data: validShops } = await supabaseAdmin
+          .from('shops')
+          .select('id')
+          .eq('admin_id', tenantId)
+          .is('deleted_at', null)
+          .in('id', requested.length ? requested : ['00000000-0000-0000-0000-000000000000'])
+        whShops = (validShops || []).map((s: any) => s.id)
+        if (whShops.length === 0) {
+          return new Response(JSON.stringify({ error: 'Select at least one valid shop for this warehouse user' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      }
+    }
+
     // Create auth user. The signup trigger intentionally ignores any client
     // metadata for role/admin_id, so the tenant assignment is applied here with
     // the service role after the user exists.
@@ -127,11 +167,11 @@ Deno.serve(async (req) => {
       .from('profiles')
       .update({
         name,
-        role: role === 'manager' ? 'manager' : 'user',
-        admin_id: (callerProfile as any).role === 'super_admin'
-          ? userId
-          : ((callerProfile as any).admin_id || userId),
-        shop_id: shop_id || null,
+        role: role === 'manager' ? 'manager' : role === 'warehouse' ? 'warehouse' : 'user',
+        admin_id: tenantId,
+        shop_id: role === 'warehouse' ? null : (shop_id || null),
+        warehouse_all_shops: whAll,
+        warehouse_shop_ids: whShops,
         status: 'active',
       })
       .eq('id', newUser.user.id)

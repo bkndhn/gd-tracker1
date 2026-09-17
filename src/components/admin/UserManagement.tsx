@@ -16,6 +16,8 @@ import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog'
 import { PasswordInput } from '@/components/ui/password-input';
 import { validatePassword } from '@/utils/passwordPolicy';
 import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Profile = Database['public']['Tables']['profiles']['Row'] & {
   email?: string;
@@ -54,6 +56,8 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
     password: '',
     role: 'user',
     shop_id: 'none',
+    warehouse_all_shops: true,
+    warehouse_shop_ids: [] as string[],
   });
 
   useEffect(() => {
@@ -119,8 +123,12 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
       toast.error('Password does not meet requirements: ' + pwValidation.errors.join(', '));
       return;
     }
-    if (newUser.shop_id === 'none') {
+    if (newUser.role !== 'warehouse' && newUser.shop_id === 'none') {
       toast.error('Please select a shop');
+      return;
+    }
+    if (newUser.role === 'warehouse' && !newUser.warehouse_all_shops && newUser.warehouse_shop_ids.length === 0) {
+      toast.error('Pick at least one shop for this warehouse staff member');
       return;
     }
 
@@ -133,6 +141,8 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
           password: newUser.password,
           role: newUser.role,
           shop_id: newUser.shop_id === 'none' ? null : newUser.shop_id,
+          warehouse_all_shops: newUser.role === 'warehouse' ? newUser.warehouse_all_shops : false,
+          warehouse_shop_ids: newUser.role === 'warehouse' && !newUser.warehouse_all_shops ? newUser.warehouse_shop_ids : [],
         },
       });
 
@@ -141,7 +151,7 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
 
       toast.success(`Sub-user "${newUser.name}" created successfully`);
       setIsCreateOpen(false);
-      setNewUser({ name: '', email: '', password: '', role: 'user', shop_id: 'none' });
+      setNewUser({ name: '', email: '', password: '', role: 'user', shop_id: 'none', warehouse_all_shops: true, warehouse_shop_ids: [] });
       if (propOnRefresh) propOnRefresh();
       else fetchData();
     } catch (error: any) {
@@ -400,21 +410,50 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
                   <SelectContent>
                     <SelectItem value="user">User</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="warehouse">Warehouse staff</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Shop</Label>
-                <Select value={newUser.shop_id} onValueChange={v => setNewUser({ ...newUser, shop_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select shop" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Select a shop</SelectItem>
-                    {shops.map(shop => (
-                      <SelectItem key={shop.id} value={shop.id}>{shop.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {newUser.role !== 'warehouse' ? (
+                <div className="space-y-2">
+                  <Label>Shop</Label>
+                  <Select value={newUser.shop_id} onValueChange={v => setNewUser({ ...newUser, shop_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select shop" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Select a shop</SelectItem>
+                      {shops.map(shop => (
+                        <SelectItem key={shop.id} value={shop.id}>{shop.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Handles all shops</Label>
+                    <Switch checked={newUser.warehouse_all_shops}
+                      onCheckedChange={v => setNewUser({ ...newUser, warehouse_all_shops: v })} />
+                  </div>
+                  {!newUser.warehouse_all_shops && (
+                    <div className="max-h-40 space-y-2 overflow-y-auto pt-1">
+                      {shops.map(shop => (
+                        <label key={shop.id} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={newUser.warehouse_shop_ids.includes(shop.id)}
+                            onCheckedChange={(c) => setNewUser({
+                              ...newUser,
+                              warehouse_shop_ids: c
+                                ? [...newUser.warehouse_shop_ids, shop.id]
+                                : newUser.warehouse_shop_ids.filter(id => id !== shop.id),
+                            })}
+                          />
+                          {shop.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex gap-2 pt-2">
                 <Button onClick={handleCreateSubUser} disabled={creating} className="flex-1">
                   {creating ? 'Creating...' : 'Create User'}
@@ -535,16 +574,20 @@ interface EditUserFormProps {
 const EditUserForm = ({ user, shops, categories, sizes, onSave, onCancel }: EditUserFormProps) => {
   const [formData, setFormData] = useState({
     name: user.name,
-    role: user.role,
+    role: user.role as string,
     shop_id: user.shop_id || 'none',
     default_category_id: user.default_category_id || 'none',
-    default_size_id: user.default_size_id || 'none'
+    default_size_id: user.default_size_id || 'none',
+    warehouse_all_shops: (user as any).warehouse_all_shops ?? true,
+    warehouse_shop_ids: ((user as any).warehouse_shop_ids || []) as string[],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
       ...formData,
+      warehouse_all_shops: formData.role === 'warehouse' ? formData.warehouse_all_shops : false,
+      warehouse_shop_ids: formData.role === 'warehouse' && !formData.warehouse_all_shops ? formData.warehouse_shop_ids : [],
       shop_id: formData.shop_id === 'none' ? null : formData.shop_id,
       default_category_id: formData.default_category_id === 'none' ? null : formData.default_category_id,
       default_size_id: formData.default_size_id === 'none' ? null : formData.default_size_id
@@ -564,9 +607,37 @@ const EditUserForm = ({ user, shops, categories, sizes, onSave, onCancel }: Edit
           <SelectContent>
             <SelectItem value="user">User</SelectItem>
             <SelectItem value="manager">Manager</SelectItem>
+            <SelectItem value="warehouse">Warehouse staff</SelectItem>
           </SelectContent>
         </Select>
       </div>
+      {formData.role === 'warehouse' && (
+        <div className="space-y-2 rounded-md border p-3">
+          <div className="flex items-center justify-between">
+            <Label>Handles all shops</Label>
+            <Switch checked={formData.warehouse_all_shops}
+              onCheckedChange={(v) => setFormData({ ...formData, warehouse_all_shops: v })} />
+          </div>
+          {!formData.warehouse_all_shops && (
+            <div className="max-h-40 space-y-2 overflow-y-auto pt-1">
+              {shops.map((shop) => (
+                <label key={shop.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={formData.warehouse_shop_ids.includes(shop.id)}
+                    onCheckedChange={(c) => setFormData({
+                      ...formData,
+                      warehouse_shop_ids: c
+                        ? [...formData.warehouse_shop_ids, shop.id]
+                        : formData.warehouse_shop_ids.filter((id) => id !== shop.id),
+                    })}
+                  />
+                  {shop.name}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="shop">Shop</Label>
         <Select value={formData.shop_id} onValueChange={(value) => setFormData({ ...formData, shop_id: value })}>
