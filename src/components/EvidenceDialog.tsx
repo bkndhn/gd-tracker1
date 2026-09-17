@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { FileText, Loader2, Paperclip, Trash2, Upload } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatISTDate } from '@/lib/dateUtils';
 import { useEntryEvidence, ALLOWED_EVIDENCE_TYPES } from '@/hooks/useEntryEvidence';
 
 interface EvidenceDialogProps {
@@ -104,7 +104,7 @@ export const EvidenceDialog = ({ open, onOpenChange, entryId, title, onChanged }
                       {item.caption && <p className="truncate text-[11px] text-muted-foreground">{item.caption}</p>}
                       <div className="flex items-center justify-between gap-2">
                         <Badge variant="secondary" className="text-[10px]">
-                          {format(new Date(item.created_at), 'dd MMM yyyy')} · {Math.max(1, Math.round(item.file_size / 1024))} KB
+                          {formatISTDate(item.created_at)} · {Math.max(1, Math.round(item.file_size / 1024))} KB
                         </Badge>
                         <Button
                           size="icon"

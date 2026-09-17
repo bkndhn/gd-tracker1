@@ -14,7 +14,7 @@ import { WarehouseDashboard } from './WarehouseDashboard';
 import { exportToPDFViaHTML, makeImageCell } from '@/utils/htmlPdfExport';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { formatISTDateTime, formatISTDate, formatISTFileName } from '@/lib/dateUtils';
 import { SavedViewsBar } from '@/components/SavedViewsBar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -497,15 +497,7 @@ export const Dashboard = () => {
   };
 
   const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = String(date.getFullYear()).slice(-2);
-    let hours = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    return `${day}-${month}-${year} ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+    return formatISTDateTime(dateString);
   };
 
   // Export to Excel
@@ -517,7 +509,7 @@ export const Dashboard = () => {
       'SIZE': entry.sizes?.size || 'N/A',
       'CUSTOMER TYPE': entry.customer_types?.name || 'N/A',
       'NOTES': entry.notes,
-      'DATE AND TIME': formatDateTime(entry.created_at)
+      'DATE AND TIME (IST)': formatDateTime(entry.created_at)
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
@@ -530,21 +522,21 @@ export const Dashboard = () => {
       { wch: 10 }, // SIZE
       { wch: 20 }, // CUSTOMER TYPE
       { wch: 40 }, // NOTES
-      { wch: 20 }, // DATE AND TIME
+      { wch: 24 }, // DATE AND TIME (IST)
     ];
     ws['!cols'] = colWidths;
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Visits');
 
-    const fileName = `Visits_${modalFilter.type}_${modalFilter.value}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+    const fileName = formatISTFileName(new Date(), `Visits_${modalFilter.type}_${modalFilter.value}`) + '.xlsx';
     XLSX.writeFile(wb, fileName);
   };
 
   // Export to PDF using HTML print method (supports Tamil + images)
   const exportToPDF = () => {
     const dateRangeText = (customDateFrom || customDateTo)
-      ? `${customDateFrom ? format(customDateFrom, 'PP') : ''} - ${customDateTo ? format(customDateTo, 'PP') : ''}`
+      ? `${customDateFrom ? formatISTDate(customDateFrom) : ''} - ${customDateTo ? formatISTDate(customDateTo) : ''}`
       : "Today's entries";
 
     const rows = getModalEntries.map((entry, idx) => [
@@ -864,7 +856,7 @@ export const Dashboard = () => {
                           <PopoverTrigger asChild>
                             <Button variant="outline" className="w-full justify-start">
                               <Calendar className="mr-2 h-4 w-4" />
-                              {customDateFrom ? format(customDateFrom, 'PPP') : 'Pick a date'}
+                              {customDateFrom ? formatISTDate(customDateFrom) : 'Pick a date'}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
@@ -886,7 +878,7 @@ export const Dashboard = () => {
                           <PopoverTrigger asChild>
                             <Button variant="outline" className="w-full justify-start">
                               <Calendar className="mr-2 h-4 w-4" />
-                              {customDateTo ? format(customDateTo, 'PPP') : 'Pick a date'}
+                              {customDateTo ? formatISTDate(customDateTo) : 'Pick a date'}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
@@ -1096,9 +1088,9 @@ export const Dashboard = () => {
                     <DialogDescription className="text-xs md:text-sm mt-1">
                       {(customDateFrom || customDateTo) ? (
                         <>
-                          {customDateFrom && `From ${format(customDateFrom, 'PP')}`}
+                          {customDateFrom && `From ${formatISTDate(customDateFrom)}`}
                           {customDateFrom && customDateTo && ' - '}
-                          {customDateTo && `To ${format(customDateTo, 'PP')}`}
+                          {customDateTo && `To ${formatISTDate(customDateTo)}`}
                           {` (${getModalEntries.length} entries)`}
                         </>
                       ) : (

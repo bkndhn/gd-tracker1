@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/sheet';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { MAX_ATTEMPTS } from '@/lib/outbox';
+import { formatISTTime } from '@/lib/dateUtils';
 
 const timeAgo = (ts: number) => {
   const s = Math.max(1, Math.round((Date.now() - ts) / 1000));
@@ -53,7 +54,7 @@ export const OfflineStatusBar = () => {
       setSyncResult('Nothing to send right now.');
     } else {
       setSyncResult(
-        `${res.sent} sent${res.failed > 0 ? ` · ${res.failed} still queued` : ''} · ${new Date().toLocaleTimeString()}`,
+        `${res.sent} sent${res.failed > 0 ? ` · ${res.failed} still queued` : ''} · ${formatISTTime(new Date())}`,
       );
     }
   };

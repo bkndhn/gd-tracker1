@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format } from 'date-fns';
+import { formatISTDateTime } from '@/lib/dateUtils';
 import { Search, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
 
 interface AuditLog {
@@ -120,7 +120,7 @@ export const AuditLogViewer = () => {
                 <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No audit logs found</TableCell></TableRow>
               ) : logs.map(log => (
                 <TableRow key={log.id}>
-                  <TableCell className="text-xs whitespace-nowrap">{format(new Date(log.created_at), 'PP p')}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{formatISTDateTime(log.created_at)}</TableCell>
                   <TableCell className="text-sm">{log.user_email || '-'}</TableCell>
                   <TableCell>
                     <Badge variant={(actionColors[log.action] as any) || 'outline'} className="text-xs">

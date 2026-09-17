@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatISTDate } from '@/lib/dateUtils';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ChangelogRow {
@@ -76,7 +76,7 @@ export const WhatsNew = () => {
                   {r.version && <Badge variant="outline" className="text-[9px]">{r.version}</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground whitespace-pre-line">{r.body}</p>
-                <p className="text-[10px] text-muted-foreground/70">{format(new Date(r.created_at), 'dd MMM yyyy')}</p>
+                <p className="text-[10px] text-muted-foreground/70">{formatISTDate(r.created_at)}</p>
               </div>
             ))}
           </div>

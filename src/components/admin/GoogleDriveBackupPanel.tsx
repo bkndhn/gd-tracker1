@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Cloud, Loader2, CheckCircle2, XCircle, ExternalLink, RefreshCw } from 'lucide-react';
+import { formatISTDateTime } from '@/lib/dateUtils';
 
 interface BackupLog {
   id: string;
@@ -52,8 +53,7 @@ export const GoogleDriveBackupPanel = () => {
     }
   };
 
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+  const fmt = (iso: string) => formatISTDateTime(iso);
 
   return (
     <Card>

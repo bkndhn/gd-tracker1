@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import { toast } from 'sonner';
 import { Plus, Trash2, Mail, Clock } from 'lucide-react';
+import { formatISTDateTime } from '@/lib/dateUtils';
 
 interface Schedule {
   id: string;
@@ -126,7 +127,7 @@ export const ScheduledEmailReports = () => {
                     <Badge variant="secondary" className="text-xs"><Clock className="h-3 w-3 mr-1" />{s.report_time.slice(0,5)}</Badge>
                   </div>
                   {s.last_sent_at && (
-                    <span className="text-xs text-muted-foreground">Last sent: {new Date(s.last_sent_at).toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground">Last sent: {formatISTDateTime(s.last_sent_at)}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">

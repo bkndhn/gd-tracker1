@@ -110,6 +110,17 @@ export const useRequirements = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Listen for local tab cross-component updates (instant 0ms sync)
+  useEffect(() => {
+    const handleLocalUpdate = () => {
+      fetchAll();
+    };
+    window.addEventListener('gd:requirement_updated', handleLocalUpdate);
+    return () => {
+      window.removeEventListener('gd:requirement_updated', handleLocalUpdate);
+    };
+  }, [fetchAll]);
+
   // Realtime: keep every open session in sync with unique channel ID
   useEffect(() => {
     if (!tenantId) return;
@@ -178,6 +189,11 @@ export const useRequirements = () => {
         }
       }
 
+      if (createdReq) {
+        setRequirements(prev => [createdReq, ...prev]);
+        window.dispatchEvent(new CustomEvent('gd:requirement_updated', { detail: createdReq }));
+      }
+
       toast.success('Requirement sent to the warehouse');
       await fetchAll();
       return true;
@@ -197,7 +213,7 @@ export const useRequirements = () => {
     if (!user?.id) return false;
     const now = new Date().toISOString();
     const actorName = p?.name || p?.email || null;
-    const patch: any = { status: to };
+    const patch: any = { status: to, updated_at: now };
 
     if (to === 'packed') {
       patch.packed_by = user.id; patch.packed_by_name = actorName; patch.packed_at = now;
@@ -211,6 +227,11 @@ export const useRequirements = () => {
       patch.rejected_by = user.id; patch.rejected_by_name = actorName; patch.rejected_at = now;
       patch.reject_reason = extra.note || null;
     }
+
+    // 0ms Optimistic UI Update: update local state immediately so user sees it with zero lag
+    const previousReqs = requirements;
+    setRequirements(prev => prev.map(item => item.id === req.id ? { ...item, ...patch } : item));
+    window.dispatchEvent(new CustomEvent('gd:requirement_updated', { detail: { id: req.id, patch } }));
 
     try {
       const { error } = await (supabase.from('stock_requirements') as any)
@@ -261,10 +282,13 @@ export const useRequirements = () => {
       await fetchAll();
       return true;
     } catch (e: any) {
+      // Rollback on error
+      setRequirements(previousReqs);
+      window.dispatchEvent(new CustomEvent('gd:requirement_updated', { detail: { rollback: true } }));
       toast.error(e.message || 'Could not update this requirement');
       return false;
     }
-  }, [user?.id, p?.name, p?.email, fetchAll]);
+  }, [user?.id, p?.name, p?.email, requirements, fetchAll]);
 
   const visibleShops = useMemo(() => {
     if (role === 'super_admin' || role === 'admin') return shops;

@@ -13,14 +13,14 @@ import {
   ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ExternalLink, FileDown,
   FileSpreadsheet, FileText, Filter, Search, X,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatISTDateTime, formatISTDate, formatISTShort, formatISTFileName } from '@/lib/dateUtils';
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const fmtDate = (d?: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '—';
+  d ? formatISTShort(d) : '—';
 
 type SortKey = 'sent_at' | 'employee' | 'reason' | 'template' | 'amount';
 const PAGE_SIZE = 10;
@@ -105,7 +105,7 @@ export const ShopRecoveryDrilldown = ({
 
     const match = (r: FollowUpRow) => {
       const searchOk = !q ||
-        [r.sent_by_name, r.reason_label, r.template_key, r.customer_name, r.phone, fmtDate(r.sent_at), format(new Date(r.sent_at), 'dd MMM yyyy')]
+        [r.sent_by_name, r.reason_label, r.template_key, r.customer_name, r.phone, fmtDate(r.sent_at), formatISTDate(r.sent_at)]
           .some(v => (v || '').toString().toLowerCase().includes(q));
       if (!searchOk) return false;
       if (employee !== ALL && (r.sent_by_name || '') !== employee) return false;
@@ -200,16 +200,16 @@ export const ShopRecoveryDrilldown = ({
     dateRange: periodLabel,
     columns: ['Date', 'Phone', 'Customer', 'Employee', 'Reason', 'Template', 'Recovered ₹', 'Closed'],
     rows: filtered.map(r => [
-      format(new Date(r.sent_at), 'dd MMM yyyy'),
+      formatISTDate(r.sent_at),
       r.phone,
       r.customer_name || '—',
       r.sent_by_name || '—',
       r.reason_label || '—',
       r.template_key || 'generic',
       Math.round(Number(r.recovered_amount || 0)),
-      r.outcome_at ? format(new Date(r.outcome_at), 'dd MMM yyyy') : '—',
+      r.outcome_at ? formatISTDate(r.outcome_at) : '—',
     ]),
-    fileName: `recovery-${shopName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-entries-${format(new Date(), 'yyyyMMdd')}`,
+    fileName: formatISTFileName(new Date(), `recovery-${shopName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-entries`),
   });
 
   const buildStaffTable = (): SheetTable => ({
@@ -225,7 +225,7 @@ export const ShopRecoveryDrilldown = ({
       Math.round(s.recovered),
       recovered ? Number(((s.recovered / recovered) * 100).toFixed(1)) : 0,
     ]),
-    fileName: `recovery-${shopName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-staff-${format(new Date(), 'yyyyMMdd')}`,
+    fileName: formatISTFileName(new Date(), `recovery-${shopName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-staff`),
   });
 
   const doExport = (kind: 'excel' | 'pdf' | 'csv', table: SheetTable) => {
@@ -587,11 +587,11 @@ export const ShopRecoveryDrilldown = ({
                   ['Customer', source.customer_name || '—'],
                   ['Phone', `+91 ${source.phone}`],
                   ['Sent by', source.sent_by_name || '—'],
-                  ['Sent at', format(new Date(source.sent_at), 'dd MMM yyyy, HH:mm')],
+                  ['Sent at', formatISTDateTime(source.sent_at)],
                   ['Reason', source.reason_label || '—'],
                   ['Template', source.template_key || 'generic'],
                   ['Outcome', OUTCOME_LABELS[source.outcome]],
-                  ['Closed at', source.outcome_at ? format(new Date(source.outcome_at), 'dd MMM yyyy, HH:mm') : '—'],
+                  ['Closed at', source.outcome_at ? formatISTDateTime(source.outcome_at) : '—'],
                   ['Delivery', source.delivery_status || 'unknown'],
                   ['Recovered', inr(Number(source.recovered_amount || 0))],
                 ].map(([k, v]) => (

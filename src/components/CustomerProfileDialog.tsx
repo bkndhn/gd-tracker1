@@ -9,9 +9,10 @@ import { Separator } from '@/components/ui/separator';
 import { User, Phone, TrendingUp, CalendarDays, MessageCircle, Store } from 'lucide-react';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
 import { OUTCOME_LABELS } from '@/hooks/useFollowUps';
+import { formatISTDateTime } from '@/lib/dateUtils';
 
 const fmt = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+  iso ? formatISTDateTime(iso) : '—';
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 

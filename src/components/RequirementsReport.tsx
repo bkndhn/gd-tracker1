@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileSpreadsheet, FileText, Download, ClipboardList, Layers, ListFilter } from 'lucide-react';
-import { format } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FileSpreadsheet, FileText, Download, ClipboardList, Layers, ListFilter, User } from 'lucide-react';
+import { formatISTDateTime, formatISTFileName } from '@/lib/dateUtils';
 import { exportTableToCSV, exportTableToExcel, exportTableToPDF, type SheetTable } from '@/lib/insightExports';
 import { useExportTemplate } from '@/hooks/useExportTemplate';
 import type { StockRequirement } from '@/hooks/useRequirements';
 
-const fmt = (v: string | null) => (v ? format(new Date(v), 'dd MMM yyyy HH:mm') : '—');
+const fmt = (v: string | null) => (v ? formatISTDateTime(v) : '—');
 
 const turnaround = (r: StockRequirement) => {
   const end = r.received_at || r.moved_at || r.packed_at || r.rejected_at;
@@ -84,9 +85,9 @@ export const groupRequirementsByShopAndSize = (rows: StockRequirement[]): Groupe
 
 export const buildDetailedRequirementsTable = (rows: StockRequirement[]): SheetTable => ({
   title: 'Stock Requirements Detailed Audit Log',
-  subtitle: `${rows.length} requests · Generated ${format(new Date(), 'dd MMM yyyy HH:mm')}`,
+  subtitle: `${rows.length} requests · Generated ${formatISTDateTime(new Date())} (IST)`,
   columns: [
-    'Requested At',
+    'Requested At (IST)',
     'Requested By',
     'Shop',
     'Category',
@@ -95,12 +96,12 @@ export const buildDetailedRequirementsTable = (rows: StockRequirement[]): SheetT
     'Urgency',
     'Status',
     'Packed By',
-    'Packed At',
+    'Packed At (IST)',
     'Packed Qty',
     'Moved By',
-    'Moved At',
+    'Moved At (IST)',
     'Received By',
-    'Received At',
+    'Received At (IST)',
     'Turnaround',
     'Notes / Reason',
   ],
@@ -123,14 +124,14 @@ export const buildDetailedRequirementsTable = (rows: StockRequirement[]): SheetT
     turnaround(r),
     r.note || r.reject_reason || '—',
   ]),
-  fileName: `stock-requirements-detailed-${format(new Date(), 'yyyyMMdd-HHmm')}`,
+  fileName: formatISTFileName(new Date(), 'stock-requirements-detailed'),
 });
 
 export const buildGroupedRequirementsTable = (rows: StockRequirement[]): SheetTable => {
   const grouped = groupRequirementsByShopAndSize(rows);
   return {
     title: 'Stock Requirements Grouped by Shop & Size',
-    subtitle: `${grouped.length} shop-size groups · Generated ${format(new Date(), 'dd MMM yyyy HH:mm')}`,
+    subtitle: `${grouped.length} shop-size groups · Generated ${formatISTDateTime(new Date())} (IST)`,
     columns: [
       'Shop',
       'Size',
@@ -153,7 +154,7 @@ export const buildGroupedRequirementsTable = (rows: StockRequirement[]): SheetTa
       g.received_qty,
       g.pending_qty,
     ]),
-    fileName: `stock-requirements-grouped-${format(new Date(), 'yyyyMMdd-HHmm')}`,
+    fileName: formatISTFileName(new Date(), 'stock-requirements-grouped'),
   };
 };
 
@@ -166,18 +167,32 @@ interface Props {
 export const RequirementsReport = ({ rows, selected = [] }: Props) => {
   const { template } = useExportTemplate();
   const [viewMode, setViewMode] = useState<'grouped' | 'detailed'>('grouped');
+  const [requesterFilter, setRequesterFilter] = useState<string>('all');
 
-  const exportRows = selected.length ? selected : rows;
+  const uniqueRequesters = useMemo(() => {
+    const names = new Set<string>();
+    rows.forEach(r => {
+      if (r.requested_by_name) names.add(r.requested_by_name);
+    });
+    return Array.from(names).sort();
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    if (requesterFilter === 'all') return rows;
+    return rows.filter(r => r.requested_by_name === requesterFilter);
+  }, [rows, requesterFilter]);
+
+  const exportRows = selected.length ? selected : filteredRows;
   const detailedTable = useMemo(() => buildDetailedRequirementsTable(exportRows), [exportRows]);
   const groupedTable = useMemo(() => buildGroupedRequirementsTable(exportRows), [exportRows]);
-  const groupedData = useMemo(() => groupRequirementsByShopAndSize(rows), [rows]);
+  const groupedData = useMemo(() => groupRequirementsByShopAndSize(filteredRows), [filteredRows]);
 
   const totals = useMemo(() => ({
-    total: rows.length,
-    qty: rows.reduce((s, r) => s + (r.quantity || 0), 0),
-    received: rows.filter(r => r.status === 'received').length,
-    pending: rows.filter(r => r.status === 'requested' || r.status === 'packed' || r.status === 'moved').length,
-  }), [rows]);
+    total: filteredRows.length,
+    qty: filteredRows.reduce((s, r) => s + (r.quantity || 0), 0),
+    received: filteredRows.filter(r => r.status === 'received').length,
+    pending: filteredRows.filter(r => r.status === 'requested' || r.status === 'packed' || r.status === 'moved').length,
+  }), [filteredRows]);
 
   const handleExportExcel = () => {
     // Export current active view table
@@ -208,6 +223,23 @@ export const RequirementsReport = ({ rows, selected = [] }: Props) => {
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
+            {/* Requester Filter Dropdown */}
+            {uniqueRequesters.length > 0 && (
+              <div className="flex items-center gap-1">
+                <Select value={requesterFilter} onValueChange={setRequesterFilter}>
+                  <SelectTrigger className="h-8 w-[150px] text-xs">
+                    <SelectValue placeholder="Filter by Requester" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Requesters ({rows.length})</SelectItem>
+                    {uniqueRequesters.map(name => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="mr-2 flex rounded-lg border bg-muted p-0.5">
               <Button
                 size="sm"
@@ -330,14 +362,14 @@ export const RequirementsReport = ({ rows, selected = [] }: Props) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.length === 0 ? (
+                  {filteredRows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={11} className="text-center text-sm py-8 text-muted-foreground">
-                        No requirement logs available.
+                        No requirement logs available for this selection.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    rows.map(r => (
+                    filteredRows.map(r => (
                       <TableRow key={r.id}>
                         <TableCell className="text-xs">{fmt(r.created_at)}</TableCell>
                         <TableCell className="text-xs font-medium">{r.requested_by_name || '—'}</TableCell>

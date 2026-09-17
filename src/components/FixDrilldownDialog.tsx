@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileSpreadsheet, FileText, Info, Paperclip } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatISTShort, formatISTDate } from '@/lib/dateUtils';
 import {
   entriesForFix,
   formatINR,
@@ -165,7 +165,7 @@ export const FixDrilldownDialog = ({
                 <TableBody>
                   {filtered.map(e => (
                     <TableRow key={e.id}>
-                      <TableCell className="text-xs">{format(new Date(e.created_at), 'dd MMM, HH:mm')}</TableCell>
+                      <TableCell className="text-xs">{formatISTShort(e.created_at)}</TableCell>
                       <TableCell className="text-xs">{e.shops?.name || '—'}</TableCell>
                       <TableCell className="text-xs">{e.categories?.name || '—'}</TableCell>
                       <TableCell className="text-xs">{e.sizes?.size || '—'}</TableCell>
@@ -201,7 +201,7 @@ export const FixDrilldownDialog = ({
           open={!!evidenceEntry}
           onOpenChange={v => !v && setEvidenceEntry(null)}
           entryId={evidenceEntry?.id || null}
-          title={evidenceEntry ? `${evidenceEntry.shops?.name || 'Visit'} · ${format(new Date(evidenceEntry.created_at), 'dd MMM')}` : undefined}
+          title={evidenceEntry ? `${evidenceEntry.shops?.name || 'Visit'} · ${formatISTDate(evidenceEntry.created_at)}` : undefined}
         />
       </DialogContent>
     </Dialog>

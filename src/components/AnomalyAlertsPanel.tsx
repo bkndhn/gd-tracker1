@@ -11,12 +11,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { AnomalyAlert, dismissAnomaly } from '@/hooks/useAnomalyAlerts';
+import { formatISTDate, formatISTDateTime } from '@/lib/dateUtils';
 
 interface Props {
   alerts: AnomalyAlert[];
 }
 
-const fmt = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+const fmt = (d: Date) => formatISTDate(d);
 const money = (n: number) => `Rs ${Math.abs(Math.round(n)).toLocaleString('en-IN')}`;
 
 export const AnomalyAlertsPanel = ({ alerts }: Props) => {
@@ -134,7 +135,7 @@ export const AnomalyAlertsPanel = ({ alerts }: Props) => {
                       <div className="flex justify-between gap-2">
                         <span className="font-medium truncate">{e.reason}</span>
                         <span className="text-xs text-muted-foreground shrink-0">
-                          {new Date(e.created_at).toLocaleString()}
+                          {formatISTDateTime(e.created_at)}
                         </span>
                       </div>
                       {e.notes && (

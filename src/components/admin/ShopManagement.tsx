@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import { toast } from 'sonner';
 import { Store, Plus, Edit, Trash2, Users, AlertTriangle, ShieldCheck } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatISTDate } from '@/lib/dateUtils';
 
 interface ShopItem {
   id: string;
@@ -328,7 +328,7 @@ export const ShopManagement = ({ onRefresh }: ShopManagementProps) => {
                           </span>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
-                          {format(new Date(shop.created_at), 'dd MMM yyyy')}
+                          {formatISTDate(shop.created_at)}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">

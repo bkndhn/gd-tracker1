@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PackageSearch, TrendingUp, TrendingDown, ArrowRight, FileSpreadsheet, FileText } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatISTDate } from '@/lib/dateUtils';
 import { computeStockGaps, type InsightEntry } from '@/lib/lostSaleInsights';
 import { buildStockGapTable, exportTableToExcel, exportTableToPDF } from '@/lib/insightExports';
 import { useExportTemplate } from '@/hooks/useExportTemplate';
@@ -125,7 +125,7 @@ export const StockGapReport = ({ entries, onDrill }: StockGapReportProps) => {
                       {row.shops.join(', ') || '—'}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {format(new Date(row.lastSeen), 'dd MMM')}
+                      {formatISTDate(row.lastSeen)}
                     </TableCell>
                     <TableCell>
                       {onDrill && (

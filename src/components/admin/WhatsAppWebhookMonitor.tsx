@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Activity, AlertTriangle, CheckCircle2, RefreshCw, RotateCcw } from 'lucide-react';
+import { formatISTDateTime } from '@/lib/dateUtils';
 
 interface WaEvent {
   id: string;
@@ -202,7 +203,7 @@ export const WhatsAppWebhookMonitor = () => {
                     <span className="ml-2 text-xs font-normal text-muted-foreground">{row.kind}</span>
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {new Date(row.created_at).toLocaleString()}
+                    {formatISTDateTime(row.created_at)}
                     {row.attempts > 1 && ` · ${row.attempts} duplicate deliveries ignored`}
                     {row.error_message && ` · ${row.error_message}`}
                   </p>

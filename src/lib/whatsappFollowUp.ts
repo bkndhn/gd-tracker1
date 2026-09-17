@@ -4,6 +4,8 @@
  * so no cross-tenant data can leak into a generated link.
  */
 
+import { formatISTDate } from './dateUtils';
+
 /** Indian mobile: exactly 10 digits, first digit 6-9. */
 export const INDIAN_MOBILE_RE = /^[6-9][0-9]{9}$/;
 
@@ -69,7 +71,7 @@ const formatVisitDate = (value?: string | Date | null): string => {
   if (!value) return '';
   const d = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+  return formatISTDate(d);
 };
 
 /** Builds the pre-filled WhatsApp text for one lost-sale log. */

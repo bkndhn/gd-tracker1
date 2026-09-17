@@ -22,11 +22,12 @@ import { useAdminSetting } from '@/hooks/useAdminSetting';
 import {
   RESET_LABELS, normalizeReset, periodStart, periodLabel, type LeaderboardReset,
 } from '@/lib/leaderboardPeriod';
+import { formatISTShort } from '@/lib/dateUtils';
 
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const fmtDate = (d?: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '—';
+  d ? formatISTShort(d) : '—';
 
 const outcomeTone: Record<FollowUpOutcome, string> = {
   pending: 'bg-amber-500/15 text-amber-600 border-amber-500/30',

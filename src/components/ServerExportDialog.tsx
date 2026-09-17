@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Loader2, Mail, Send, ServerCog } from 'lucide-react';
 import { captureException } from '@/lib/errorTracking';
+import { formatISTDate } from '@/lib/dateUtils';
 
 interface Props {
   /** ISO strings for the active report window, if any */
@@ -89,7 +90,7 @@ export const ServerExportDialog = ({ from, to, fieldIds, rowCount }: Props) => {
               <span>Date range</span>
               <strong className="text-foreground">
                 {from || to
-                  ? `${from ? new Date(from).toLocaleDateString('en-GB') : 'start'} – ${to ? new Date(to).toLocaleDateString('en-GB') : 'today'}`
+                  ? `${from ? formatISTDate(from) : 'start'} – ${to ? formatISTDate(to) : 'today'}`
                   : 'All time'}
               </strong>
             </div>

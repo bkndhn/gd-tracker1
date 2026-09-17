@@ -3,7 +3,7 @@
  * Top 3 Fixes drill-downs). Kept UI-free so it can be unit tested.
  */
 import * as XLSX from 'xlsx';
-import { format } from 'date-fns';
+import { formatISTDateTime, formatISTDate, formatISTFileName } from '@/lib/dateUtils';
 import { exportToPDFViaHTML } from '@/utils/htmlPdfExport';
 import { formatINR, type InsightEntry, type StockGapRow, type TopFix } from '@/lib/lostSaleInsights';
 import { DEFAULT_EXPORT_TEMPLATE, type ExportTemplate } from '@/lib/reportTemplate';
@@ -21,18 +21,18 @@ export interface SheetTable {
 export function buildStockGapTable(rows: StockGapRow[], days: number): SheetTable {
   return {
     title: 'Stock & size gap report',
-    subtitle: `Last ${days} days · generated ${format(new Date(), 'dd MMM yyyy HH:mm')}`,
-    dateRange: `${format(new Date(Date.now() - days * 86400000), 'dd MMM yyyy')} – ${format(new Date(), 'dd MMM yyyy')}`,
-    columns: ['Category', 'Size', 'Misses', 'Trend %', 'Shops', 'Last seen'],
+    subtitle: `Last ${days} days · generated ${formatISTDateTime(new Date())} (IST)`,
+    dateRange: `${formatISTDate(new Date(Date.now() - days * 86400000))} – ${formatISTDate(new Date())}`,
+    columns: ['Category', 'Size', 'Misses', 'Trend %', 'Shops', 'Last seen (IST)'],
     rows: rows.map(r => [
       r.category,
       r.size,
       r.count,
       r.trend === null ? 'new' : r.trend,
       r.shops.join(', '),
-      format(new Date(r.lastSeen), 'dd MMM yyyy'),
+      formatISTDate(r.lastSeen),
     ]),
-    fileName: `stock-size-gaps-${days}d-${format(new Date(), 'yyyyMMdd')}`,
+    fileName: formatISTFileName(new Date(), `stock-size-gaps-${days}d`),
   };
 }
 
@@ -44,21 +44,21 @@ export function buildFixDrilldownTable(fix: TopFix, entries: InsightEntry[]): Sh
       `Score ${fix.score}`,
       `${entries.length} visits`,
       fix.estimatedValue > 0 ? `${formatINR(fix.estimatedValue)} recoverable` : null,
-      `generated ${format(new Date(), 'dd MMM yyyy HH:mm')}`,
+      `generated ${formatISTDateTime(new Date())} (IST)`,
     ].filter(Boolean).join(' · '),
     dateRange: dates.length
-      ? `${format(new Date(Math.min(...dates)), 'dd MMM yyyy')} – ${format(new Date(Math.max(...dates)), 'dd MMM yyyy')}`
+      ? `${formatISTDate(new Date(Math.min(...dates)))} – ${formatISTDate(new Date(Math.max(...dates)))}`
       : undefined,
-    columns: ['Date', 'Shop', 'Reason', 'Size', 'Customer type', 'Reporter'],
+    columns: ['Date (IST)', 'Shop', 'Reason', 'Size', 'Customer type', 'Reporter'],
     rows: entries.map(e => [
-      format(new Date(e.created_at), 'dd MMM yyyy HH:mm'),
+      formatISTDateTime(e.created_at),
       e.shops?.name || '—',
       e.categories?.name || '—',
       e.sizes?.size || '—',
       e.customer_types?.name || '—',
       e.employee_name || '—',
     ]),
-    fileName: `fix-${fix.kind}-${fix.label.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${format(new Date(), 'yyyyMMdd')}`,
+    fileName: formatISTFileName(new Date(), `fix-${fix.kind}-${fix.label.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`),
   };
 }
 

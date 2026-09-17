@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Copy, MessageSquarePlus, Plus, Trash2 } from 'lucide-react';
+import { formatISTDateTime } from '@/lib/dateUtils';
 
 interface WaContact {
   id: string;
@@ -163,7 +164,7 @@ export const WhatsAppIntakeSettings = () => {
                   <p className="truncate text-xs text-muted-foreground">
                     {row.display_name || 'No label'}
                     {row.last_message_at
-                      ? ` · last message ${new Date(row.last_message_at).toLocaleString()}`
+                      ? ` · last message ${formatISTDateTime(row.last_message_at)}`
                       : ' · no messages yet'}
                   </p>
                 </div>

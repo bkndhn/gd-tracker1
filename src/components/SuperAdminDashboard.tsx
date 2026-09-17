@@ -19,7 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { GoogleDriveBackupPanel } from './admin/GoogleDriveBackupPanel';
 import { AuditLogViewer } from './AuditLogViewer';
-import { format } from 'date-fns';
+import { formatISTDate, formatISTDateTime } from '@/lib/dateUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { logAudit } from '@/utils/auditLog';
 
@@ -272,8 +272,9 @@ export const SuperAdminDashboard = () => {
       const { error } = await (supabase.from('profiles') as any).update(updateData).eq('id', profile.id);
       if (error) throw error;
       toast.success(`${profile.name}'s role changed to ${newRole}`);
+      fetchData();
     } catch (error: any) { toast.error(error.message || 'Failed to change role'); }
-  }, [user?.id]);
+  }, [user?.id, fetchData]);
 
   const handleActivateConfirmed = useCallback(async (admin: AdminProfile) => {
     try {
@@ -282,9 +283,10 @@ export const SuperAdminDashboard = () => {
       await (supabase.from('profiles') as any).update({ status: 'active' }).eq('admin_id', admin.id).neq('id', admin.id);
       await logAudit({ action: 'user_activated', targetType: 'profile', targetId: admin.id, details: { name: admin.name } });
       toast.success(`${admin.name} activated successfully`);
+      fetchData();
     } catch (error: any) { toast.error(error.message || 'Failed to activate'); }
     setActivateTarget(null);
-  }, []);
+  }, [fetchData]);
 
   const handlePauseConfirmed = useCallback(async (admin: AdminProfile) => {
     try {
@@ -302,9 +304,10 @@ export const SuperAdminDashboard = () => {
       }
       await logAudit({ action: 'user_paused', targetType: 'profile', targetId: admin.id, details: { name: admin.name } });
       toast.success(`${admin.name} and all sub-users paused & logged out.`);
+      fetchData();
     } catch (error: any) { toast.error(error.message || 'Failed to pause'); }
     setPauseTarget(null);
-  }, [getSubUsers]);
+  }, [getSubUsers, fetchData]);
 
   const handleBulkActionConfirmed = useCallback(async () => {
     if (!bulkAction) return;
@@ -325,9 +328,10 @@ export const SuperAdminDashboard = () => {
       }
       await logAudit({ action: bulkAction === 'pause' ? 'bulk_pause' : 'bulk_activate', details: { count: admins.length } });
       toast.success(`All admins ${newStatus === 'active' ? 'activated' : 'paused'} successfully.`);
+      fetchData();
     } catch (error: any) { toast.error(error.message || 'Bulk action failed'); }
     setBulkAction(null);
-  }, [bulkAction, admins, getSubUsers]);
+  }, [bulkAction, admins, getSubUsers, fetchData]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteAdmin) return;
@@ -796,8 +800,8 @@ const AdminRow = ({
       <TableCell className="font-medium">{admin.name}</TableCell>
       <TableCell className="text-sm text-muted-foreground">{admin.email || '-'}</TableCell>
       <TableCell><Badge variant={admin.status === 'active' ? 'default' : 'destructive'}>{admin.status}</Badge></TableCell>
-      <TableCell className="text-sm">{format(new Date(admin.created_at), 'PP')}</TableCell>
-      <TableCell className="text-sm">{admin.last_login_at ? format(new Date(admin.last_login_at), 'PP p') : 'Never'}</TableCell>
+      <TableCell className="text-sm">{formatISTDate(admin.created_at)}</TableCell>
+      <TableCell className="text-sm">{admin.last_login_at ? formatISTDateTime(admin.last_login_at) : 'Never'}</TableCell>
       <TableCell><span className="flex items-center gap-1 text-sm"><Building className="h-3 w-3" /> {stats.shopCount}/{admin.max_shops ?? '∞'}</span></TableCell>
       <TableCell><span className="flex items-center gap-1 text-sm"><Users className="h-3 w-3" /> {stats.userCount}/{admin.max_users ?? '∞'}</span></TableCell>
       <TableCell><span className="text-sm">{entryCount}/{admin.max_entries ?? '∞'}</span></TableCell>
@@ -830,8 +834,8 @@ const AdminRow = ({
         <TableCell className="pl-8 text-sm">↳ {sub.name}</TableCell>
         <TableCell className="text-sm text-muted-foreground">{sub.email || '-'}</TableCell>
         <TableCell><Badge variant={sub.status === 'active' ? 'default' : 'destructive'} className="text-xs">{sub.status}</Badge></TableCell>
-        <TableCell className="text-sm">{format(new Date(sub.created_at), 'PP')}</TableCell>
-        <TableCell className="text-sm">{sub.last_login_at ? format(new Date(sub.last_login_at), 'PP p') : 'Never'}</TableCell>
+        <TableCell className="text-sm">{formatISTDate(sub.created_at)}</TableCell>
+        <TableCell className="text-sm">{sub.last_login_at ? formatISTDateTime(sub.last_login_at) : 'Never'}</TableCell>
         <TableCell colSpan={3}><Badge variant="outline" className="text-xs">{sub.role}</Badge></TableCell>
         <TableCell></TableCell>
         <TableCell>

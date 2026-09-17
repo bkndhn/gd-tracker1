@@ -20,7 +20,7 @@ import {
   User,
   ArrowRight,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatISTShort } from '@/lib/dateUtils';
 
 const statusConfig: Record<RequirementStatus, { label: string; badgeClass: string; icon: any }> = {
   requested: {
@@ -234,14 +234,14 @@ export const WarehouseDashboard = () => {
                             <span className="inline-flex items-center gap-1">
                               <User className="h-3 w-3" />
                               Requested by <strong className="text-foreground font-medium">{req.requested_by_name || 'Staff'}</strong>
-                              {' on '}{format(new Date(req.created_at), 'dd MMM, HH:mm')}
+                              {' on '}{formatISTShort(req.created_at)}
                             </span>
                             {req.packed_by_name && (
                               <>
                                 <ArrowRight className="h-3 w-3 text-muted-foreground/50 hidden sm:inline" />
                                 <span>
                                   Packed by <strong className="text-foreground font-medium">{req.packed_by_name}</strong>
-                                  {req.packed_at && ` (${format(new Date(req.packed_at), 'dd MMM, HH:mm')})`}
+                                  {req.packed_at && ` (${formatISTShort(req.packed_at)})`}
                                 </span>
                               </>
                             )}
@@ -250,7 +250,7 @@ export const WarehouseDashboard = () => {
                                 <ArrowRight className="h-3 w-3 text-muted-foreground/50 hidden sm:inline" />
                                 <span>
                                   Moved by <strong className="text-foreground font-medium">{req.moved_by_name}</strong>
-                                  {req.moved_at && ` (${format(new Date(req.moved_at), 'dd MMM, HH:mm')})`}
+                                  {req.moved_at && ` (${formatISTShort(req.moved_at)})`}
                                 </span>
                               </>
                             )}

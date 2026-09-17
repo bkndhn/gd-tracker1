@@ -64,7 +64,7 @@ export const MainApp = () => {
 
   // Enable realtime sync for instant updates across all pages
   useRealtimeSync({
-    tables: ['goods_damaged_entries', 'profiles', 'shops', 'categories', 'sizes', 'customer_types', 'gd_entry_images', 'app_settings'],
+    tables: ['goods_damaged_entries', 'profiles', 'shops', 'categories', 'sizes', 'customer_types', 'gd_entry_images', 'app_settings', 'stock_requirements'],
     onProfileDeleted: handleProfileDeleted,
     onProfilePaused: handleProfilePaused,
     enabled: !!user,

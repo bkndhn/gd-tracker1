@@ -68,6 +68,15 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
     }
   }, [propProfiles, propShops]);
 
+  // Keep internal state reactive to parent changes without needing full page refresh
+  useEffect(() => {
+    if (propProfiles) setProfiles(propProfiles);
+  }, [propProfiles]);
+
+  useEffect(() => {
+    if (propShops) setShops(propShops);
+  }, [propShops]);
+
   const fetchCategoriesAndSizes = useCallback(async () => {
     try {
       const [categoriesRes, sizesRes] = await Promise.all([
@@ -165,19 +174,23 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
   const handleDelete = useCallback(async () => {
     if (!deleteUser) return;
     setIsDeleting(true);
+    const deletedId = deleteUser.id;
+    // Optimistic delete
+    setProfiles(prev => prev.filter(u => u.id !== deletedId));
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ deleted_at: new Date().toISOString() } as any)
-        .eq('id', deleteUser.id);
+        .eq('id', deletedId);
       if (error) throw error;
 
       toast.success('User deleted successfully');
       setDeleteUser(null);
       if (propOnRefresh) propOnRefresh();
-      else fetchData();
+      fetchData();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete user');
+      fetchData();
     } finally {
       setIsDeleting(false);
     }
@@ -186,7 +199,10 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
   const handleToggleStatus = useCallback(async (targetUser: Profile) => {
     const currentStatus = (targetUser as any).status || 'active';
     const action = currentStatus === 'active' ? 'pause' : 'unpause';
+    const newStatus = action === 'pause' ? 'paused' : 'active';
     
+    // Optimistic toggle
+    setProfiles(prev => prev.map(u => u.id === targetUser.id ? { ...u, status: newStatus } : u));
     setTogglingStatus(targetUser.id);
     try {
       const { data, error } = await supabase.functions.invoke('update-sub-user', {
@@ -198,9 +214,10 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
 
       toast.success(`User ${action === 'pause' ? 'paused' : 'activated'} successfully`);
       if (propOnRefresh) propOnRefresh();
-      else fetchData();
+      fetchData();
     } catch (error: any) {
       toast.error(error.message || `Failed to ${action} user`);
+      fetchData();
     } finally {
       setTogglingStatus(null);
     }
@@ -223,6 +240,11 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
         return;
       }
 
+      // Optimistic update email
+      if (body.email) {
+        setProfiles(prev => prev.map(u => u.id === credentialsUser.id ? { ...u, email: body.email } : u));
+      }
+
       const { data, error } = await supabase.functions.invoke('update-sub-user', {
         body,
       });
@@ -234,9 +256,10 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
       setIsCredentialsOpen(false);
       setCredentialsUser(null);
       if (propOnRefresh) propOnRefresh();
-      else fetchData();
+      fetchData();
     } catch (error: any) {
       toast.error(error.message || 'Failed to update credentials');
+      fetchData();
     }
   }, [credentialsUser, propOnRefresh, fetchData]);
 
@@ -247,6 +270,8 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
 
   const handleSaveUser = useCallback(async (userData: Partial<Profile>) => {
     if (!editingUser) return;
+    // Optimistic update
+    setProfiles(prev => prev.map(u => u.id === editingUser.id ? { ...u, ...userData } : u));
     try {
       const { error } = await supabase
         .from('profiles')
@@ -259,9 +284,10 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
       setIsEditDialogOpen(false);
       setEditingUser(null);
       if (propOnRefresh) propOnRefresh();
-      else fetchData();
+      fetchData();
     } catch (error: any) {
       toast.error(error.message || 'Failed to update user');
+      fetchData();
     }
   }, [editingUser, user, refreshProfile, propOnRefresh, fetchData]);
 

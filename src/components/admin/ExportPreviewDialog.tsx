@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { fetchCustomValueIndex } from '@/hooks/useEntryCustomValues';
+import { formatISTDateTime } from '@/lib/dateUtils';
 
 interface Props {
   open: boolean;
@@ -43,7 +44,7 @@ export const ExportPreviewDialog = ({ open, onOpenChange, target, fieldIds, fiel
 
         setRows(
           (entries || []).map(e => ({
-            date: new Date(e.created_at as string).toLocaleString(),
+            date: formatISTDateTime(e.created_at),
             reporter: e.employee_name || '—',
             notes: e.notes || '',
             values: index.valuesByEntry[e.id] || {},

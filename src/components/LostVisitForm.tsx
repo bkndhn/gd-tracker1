@@ -16,6 +16,7 @@ import { sanitizeNotes } from '@/utils/security';
 import { isValidPhone, normalizePhone, PHONE_RULE_MESSAGE } from '@/lib/whatsappFollowUp';
 import { useRepeatVisitorHint, repeatHintText } from '@/hooks/useCustomerProfile';
 import { History } from 'lucide-react';
+import { formatISTDate } from '@/lib/dateUtils';
 
 
 interface CustomField {
@@ -220,7 +221,7 @@ export const LostVisitForm = () => {
       }
     });
     if (notes.trim()) msg += `📝 ${notes.trim()}\n`;
-    msg += `📅 ${new Date().toLocaleDateString()}`;
+    msg += `📅 ${formatISTDate(new Date())}`;
     return encodeURIComponent(msg);
   };
 

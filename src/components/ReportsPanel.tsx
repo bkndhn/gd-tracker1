@@ -25,7 +25,7 @@ import { RequirementsReport } from '@/components/RequirementsReport';
 import { useRequirements } from '@/hooks/useRequirements';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { format } from 'date-fns';
+import { formatISTDate, formatISTDateTime, formatISTFileName } from '@/lib/dateUtils';
 import { Database } from '@/types/database';
 import * as XLSX from 'xlsx';
 import { exportToPDFViaHTML, exportMultiSectionPDFViaHTML, makeImageCell, type CellContent } from '@/utils/htmlPdfExport';
@@ -134,6 +134,32 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
   // Re-fetch data when Manager's shop ID becomes available
   useEffect(() => {
     fetchData();
+  }, [isManager, userShopId]);
+
+  // Realtime synchronization: automatically updates when visits are logged/changed without page refresh
+  useEffect(() => {
+    const channelName = `rep_vis_${Math.random().toString(36).substring(2, 9)}`;
+    let channel: any = null;
+    try {
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'goods_damaged_entries' }, () => {
+          fetchData();
+        })
+        .subscribe();
+    } catch {}
+
+    const handleLocalEntryUpdate = () => {
+      fetchData();
+    };
+    window.addEventListener('gd:entry_updated', handleLocalEntryUpdate);
+
+    return () => {
+      window.removeEventListener('gd:entry_updated', handleLocalEntryUpdate);
+      if (channel) {
+        try { supabase.removeChannel(channel); } catch {}
+      }
+    };
   }, [isManager, userShopId]);
 
   useEffect(() => {
@@ -258,7 +284,7 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
     const cached = await cacheGet<ReportsSnapshot>(REPORTS_CACHE_KEY);
     if (!cached?.value?.entries) return false;
     applySnapshot(cached.value);
-    toast.info(`Showing saved data from ${format(new Date(cached.savedAt), 'dd MMM, HH:mm')}`);
+    toast.info(`Showing saved data from ${formatISTDateTime(cached.savedAt)}`);
     return true;
   };
 
@@ -364,7 +390,7 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
           entry.categories?.name,
           entry.sizes?.size,
           entry.customer_types?.name,
-          new Date(entry.created_at).toLocaleString(),
+          formatISTDateTime(entry.created_at),
         ].filter(Boolean).join(' ').toLowerCase();
         return hay.includes(q);
       });
@@ -420,16 +446,8 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
       bySize,
       byCustomerType,
       byNotes,
-      firstDate: new Date(firstDate).toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      }),
-      lastDate: new Date(lastDate).toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
+      firstDate: formatISTDate(firstDate),
+      lastDate: formatISTDate(lastDate),
     };
   }, [filteredEntries]);
 
@@ -744,7 +762,7 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
 
       return {
         blob,
-        fileName: `gd-reports-table-${format(new Date(), 'yyyy-MM-dd-HHmm')}.xlsx`,
+        fileName: `gd-reports-table-${formatISTFileName(new Date())}.xlsx`,
         message: `${entries.length} rows ready to download`,
       };
     });
@@ -788,7 +806,7 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
 
       const openPdf = () => exportToPDFViaHTML({
         title: 'Lost Sale Reports',
-        subtitle: `Generated: ${format(new Date(), 'dd-MM-yyyy HH:mm')}`,
+        subtitle: `Generated: ${formatISTDateTime(new Date())} (IST)`,
         columns: [
           { header: 'S.NO', width: '40px', align: 'center' },
           { header: 'SHOP', width: '10%' },
@@ -798,7 +816,7 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
           ...fields.map(cf => ({ header: cf.name.toUpperCase(), width: '8%' })),
           { header: 'NOTES' },
           { header: 'IMAGE', width: '12%', align: 'center' as const },
-          { header: 'DATE AND TIME', width: '11%' },
+          { header: 'DATE AND TIME (IST)', width: '13%' },
         ],
         rows,
         orientation: 'landscape',
@@ -812,20 +830,12 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
     toast.success('PDF export started — track progress in the corner');
   };
 
-  const formatTime12Hour = (date: Date) => {
-    return format(date, 'yyyy-MM-dd hh:mm a');
+  const formatTime12Hour = (date: Date | string) => {
+    return formatISTDateTime(date);
   };
 
   const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = String(date.getFullYear()).slice(-2);
-    let hours = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    return `${day}-${month}-${year} ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+    return formatISTDateTime(dateString);
   };
 
   // --- WhatsApp follow-up (uses only this tenant's own entry values) ---
@@ -1017,7 +1027,7 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       }
 
-      const fileName = `gd_report_with_images_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`;
+      const fileName = `${formatISTFileName(new Date(), 'gd_report_with_images')}.xlsx`;
       XLSX.writeFile(wb, fileName, { compression: true });
 
       toast.success(`Excel report exported with embedded image thumbnails! ${filteredEntries.length} entries across multiple sheets`);
@@ -1068,7 +1078,7 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `gd_report_with_images_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+      a.download = `${formatISTFileName(new Date(), 'gd_report_with_images')}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -1185,7 +1195,7 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
       // Use multi-section HTML PDF export
       exportMultiSectionPDFViaHTML({
         title: 'Lost Sale Multi-Sheet Report',
-        subtitle: `Generated: ${format(new Date(), 'dd-MM-yyyy HH:mm')} | Total: ${filteredEntries.length} entries`,
+        subtitle: `Generated: ${formatISTDateTime(new Date())} | Total: ${filteredEntries.length} entries`,
         columns,
         sections,
         orientation: 'landscape',
@@ -1403,7 +1413,7 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
                     <Button variant="outline" className="w-full justify-start text-left">
                       <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
                       <span className="truncate">
-                        {customDateFrom ? format(customDateFrom, 'PPP') : 'Pick a date'}
+                        {customDateFrom ? formatISTDate(customDateFrom) : 'Pick a date'}
                       </span>
                     </Button>
                   </PopoverTrigger>
@@ -1426,7 +1436,7 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
                     <Button variant="outline" className="w-full justify-start text-left">
                       <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
                       <span className="truncate">
-                        {customDateTo ? format(customDateTo, 'PPP') : 'Pick a date'}
+                        {customDateTo ? formatISTDate(customDateTo) : 'Pick a date'}
                       </span>
                     </Button>
                   </PopoverTrigger>

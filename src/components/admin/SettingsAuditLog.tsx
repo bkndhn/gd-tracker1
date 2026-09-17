@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { History, RotateCcw } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatISTDateTime } from '@/lib/dateUtils';
 
 export interface SettingsAuditRow {
   id: string;
@@ -121,7 +121,7 @@ export const SettingsAuditLog = ({ settingKey, onRollback, onRolledBack, limit =
                     <div className="text-xs">
                       <span className="font-medium">{row.changed_by_name || 'Unknown user'}</span>
                       <span className="text-muted-foreground">
-                        {' '}· {format(new Date(row.created_at), 'dd MMM yyyy, HH:mm')}
+                        {' '}· {formatISTDateTime(row.created_at)}
                       </span>
                     </div>
                     <Button

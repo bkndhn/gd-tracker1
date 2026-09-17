@@ -13,8 +13,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { PackagePlus, Filter, Search, Truck, PackageCheck, CheckCircle2, XCircle, ClipboardList, Warehouse } from 'lucide-react';
-import { format } from 'date-fns';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  PackagePlus, Filter, Search, Truck, PackageCheck, CheckCircle2, XCircle,
+  ClipboardList, Warehouse, Printer, Download, FileText, FileSpreadsheet, User,
+} from 'lucide-react';
+import { formatISTDateTime, formatISTShort } from '@/lib/dateUtils';
+import {
+  directPrintFulfillmentSheet,
+  exportFulfillmentSheetToExcel,
+  exportFulfillmentSheetToPDF,
+} from '@/lib/manualFulfillmentSheet';
 import { toast } from 'sonner';
 
 const STATUS_TONE: Record<string, string> = {
@@ -88,6 +104,7 @@ export const RequirementsPanel = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | RequirementStatus>('all');
   const [shopFilter, setShopFilter] = useState('all');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
+  const [requestedByFilter, setRequestedByFilter] = useState('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -123,18 +140,17 @@ export const RequirementsPanel = () => {
           const { data: optData } = await (supabase.from('custom_field_options') as any)
             .select('*')
             .in('custom_field_id', cfIds)
-            .is('deleted_at', null)
-            .order('display_order');
-          const grp: Record<string, any[]> = {};
+            .is('deleted_at', null);
+          const map: Record<string, any[]> = {};
           (optData || []).forEach((o: any) => {
-            if (!grp[o.custom_field_id]) grp[o.custom_field_id] = [];
-            grp[o.custom_field_id].push(o);
+            if (!map[o.custom_field_id]) map[o.custom_field_id] = [];
+            map[o.custom_field_id].push(o);
           });
-          setReqCustomOptions(grp);
+          setReqCustomOptions(map);
         }
       }
 
-      if (cvRes?.data) {
+      if (cvRes?.data && cvRes.data.length > 0) {
         const byReq: Record<string, Record<string, string>> = {};
         cvRes.data.forEach((row: any) => {
           if (!byReq[row.requirement_id]) byReq[row.requirement_id] = {};
@@ -145,6 +161,14 @@ export const RequirementsPanel = () => {
     })();
   }, []);
 
+  const uniqueRequesters = useMemo(() => {
+    const names = new Set<string>();
+    requirements.forEach(r => {
+      if (r.requested_by_name) names.add(r.requested_by_name);
+    });
+    return Array.from(names).sort();
+  }, [requirements]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const from = fromDate ? new Date(fromDate).getTime() : null;
@@ -153,6 +177,7 @@ export const RequirementsPanel = () => {
       if (statusFilter !== 'all' && r.status !== statusFilter) return false;
       if (shopFilter !== 'all' && r.shop_id !== shopFilter) return false;
       if (urgencyFilter !== 'all' && r.urgency !== urgencyFilter) return false;
+      if (requestedByFilter !== 'all' && r.requested_by_name !== requestedByFilter) return false;
       const t = new Date(r.created_at).getTime();
       if (from && t < from) return false;
       if (to && t > to) return false;
@@ -165,7 +190,7 @@ export const RequirementsPanel = () => {
       }
       return true;
     });
-  }, [requirements, search, statusFilter, shopFilter, urgencyFilter, fromDate, toDate]);
+  }, [requirements, search, statusFilter, shopFilter, urgencyFilter, requestedByFilter, fromDate, toDate]);
 
   const selectedRows = useMemo(
     () => filtered.filter(r => selectedIds.has(r.id)),
@@ -180,6 +205,56 @@ export const RequirementsPanel = () => {
       const next = new Set(prev);
       checked ? next.add(id) : next.delete(id);
       return next;
+    });
+  };
+
+  // Warehouse manual fulfillment export & print actions
+  const handlePrint = (scope: 'filtered' | 'selected' | 'all') => {
+    const targetRows = scope === 'selected' && selectedRows.length > 0
+      ? selectedRows
+      : scope === 'all'
+      ? requirements
+      : filtered;
+    if (targetRows.length === 0) {
+      toast.error('No requirements to print');
+      return;
+    }
+    directPrintFulfillmentSheet({
+      rows: targetRows,
+      scopeLabel: scope === 'selected' ? `Selected (${targetRows.length})` : scope === 'all' ? 'All Available' : 'Filtered Queue',
+    });
+  };
+
+  const handleExportExcel = (scope: 'filtered' | 'selected' | 'all') => {
+    const targetRows = scope === 'selected' && selectedRows.length > 0
+      ? selectedRows
+      : scope === 'all'
+      ? requirements
+      : filtered;
+    if (targetRows.length === 0) {
+      toast.error('No requirements to export');
+      return;
+    }
+    exportFulfillmentSheetToExcel({
+      rows: targetRows,
+      scopeLabel: scope === 'selected' ? `Selected (${targetRows.length})` : scope === 'all' ? 'All Available' : 'Filtered Queue',
+    });
+    toast.success(`Exported ${targetRows.length} items to Excel`);
+  };
+
+  const handleExportPDF = (scope: 'filtered' | 'selected' | 'all') => {
+    const targetRows = scope === 'selected' && selectedRows.length > 0
+      ? selectedRows
+      : scope === 'all'
+      ? requirements
+      : filtered;
+    if (targetRows.length === 0) {
+      toast.error('No requirements to export');
+      return;
+    }
+    exportFulfillmentSheetToPDF({
+      rows: targetRows,
+      scopeLabel: scope === 'selected' ? `Selected (${targetRows.length})` : scope === 'all' ? 'All Available' : 'Filtered Queue',
     });
   };
 
@@ -444,13 +519,66 @@ export const RequirementsPanel = () => {
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   <ClipboardList className="h-5 w-5 text-primary" /> Requirements ({filtered.length})
                 </CardTitle>
-                <Collapsible open={showFilters} onOpenChange={setShowFilters}>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-1">
-                      <Filter className="h-4 w-4" /> Filters
-                    </Button>
-                  </CollapsibleTrigger>
-                </Collapsible>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="gap-1.5 text-xs font-semibold shadow-sm"
+                    onClick={() => handlePrint(selectedIds.size > 0 ? 'selected' : 'filtered')}
+                    title="Direct Print picking checklist with physical tick mark boxes"
+                  >
+                    <Printer className="h-4 w-4 text-primary" /> Print Checklist
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-1.5 text-xs font-medium">
+                        <Download className="h-4 w-4 text-primary" /> Export / Print
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel className="text-xs font-semibold">Physical Manual Checklist</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => handlePrint('filtered')}>
+                        <Printer className="h-4 w-4 mr-2 text-primary" /> Direct Print ({filtered.length} items)
+                      </DropdownMenuItem>
+                      {selectedIds.size > 0 && (
+                        <DropdownMenuItem onClick={() => handlePrint('selected')}>
+                          <Printer className="h-4 w-4 mr-2 text-violet-600" /> Direct Print Selected ({selectedIds.size})
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleExportPDF('filtered')}>
+                        <FileText className="h-4 w-4 mr-2 text-red-600" /> Export PDF (Filtered)
+                      </DropdownMenuItem>
+                      {selectedIds.size > 0 && (
+                        <DropdownMenuItem onClick={() => handleExportPDF('selected')}>
+                          <FileText className="h-4 w-4 mr-2 text-red-600" /> Export PDF (Selected {selectedIds.size})
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleExportExcel('filtered')}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-emerald-600" /> Export Excel (Filtered)
+                      </DropdownMenuItem>
+                      {selectedIds.size > 0 && (
+                        <DropdownMenuItem onClick={() => handleExportExcel('selected')}>
+                          <FileSpreadsheet className="h-4 w-4 mr-2 text-emerald-600" /> Export Excel (Selected {selectedIds.size})
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleExportExcel('all')}>
+                        <Download className="h-4 w-4 mr-2 text-muted-foreground" /> Export All Available ({requirements.length})
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-1 text-xs">
+                        <Filter className="h-4 w-4" /> Filters
+                      </Button>
+                    </CollapsibleTrigger>
+                  </Collapsible>
+                </div>
               </div>
               <div className="relative mt-2">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -503,6 +631,18 @@ export const RequirementsPanel = () => {
                     </Select>
                   </div>
                   <div className="space-y-1">
+                    <Label className="text-xs">Who Requested</Label>
+                    <Select value={requestedByFilter} onValueChange={setRequestedByFilter}>
+                      <SelectTrigger><SelectValue placeholder="All Requesters" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Requesters ({requirements.length})</SelectItem>
+                        {uniqueRequesters.map(u => (
+                          <SelectItem key={u} value={u}>{u}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
                     <Label className="text-xs">Urgency</Label>
                     <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -516,7 +656,7 @@ export const RequirementsPanel = () => {
                   <div className="flex items-end">
                     <Button variant="ghost" size="sm" onClick={() => {
                       setStatusFilter('all'); setShopFilter('all'); setUrgencyFilter('all');
-                      setFromDate(''); setToDate(''); setSearch('');
+                      setRequestedByFilter('all'); setFromDate(''); setToDate(''); setSearch('');
                     }}>Clear filters</Button>
                   </div>
                 </CollapsibleContent>
@@ -557,15 +697,18 @@ export const RequirementsPanel = () => {
                             <span className="font-semibold">Size {r.size} × {r.quantity}</span>
                             <Badge className={STATUS_TONE[r.status]} variant="secondary">{r.status}</Badge>
                             {r.urgency === 'urgent' && <Badge variant="destructive">urgent</Badge>}
+                            <Badge variant="outline" className="text-[11px] gap-1 px-2 py-0.5 font-medium bg-muted/40">
+                              <User className="h-3 w-3 text-muted-foreground" /> {r.requested_by_name || 'Staff'}
+                            </Badge>
                           </div>
                           <p className="mt-0.5 text-xs text-muted-foreground">
-                            {r.shop_name || '—'} · {r.category || 'no category'} · asked by {r.requested_by_name || '—'} on {format(new Date(r.created_at), 'dd MMM HH:mm')}
+                            {r.shop_name || '—'} · {r.category || 'no category'} · asked by <strong>{r.requested_by_name || 'Staff'}</strong> on {formatISTDateTime(r.created_at)}
                           </p>
                           {r.note && <p className="mt-1 text-sm">{r.note}</p>}
                           <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                            {r.packed_at && <p>Packed by {r.packed_by_name} · {format(new Date(r.packed_at), 'dd MMM HH:mm')}{r.packed_qty != null ? ` · ${r.packed_qty} pcs` : ''}</p>}
-                            {r.moved_at && <p>Moved by {r.moved_by_name} · {format(new Date(r.moved_at), 'dd MMM HH:mm')}{r.moved_note ? ` · ${r.moved_note}` : ''}</p>}
-                            {r.received_at && <p>Received by {r.received_by_name} · {format(new Date(r.received_at), 'dd MMM HH:mm')}</p>}
+                            {r.packed_at && <p>Packed by {r.packed_by_name} · {formatISTDateTime(r.packed_at)}{r.packed_qty != null ? ` · ${r.packed_qty} pcs` : ''}</p>}
+                            {r.moved_at && <p>Moved by {r.moved_by_name} · {formatISTDateTime(r.moved_at)}{r.moved_note ? ` · ${r.moved_note}` : ''}</p>}
+                            {r.received_at && <p>Received by {r.received_by_name} · {formatISTDateTime(r.received_at)}</p>}
                             {r.rejected_at && <p className="text-destructive">Rejected by {r.rejected_by_name} · {r.reject_reason}</p>}
                           </div>
                           {requirementCustomValues[r.id] && Object.keys(requirementCustomValues[r.id]).length > 0 && (

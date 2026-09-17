@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useAnomalyAlerts, getDismissed } from '@/hooks/useAnomalyAlerts';
 import { AnomalyAlertsPanel } from '@/components/AnomalyAlertsPanel';
+import { formatISTShort } from '@/lib/dateUtils';
 
 interface Notification {
   id: string;
@@ -139,7 +140,7 @@ export const NotificationBell = () => {
     if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
-    return date.toLocaleDateString();
+    return formatISTShort(date);
   };
 
   if (!isAdmin && !isManager) return null;
