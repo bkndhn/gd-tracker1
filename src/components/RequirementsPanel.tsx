@@ -358,32 +358,34 @@ export const RequirementsPanel = () => {
   return (
     <div className="space-y-4">
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 p-1.5 bg-muted/60 border rounded-xl gap-1.5 h-auto">
-          <TabsTrigger
-            value="raise"
-            className="group flex items-center justify-center gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
-          >
-            <PackagePlus className="h-4 w-4 text-indigo-500 group-data-[state=active]:text-white transition-colors" />
-            <span className="font-semibold">{t('req.raise')}</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="queue"
-            className="group flex items-center justify-center gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
-          >
-            <ClipboardList className="h-4 w-4 text-amber-500 group-data-[state=active]:text-white transition-colors" />
-            <span className="font-semibold">{t('req.queue')}</span>
-            <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 group-data-[state=active]:bg-white/25 group-data-[state=active]:text-white font-bold">
-              {filtered.length}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="predictive"
-            className="group flex items-center justify-center gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-violet-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
-          >
-            <Sparkles className="h-4 w-4 text-violet-500 group-data-[state=active]:text-white transition-colors" />
-            <span className="font-semibold">AI Demand</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full sm:w-auto overflow-x-auto no-scrollbar pb-0.5">
+          <TabsList className="flex w-full sm:w-auto items-center p-1 bg-muted/60 border rounded-xl gap-1 h-auto no-scrollbar">
+            <TabsTrigger
+              value="raise"
+              className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"
+            >
+              <PackagePlus className="h-4 w-4 shrink-0 text-indigo-500 group-data-[state=active]:text-white transition-colors" />
+              <span className="font-semibold">{t('req.raise')}</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="queue"
+              className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"
+            >
+              <ClipboardList className="h-4 w-4 shrink-0 text-amber-500 group-data-[state=active]:text-white transition-colors" />
+              <span className="font-semibold">{t('req.queue')}</span>
+              <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 group-data-[state=active]:bg-white/25 group-data-[state=active]:text-white font-bold">
+                {filtered.length}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="predictive"
+              className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-violet-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"
+            >
+              <Sparkles className="h-4 w-4 shrink-0 text-violet-500 group-data-[state=active]:text-white transition-colors" />
+              <span className="font-semibold">AI Demand</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ---------- Raise ---------- */}
         <TabsContent value="raise" className="mt-4">
