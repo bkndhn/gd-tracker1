@@ -1,6 +1,7 @@
 
 import { useMemo } from 'react';
 import { BarChart3, Plus, Settings, FileText, Shield, MessageCircle, ClipboardList, type LucideIcon } from 'lucide-react';
+import { useTranslation } from '@/i18n';
 
 type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'followups' | 'requirements' | 'super_admin';
 
@@ -29,39 +30,41 @@ export const MobileBottomNav = ({
   showRequirements,
   isWarehouse,
 }: MobileBottomNavProps) => {
+  const { t } = useTranslation();
+
   const items = useMemo<NavItem[]>(() => {
     if (isSuperAdmin) {
-      return [{ id: 'super_admin', label: 'Admin', icon: Shield }];
+      return [{ id: 'super_admin', label: t('role.superAdmin'), icon: Shield }];
     }
 
     const list: NavItem[] = [];
 
     if (!isWarehouse) {
-      list.push({ id: 'gd', label: 'Log', icon: Plus });
+      list.push({ id: 'gd', label: t('nav.log'), icon: Plus });
     }
 
     if (showRequirements) {
-      list.push({ id: 'requirements', label: 'Stock', icon: ClipboardList });
+      list.push({ id: 'requirements', label: t('nav.stock'), icon: ClipboardList });
     }
 
     if (isAdmin || isManager) {
-      list.push({ id: 'dashboard', label: 'Dash', icon: BarChart3 });
+      list.push({ id: 'dashboard', label: t('nav.dash'), icon: BarChart3 });
     }
 
     if (isAdmin || isManager || isWarehouse) {
-      list.push({ id: 'reports', label: 'Reports', icon: FileText });
+      list.push({ id: 'reports', label: t('nav.reports'), icon: FileText });
     }
 
     if (isAdmin || isManager) {
-      list.push({ id: 'followups', label: 'Follow', icon: MessageCircle });
+      list.push({ id: 'followups', label: t('nav.follow'), icon: MessageCircle });
     }
 
     if (isAdmin) {
-      list.push({ id: 'admin', label: 'Admin', icon: Settings });
+      list.push({ id: 'admin', label: t('nav.admin'), icon: Settings });
     }
 
     return list;
-  }, [isSuperAdmin, isWarehouse, showRequirements, isAdmin, isManager]);
+  }, [isSuperAdmin, isWarehouse, showRequirements, isAdmin, isManager, t]);
 
   if (items.length === 0) return null;
 

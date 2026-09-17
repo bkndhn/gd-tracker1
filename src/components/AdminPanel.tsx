@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTranslation } from '@/i18n';
 import {
   Wand2,
   Search,
@@ -55,6 +56,7 @@ interface SettingSection {
 }
 
 export const AdminPanel = () => {
+  const { t } = useTranslation();
   const [shops, setShops] = useState<Shop[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -271,20 +273,55 @@ export const AdminPanel = () => {
     );
   }, [searchQuery, sections]);
 
-  // Tab definitions with counts
+  // Tab definitions with counts and vibrant themed active styles
   const tabDefs = [
-    { id: 'team', label: 'Team & Shops', icon: Users, count: 3 },
-    { id: 'fields', label: 'Forms & Fields', icon: SlidersHorizontal, count: 2 },
-    { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, count: 4 },
-    { id: 'scoring', label: 'Scoring & Reports', icon: BarChart3, count: 4 },
-    { id: 'security', label: 'Privacy & System', icon: ShieldCheck, count: 5 },
+    {
+      id: 'team',
+      label: 'Team & Shops',
+      icon: Users,
+      count: 3,
+      activeClass: 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20',
+      iconClass: 'text-indigo-500 group-data-[state=active]:text-white',
+    },
+    {
+      id: 'fields',
+      label: 'Forms & Fields',
+      icon: SlidersHorizontal,
+      count: 2,
+      activeClass: 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-cyan-500/20',
+      iconClass: 'text-cyan-500 group-data-[state=active]:text-white',
+    },
+    {
+      id: 'whatsapp',
+      label: 'WhatsApp',
+      icon: MessageSquare,
+      count: 4,
+      activeClass: 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20',
+      iconClass: 'text-emerald-500 group-data-[state=active]:text-white',
+    },
+    {
+      id: 'scoring',
+      label: 'Scoring & Reports',
+      icon: BarChart3,
+      count: 4,
+      activeClass: 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20',
+      iconClass: 'text-amber-500 group-data-[state=active]:text-white',
+    },
+    {
+      id: 'security',
+      label: 'Privacy & System',
+      icon: ShieldCheck,
+      count: 5,
+      activeClass: 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-rose-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20',
+      iconClass: 'text-purple-500 group-data-[state=active]:text-white',
+    },
   ] as const;
 
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-3">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        <p className="text-sm text-muted-foreground">Loading admin controls & settings...</p>
+        <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
       </div>
     );
   }
@@ -299,9 +336,9 @@ export const AdminPanel = () => {
               <Building2 className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Admin & System Controls</h1>
+              <h1 className="text-xl font-bold tracking-tight">{t('admin.title')}</h1>
               <p className="text-xs text-muted-foreground">
-                Manage your team, physical shops, custom fields, WhatsApp automations, scoring, and security
+                {t('admin.subtitle')}
               </p>
             </div>
           </div>
@@ -313,7 +350,7 @@ export const AdminPanel = () => {
           onClick={() => setWizardOpen(true)}
           className="gap-2 shrink-0 border-primary/30 hover:bg-primary/5 text-xs font-medium"
         >
-          <Wand2 className="h-3.5 w-3.5 text-primary" /> Guided Setup Wizard
+          <Wand2 className="h-3.5 w-3.5 text-primary" /> {t('admin.guidedSetup')}
         </Button>
       </div>
 
@@ -400,16 +437,16 @@ export const AdminPanel = () => {
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminTab)} className="space-y-6">
           {/* Scrollable responsive tabs list */}
           <div className="overflow-x-auto no-scrollbar pb-1">
-            <TabsList className="w-full inline-flex sm:grid sm:grid-cols-5 h-auto p-1.5 gap-1 bg-muted/60 border rounded-xl min-w-max sm:min-w-0">
-              {tabDefs.map(({ id, label, icon: Icon, count }) => (
+            <TabsList className="w-full inline-flex sm:grid sm:grid-cols-5 h-auto p-1.5 gap-1.5 bg-muted/60 border rounded-xl min-w-max sm:min-w-0">
+              {tabDefs.map(({ id, label, icon: Icon, count, activeClass, iconClass }) => (
                 <TabsTrigger
                   key={id}
                   value={id}
-                  className="flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+                  className={`group flex items-center justify-center gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-200 ${activeClass} data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50`}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span>{label}</span>
-                  <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-muted-foreground/10 data-[state=active]:bg-primary/15 text-muted-foreground font-semibold">
+                  <Icon className={`h-4 w-4 shrink-0 transition-colors ${iconClass}`} />
+                  <span className="font-medium tracking-tight">{label}</span>
+                  <span className="ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-muted-foreground/15 group-data-[state=active]:bg-white/25 group-data-[state=active]:text-white font-bold transition-all">
                     {count}
                   </span>
                 </TabsTrigger>

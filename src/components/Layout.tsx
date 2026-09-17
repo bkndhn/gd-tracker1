@@ -31,7 +31,7 @@ export const Layout = ({ children }: LayoutProps) => {
   useClientTheme();
   const { profile, signOut, isSuperAdmin, isAdmin, isManager } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { lang, setLang } = useTranslation();
+  const { lang, setLang, t } = useTranslation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -56,9 +56,9 @@ export const Layout = ({ children }: LayoutProps) => {
   };
 
   const getRoleBadge = () => {
-    if (isSuperAdmin) return { label: 'Super Admin', className: 'bg-destructive text-destructive-foreground' };
-    if (isAdmin) return { label: 'Admin', className: 'bg-primary text-primary-foreground' };
-    if (isManager) return { label: 'Manager', className: 'bg-accent text-accent-foreground' };
+    if (isSuperAdmin) return { label: t('role.superAdmin'), className: 'bg-destructive text-destructive-foreground' };
+    if (isAdmin) return { label: t('role.admin'), className: 'bg-primary text-primary-foreground' };
+    if (isManager) return { label: t('role.manager'), className: 'bg-accent text-accent-foreground' };
     return null;
   };
 
@@ -151,12 +151,12 @@ export const Layout = ({ children }: LayoutProps) => {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}
+                    onClick={() => setLang(lang === 'en' ? 'ta' : lang === 'ta' ? 'hi' : 'en')}
                     className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer"
                   >
                     <span className="flex items-center gap-2 text-xs font-medium">
                       <Languages className="h-4 w-4 text-primary" />
-                      Language
+                      {t('nav.language')}
                     </span>
                     <Badge variant="outline" className="text-[10px] font-mono">
                       {LANGUAGES.find(l => l.code === lang)?.native || 'English'}
@@ -170,7 +170,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     className="flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-medium text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                   >
                     <LogOut className="h-4 w-4" />
-                    Sign Out
+                    {t('nav.signOut')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -188,7 +188,7 @@ export const Layout = ({ children }: LayoutProps) => {
         open={showLogoutConfirm}
         onOpenChange={setShowLogoutConfirm}
         onConfirm={handleSignOut}
-        title="Sign Out"
+        title={t('nav.signOut')}
         description="Are you sure you want to sign out?"
         loading={loggingOut}
       />

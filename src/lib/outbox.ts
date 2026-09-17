@@ -151,6 +151,32 @@ export async function retryItem(id: string) {
   void syncOutbox();
 }
 
+export async function checkOnlineHeartbeat(): Promise<boolean> {
+  if (!navigator.onLine) return false;
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 3500);
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
+      method: 'HEAD',
+      headers: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || '' },
+      signal: ctrl.signal,
+    });
+    clearTimeout(tid);
+    return res.status < 500;
+  } catch {
+    return false;
+  }
+}
+
+const yieldToMain = () =>
+  new Promise<void>((resolve) => {
+    if (typeof (window as any).requestIdleCallback === 'function') {
+      (window as any).requestIdleCallback(() => resolve(), { timeout: 200 });
+    } else {
+      setTimeout(resolve, 30);
+    }
+  });
+
 export function scheduleSync(delayMs: number) {
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => {
@@ -159,7 +185,7 @@ export function scheduleSync(delayMs: number) {
   }, delayMs);
 }
 
-/** Push every deliverable item. Safe to call repeatedly. */
+/** Push every deliverable item. Safe to call repeatedly and runs non-blockingly. */
 export async function syncOutbox(): Promise<{ sent: number; failed: number }> {
   if (syncing || !navigator.onLine) return { sent: 0, failed: 0 };
   syncing = true;
@@ -172,6 +198,16 @@ export async function syncOutbox(): Promise<{ sent: number; failed: number }> {
     const due = items.filter((i) => i.status !== 'sending' && i.nextAttemptAt <= now);
 
     for (const item of due) {
+      // Re-verify network before each item to avoid false failures on dropout
+      if (!navigator.onLine) {
+        item.status = 'pending';
+        await idb.put(OUTBOX_STORE, item);
+        break;
+      }
+
+      // Yield main thread to ensure 60fps UI responsiveness during background sync
+      await yieldToMain();
+
       try {
         item.status = 'sending';
         await idb.put(OUTBOX_STORE, item);

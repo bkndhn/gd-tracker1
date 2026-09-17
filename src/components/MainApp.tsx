@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRequirementsAccess } from '@/hooks/useRequirementsAccess';
 import { ClipboardList } from 'lucide-react';
 import { PageSkeleton } from '@/components/PageSkeleton';
+import { useTranslation } from '@/i18n';
 
 // Lazy load heavy components with prefetch helpers for instant nav
 const importDashboard = () => import('@/components/Dashboard').then(m => ({ default: m.Dashboard }));
@@ -37,6 +38,7 @@ const RequirementsPanel = React.lazy(importRequirements);
 type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'followups' | 'requirements' | 'super_admin';
 
 export const MainApp = () => {
+  const { t } = useTranslation();
   const { isSuperAdmin, isAdmin, isManager, profile, user, signOut, adminId } = useAuth();
   const { permission } = usePushNotifications();
   const isWarehouse = (profile as any)?.role === 'warehouse';
@@ -225,7 +227,7 @@ export const MainApp = () => {
                 className="flex items-center gap-2 flex-shrink-0"
               >
                 <Shield className="h-4 w-4" />
-                Super Admin
+                {t('role.superAdmin')}
               </Button>
             )}
 
@@ -235,42 +237,42 @@ export const MainApp = () => {
                 {!isWarehouse && (
                   <Button variant={activeTab === 'gd' ? 'default' : 'ghost'} onClick={() => setActiveTab('gd')}
                     className="flex items-center gap-2 flex-shrink-0">
-                    <Plus className="h-4 w-4" />Log Visit
+                    <Plus className="h-4 w-4" />{t('nav.logVisit')}
                   </Button>
                 )}
                 {requirementsEnabled && (
                   <Button variant={activeTab === 'requirements' ? 'default' : 'ghost'} onClick={() => setActiveTab('requirements')}
                     onMouseEnter={() => importRequirements()} onFocus={() => importRequirements()}
                     className="flex items-center gap-2 flex-shrink-0">
-                    <ClipboardList className="h-4 w-4" />Requirements
+                    <ClipboardList className="h-4 w-4" />{t('nav.requirements')}
                   </Button>
                 )}
                 {(isAdmin || isManager) && (
                   <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} onClick={() => setActiveTab('dashboard')}
                     onMouseEnter={() => importDashboard()} onFocus={() => importDashboard()}
                     className="flex items-center gap-2 flex-shrink-0">
-                    <BarChart3 className="h-4 w-4" />Dashboard
+                    <BarChart3 className="h-4 w-4" />{t('nav.dashboard')}
                   </Button>
                 )}
                 {(isAdmin || isManager || isWarehouse) && (
                   <Button variant={activeTab === 'reports' ? 'default' : 'ghost'} onClick={() => setActiveTab('reports')}
                     onMouseEnter={() => importReports()} onFocus={() => importReports()}
                     className="flex items-center gap-2 flex-shrink-0">
-                    <FileText className="h-4 w-4" />Reports
+                    <FileText className="h-4 w-4" />{t('nav.reports')}
                   </Button>
                 )}
                 {(isAdmin || isManager) && (
                   <Button variant={activeTab === 'followups' ? 'default' : 'ghost'} onClick={() => setActiveTab('followups')}
                     onMouseEnter={() => importFollowUps()} onFocus={() => importFollowUps()}
                     className="flex items-center gap-2 flex-shrink-0">
-                    <MessageCircle className="h-4 w-4" />Follow-ups
+                    <MessageCircle className="h-4 w-4" />{t('nav.followups')}
                   </Button>
                 )}
                 {isAdmin && (
                   <Button variant={activeTab === 'admin' ? 'default' : 'ghost'} onClick={() => setActiveTab('admin')}
                     onMouseEnter={() => importAdmin()} onFocus={() => importAdmin()}
                     className="flex items-center gap-2 flex-shrink-0">
-                    <Settings className="h-4 w-4" />Admin Panel
+                    <Settings className="h-4 w-4" />{t('nav.admin')}
                   </Button>
                 )}
               </>

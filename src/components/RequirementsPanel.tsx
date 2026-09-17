@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequirements, type StockRequirement, type RequirementStatus } from '@/hooks/useRequirements';
+import { useTranslation } from '@/i18n';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +43,7 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 export const RequirementsPanel = () => {
+  const { t } = useTranslation();
   const { profile, user } = useAuth();
   const p = profile as any;
   const role = p?.role as string | undefined;
@@ -310,8 +312,8 @@ export const RequirementsPanel = () => {
     <div className="space-y-4">
       <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="raise">Raise</TabsTrigger>
-          <TabsTrigger value="queue">Queue ({filtered.length})</TabsTrigger>
+          <TabsTrigger value="raise">{t('req.raise')}</TabsTrigger>
+          <TabsTrigger value="queue">{t('req.queue')} ({filtered.length})</TabsTrigger>
         </TabsList>
 
         {/* ---------- Raise ---------- */}
@@ -319,7 +321,7 @@ export const RequirementsPanel = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <PackagePlus className="h-5 w-5 text-primary" /> Request stock from shop
+                <PackagePlus className="h-5 w-5 text-primary" /> {t('req.requestStock')}
               </CardTitle>
               <CardDescription>Select the shop and the required size.</CardDescription>
             </CardHeader>
@@ -328,22 +330,22 @@ export const RequirementsPanel = () => {
                 {/* Shop auto-select or select dropdown */}
                 {p?.shop_id ? (
                   <div className="space-y-2">
-                    <Label>Shop</Label>
+                    <Label>{t('common.shop')}</Label>
                     <Input
-                      value={userShop?.name || 'Loading shop...'}
+                      value={userShop?.name || t('common.loading')}
                       disabled
                       className="bg-muted cursor-not-allowed font-medium text-sm"
                     />
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
-                      Shop automatically assigned from your profile
+                      {t('form.shopAuto')}
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Label>Shop *</Label>
+                    <Label>{t('common.shop')} *</Label>
                     <Select value={form.shop_id} onValueChange={v => setForm({ ...form, shop_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Select shop" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={t('form.selectShop')} /></SelectTrigger>
                       <SelectContent>
                         {visibleShops.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                       </SelectContent>
@@ -353,7 +355,7 @@ export const RequirementsPanel = () => {
 
                 {/* Quantity */}
                 <div className="space-y-2">
-                  <Label>Quantity *</Label>
+                  <Label>{t('req.quantity')} *</Label>
                   <Input
                     type="number"
                     min={1}
@@ -365,7 +367,7 @@ export const RequirementsPanel = () => {
                 {/* Size dropdown with quick chips and custom input option */}
                 <div className="space-y-2 sm:col-span-2">
                   <div className="flex items-center justify-between">
-                    <Label>Size *</Label>
+                    <Label>{t('common.size')} *</Label>
                     {isCustomSize ? (
                       <Button
                         type="button"

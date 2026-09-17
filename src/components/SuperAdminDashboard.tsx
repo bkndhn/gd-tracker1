@@ -402,12 +402,12 @@ export const SuperAdminDashboard = () => {
   }, []);
 
   const kpis = [
-    { label: 'Tenants', value: admins.length, icon: Shield, tone: 'text-foreground' },
-    { label: 'Active', value: activeAdmins.length, icon: CheckCircle, tone: 'text-primary' },
-    { label: 'Paused', value: pausedAdmins.length, icon: XCircle, tone: 'text-destructive' },
-    { label: 'Sub-users', value: totalSubUsers, icon: Users, tone: 'text-foreground' },
-    { label: 'Shops', value: allShops.length, icon: Building, tone: 'text-foreground' },
-    { label: 'Entries', value: totalEntries, icon: Activity, tone: 'text-foreground' },
+    { label: 'Tenants', value: admins.length, icon: Shield, tone: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20', border: 'hover:border-indigo-500/40' },
+    { label: 'Active', value: activeAdmins.length, icon: CheckCircle, tone: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20', border: 'hover:border-emerald-500/40' },
+    { label: 'Paused', value: pausedAdmins.length, icon: XCircle, tone: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20', border: 'hover:border-rose-500/40' },
+    { label: 'Sub-users', value: totalSubUsers, icon: Users, tone: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20', border: 'hover:border-sky-500/40' },
+    { label: 'Shops', value: allShops.length, icon: Building, tone: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20', border: 'hover:border-amber-500/40' },
+    { label: 'Entries', value: totalEntries, icon: Activity, tone: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20', border: 'hover:border-purple-500/40' },
   ];
 
   if (loading) {
@@ -445,11 +445,35 @@ export const SuperAdminDashboard = () => {
           </div>
         </div>
 
-        <TabsList className="w-full flex sm:grid sm:grid-cols-4 gap-1 overflow-x-auto no-scrollbar justify-start">
-          <TabsTrigger value="tenants" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><Shield className="h-4 w-4" /> Tenants</TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><Settings className="h-4 w-4" /> Settings</TabsTrigger>
-          <TabsTrigger value="audit" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><Activity className="h-4 w-4" /> Audit</TabsTrigger>
-          <TabsTrigger value="health" className="flex items-center gap-1 shrink-0 rounded-full sm:rounded-md"><HeartPulse className="h-4 w-4" /> Health</TabsTrigger>
+        <TabsList className="w-full flex sm:grid sm:grid-cols-4 gap-1.5 overflow-x-auto no-scrollbar justify-start p-1 bg-muted/60 border rounded-xl">
+          <TabsTrigger
+            value="tenants"
+            className="group flex items-center justify-center gap-1.5 shrink-0 rounded-lg py-2 px-3 text-xs sm:text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20"
+          >
+            <Shield className="h-4 w-4 text-indigo-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+            <span>Tenants</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="settings"
+            className="group flex items-center justify-center gap-1.5 shrink-0 rounded-lg py-2 px-3 text-xs sm:text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20"
+          >
+            <Settings className="h-4 w-4 text-purple-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+            <span>Settings</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="audit"
+            className="group flex items-center justify-center gap-1.5 shrink-0 rounded-lg py-2 px-3 text-xs sm:text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20"
+          >
+            <Activity className="h-4 w-4 text-amber-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+            <span>Audit</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="health"
+            className="group flex items-center justify-center gap-1.5 shrink-0 rounded-lg py-2 px-3 text-xs sm:text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20"
+          >
+            <HeartPulse className="h-4 w-4 text-emerald-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+            <span>Health</span>
+          </TabsTrigger>
         </TabsList>
       </div>
 
@@ -457,14 +481,16 @@ export const SuperAdminDashboard = () => {
     <div className="space-y-6">
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        {kpis.map(({ label, value, icon: Icon, tone }) => (
-          <Card key={label} className="premium-card">
-            <CardContent className="p-4">
+        {kpis.map(({ label, value, icon: Icon, tone, bg, border }) => (
+          <Card key={label} className={`border bg-card/60 backdrop-blur-sm shadow-sm transition-all duration-200 hover:shadow-md ${border}`}>
+            <CardContent className="p-3.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{label}</span>
-                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground">{label}</span>
+                <div className={`p-1.5 rounded-lg border ${bg}`}>
+                  <Icon className="h-3.5 w-3.5" />
+                </div>
               </div>
-              <div className={`text-2xl font-bold mt-1 ${tone}`}>{value}</div>
+              <div className={`text-2xl font-bold mt-2 tracking-tight ${tone}`}>{value}</div>
             </CardContent>
           </Card>
         ))}

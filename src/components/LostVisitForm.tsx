@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCachedData } from '@/hooks/useCachedData';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,6 +57,7 @@ const RepeatVisitorBanner = ({ phone }: { phone: string }) => {
 
 
 export const LostVisitForm = () => {
+  const { t } = useTranslation();
   const { profile } = useAuth();
   const { shops, loading: dataLoading } = useCachedData();
   const { isOnline, pendingCount, saveOfflineEntry } = useOfflineSync();
@@ -422,7 +424,7 @@ export const LostVisitForm = () => {
   };
 
   if (dataLoading) {
-    return <div className="flex justify-center items-center h-64">Loading form data...</div>;
+    return <div className="flex justify-center items-center h-64">{t('common.loading')}</div>;
   }
 
   const entryLimitReached = maxEntries !== null && currentEntryCount >= maxEntries;
@@ -432,34 +434,34 @@ export const LostVisitForm = () => {
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Log Non-Purchase Visit</span>
+          <span>{t('form.title')}</span>
           <div className="flex items-center gap-2 text-sm font-normal">
-            {entryLimitReached && <span className="text-destructive font-medium">Entry limit reached</span>}
+            {entryLimitReached && <span className="text-destructive font-medium">{t('form.entryLimitReached')}</span>}
             {!isOnline && (
               <span className="text-orange-500 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>Offline
+                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>{t('form.offlineNotice')}
               </span>
             )}
-            {pendingCount > 0 && <span className="text-blue-500">{pendingCount} pending</span>}
+            {pendingCount > 0 && <span className="text-blue-500">{pendingCount} {t('form.pendingNotice')}</span>}
           </div>
         </CardTitle>
-        <CardDescription>Record a customer who left without buying and why</CardDescription>
+        <CardDescription>{t('form.desc')}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           {profile?.shop_id ? (
             <div className="space-y-2">
-              <Label>Shop</Label>
-              <Input value={userShop?.name || 'Loading shop...'} disabled className="bg-muted cursor-not-allowed" />
-              <p className="text-xs text-muted-foreground">Shop is automatically assigned based on your profile</p>
+              <Label>{t('common.shop')}</Label>
+              <Input value={userShop?.name || t('common.loading')} disabled className="bg-muted cursor-not-allowed" />
+              <p className="text-xs text-muted-foreground">{t('form.shopAuto')}</p>
             </div>
           ) : !hasShopField ? (
             <div className="space-y-2">
-              <Label>Shop *</Label>
+              <Label>{t('common.shop')} *</Label>
               <Select value={shopFallbackId} onValueChange={setShopFallbackId}>
-                <SelectTrigger><SelectValue placeholder="Select a shop" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('form.selectShop')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Select a shop</SelectItem>
+                  <SelectItem value="none">{t('form.selectShop')}</SelectItem>
                   {shops.map(shop => (
                     <SelectItem key={shop.id} value={shop.id}>{shop.name}</SelectItem>
                   ))}
@@ -553,7 +555,7 @@ export const LostVisitForm = () => {
 
 
           <div className="space-y-2">
-            <Label>Notes / Voice / Images {!voiceNoteFile && !notes.trim() && '*'}</Label>
+            <Label>{t('form.notesLabel')} {!voiceNoteFile && !notes.trim() && '*'}</Label>
             <WhatsAppInputBar
               key={formKey}
               notes={notes}
@@ -567,7 +569,7 @@ export const LostVisitForm = () => {
           </div>
 
           <Button type="submit" className="w-full" disabled={loading || entryLimitReached}>
-            {loading ? 'Submitting...' : entryLimitReached ? 'Entry Limit Reached' : 'Submit Report'}
+            {loading ? t('form.submitting') : entryLimitReached ? t('form.entryLimitReached') : t('form.saveVisit')}
           </Button>
         </form>
       </CardContent>

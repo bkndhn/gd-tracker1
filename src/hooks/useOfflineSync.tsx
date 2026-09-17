@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   OutboxItem,
+  checkOnlineHeartbeat,
   discardItem,
   enqueueEntry,
   isSyncing as outboxSyncing,
@@ -13,7 +14,7 @@ import {
 
 /**
  * Single source of truth for connectivity + the offline outbox.
- * Triggers a sync on reconnect, on focus, and on app start.
+ * Performs real connectivity pings and triggers silent, non-blocking sync on reconnect.
  */
 export const useOfflineSync = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -56,16 +57,35 @@ export const useOfflineSync = () => {
   );
 
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      scheduleSync(500);
+    let unmounted = false;
+
+    const performSilentSync = async () => {
+      const reachable = await checkOnlineHeartbeat();
+      if (unmounted) return;
+      setIsOnline(reachable);
+      if (reachable) {
+        const res = await syncOutbox();
+        if (res.sent > 0) {
+          toast.success(`Silently synced ${res.sent} pending visit${res.sent === 1 ? '' : 's'}.`, {
+            duration: 3000,
+          });
+        }
+      }
     };
+
+    const handleOnline = () => {
+      void performSilentSync();
+    };
+
     const handleOffline = () => {
       setIsOnline(false);
-      toast.warning('You are offline. Entries are saved on this device.');
+      toast.info('Offline mode active. All visits will save safely on your device.', { duration: 3500 });
     };
+
     const handleFocus = () => {
-      if (navigator.onLine) scheduleSync(0);
+      if (navigator.onLine) {
+        void performSilentSync();
+      }
     };
 
     window.addEventListener('online', handleOnline);
@@ -73,9 +93,11 @@ export const useOfflineSync = () => {
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleFocus);
 
-    scheduleSync(0);
+    // Initial silent check
+    void performSilentSync();
 
     return () => {
+      unmounted = true;
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('focus', handleFocus);
