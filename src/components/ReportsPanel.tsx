@@ -18,8 +18,10 @@ import { ImageDisplay } from '@/components/ImageDisplay';
 import { ImageThumbnail } from '@/components/ImageThumbnail';
 import { VoiceNotePlayer } from '@/components/VoiceNotePlayer';
 import { NoteViewerModal } from '@/components/NoteViewerModal';
-import { toast } from 'sonner';
-import { Download, Filter, Calendar as CalendarIcon, FileText, Image, BarChart3, List, LayoutGrid, ChevronDown, Check, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet, Volume2, Trash2, AlertTriangle, Mail, Loader2 } from 'lucide-react';
+import { Download, Filter, Calendar as CalendarIcon, FileText, Image, BarChart3, List, LayoutGrid, ChevronDown, Check, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet, Volume2, Trash2, AlertTriangle, Mail, Loader2, ClipboardList } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RequirementsReport } from '@/components/RequirementsReport';
+import { useRequirements } from '@/hooks/useRequirements';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
@@ -77,6 +79,7 @@ export const ReportsPanel = () => {
   const { isOnline, pendingCount } = useOfflineSync();
   const { labels } = useFieldLabels();
   const { startJob } = useExportJobs();
+  const { requirements: stockReqs } = useRequirements();
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<GoodsEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<GoodsEntry[]>([]);
@@ -1204,8 +1207,25 @@ export const ReportsPanel = () => {
 
   return (
     <div className="space-y-6 w-full min-w-0">
-      {summary && <AIInsightsPanel context="reports" data={summary} />}
-      <Card className="w-full">
+      <Tabs defaultValue="visits" className="w-full space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b">
+          <TabsList className="grid w-full sm:w-auto grid-cols-2">
+            <TabsTrigger value="visits" className="gap-2">
+              <FileText className="h-4 w-4" /> Lost Visit Reports
+            </TabsTrigger>
+            <TabsTrigger value="requirements" className="gap-2">
+              <ClipboardList className="h-4 w-4" /> Requirements Report
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="requirements" className="space-y-4">
+          <RequirementsReport rows={stockReqs} />
+        </TabsContent>
+
+        <TabsContent value="visits" className="space-y-4">
+          {summary && <AIInsightsPanel context="reports" data={summary} />}
+          <Card className="w-full">
         <CardHeader className="rounded-t-2xl border-b bg-gradient-to-r from-background to-muted/20 py-3 px-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
@@ -1898,6 +1918,8 @@ export const ReportsPanel = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequirements, type StockRequirement, type RequirementStatus } from '@/hooks/useRequirements';
-import { RequirementsReport } from '@/components/RequirementsReport';
+import { WarehouseDashboard } from '@/components/WarehouseDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { PackagePlus, Filter, Search, Truck, PackageCheck, CheckCircle2, XCircle, ClipboardList } from 'lucide-react';
+import { PackagePlus, Filter, Search, Truck, PackageCheck, CheckCircle2, XCircle, ClipboardList, Warehouse } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -38,6 +38,10 @@ export const RequirementsPanel = () => {
 
   const [sizes, setSizes] = useState<{ id: string; size: string }[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [reqCustomFields, setReqCustomFields] = useState<any[]>([]);
+  const [reqCustomOptions, setReqCustomOptions] = useState<Record<string, any[]>>({});
+  const [customFormValues, setCustomFormValues] = useState<Record<string, string>>({});
+  const [requirementCustomValues, setRequirementCustomValues] = useState<Record<string, Record<string, string>>>({});
 
   // form
   const [form, setForm] = useState({
@@ -66,12 +70,39 @@ export const RequirementsPanel = () => {
 
   useEffect(() => {
     (async () => {
-      const [sizeRes, catRes] = await Promise.all([
+      const [sizeRes, catRes, cfRes, cvRes] = await Promise.all([
         supabase.from('sizes').select('id, size').is('deleted_at', null).order('size'),
         supabase.from('categories').select('id, name').is('deleted_at', null).order('name'),
+        (supabase.from('custom_fields') as any).select('*').eq('scope', 'requirement').is('deleted_at', null).order('display_order'),
+        (supabase.from('gd_entry_custom_values') as any).select('*').not('requirement_id', 'is', null),
       ]);
       if (!sizeRes.error) setSizes((sizeRes.data || []) as any);
       if (!catRes.error) setCategories((catRes.data || []) as any);
+
+      if (cfRes?.data && cfRes.data.length > 0) {
+        setReqCustomFields(cfRes.data);
+        const cfIds = cfRes.data.map((f: any) => f.id);
+        const { data: optData } = await (supabase.from('custom_field_options') as any)
+          .select('*')
+          .in('custom_field_id', cfIds)
+          .is('deleted_at', null)
+          .order('display_order');
+        const grp: Record<string, any[]> = {};
+        (optData || []).forEach((o: any) => {
+          if (!grp[o.custom_field_id]) grp[o.custom_field_id] = [];
+          grp[o.custom_field_id].push(o);
+        });
+        setReqCustomOptions(grp);
+      }
+
+      if (cvRes?.data) {
+        const byReq: Record<string, Record<string, string>> = {};
+        cvRes.data.forEach((row: any) => {
+          if (!byReq[row.requirement_id]) byReq[row.requirement_id] = {};
+          byReq[row.requirement_id][row.custom_field_id] = row.value;
+        });
+        setRequirementCustomValues(byReq);
+      }
     })();
   }, []);
 
@@ -117,6 +148,13 @@ export const RequirementsPanel = () => {
     if (!form.shop_id) return toast.error('Choose a shop');
     if (!form.size.trim()) return toast.error('Enter the size you need');
     if (!form.quantity || form.quantity < 1) return toast.error('Enter a quantity');
+
+    for (const cf of reqCustomFields) {
+      if (cf.is_mandatory && !customFormValues[cf.id]?.trim()) {
+        return toast.error(`Please provide ${cf.name}`);
+      }
+    }
+
     const ok = await createRequirement({
       shop_id: form.shop_id,
       size: form.size.trim(),
@@ -124,8 +162,12 @@ export const RequirementsPanel = () => {
       quantity: Number(form.quantity),
       urgency: form.urgency,
       note: form.note.trim() || null,
+      custom_values: customFormValues,
     });
-    if (ok) setForm(f => ({ ...f, size: '', category: '', quantity: 1, urgency: 'normal', note: '' }));
+    if (ok) {
+      setForm(f => ({ ...f, size: '', category: '', quantity: 1, urgency: 'normal', note: '' }));
+      setCustomFormValues({});
+    }
   };
 
   const openAction = (req: StockRequirement, to: RequirementStatus) => {
@@ -150,11 +192,11 @@ export const RequirementsPanel = () => {
 
   return (
     <div className="space-y-4">
-      <Tabs defaultValue="queue" className="w-full">
+      <Tabs defaultValue="raise" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="raise">Raise</TabsTrigger>
-          <TabsTrigger value="queue">Queue</TabsTrigger>
-          <TabsTrigger value="report">Report</TabsTrigger>
+          <TabsTrigger value="queue">Queue ({filtered.length})</TabsTrigger>
+          <TabsTrigger value="inventory">Warehouse Inventory</TabsTrigger>
         </TabsList>
 
         {/* ---------- Raise ---------- */}
@@ -217,6 +259,56 @@ export const RequirementsPanel = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Dynamic Requirement Custom Fields */}
+              {reqCustomFields.length > 0 && (
+                <div className="grid gap-4 sm:grid-cols-2 pt-3 border-t">
+                  {reqCustomFields.map((cf) => {
+                    const opts = reqCustomOptions[cf.id] || [];
+                    const val = customFormValues[cf.id] || '';
+                    return (
+                      <div key={cf.id} className="space-y-2">
+                        <Label>
+                          {cf.name}
+                          {cf.is_mandatory && <span className="text-destructive ml-1">*</span>}
+                        </Label>
+                        {cf.field_type === 'dropdown' ? (
+                          <Select value={val} onValueChange={(v) => setCustomFormValues({ ...customFormValues, [cf.id]: v })}>
+                            <SelectTrigger><SelectValue placeholder={`Select ${cf.name}`} /></SelectTrigger>
+                            <SelectContent>
+                              {opts.map((o) => (
+                                <SelectItem key={o.id} value={o.value}>{o.value}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : cf.field_type === 'number' ? (
+                          <Input
+                            type="number"
+                            value={val}
+                            onChange={(e) => setCustomFormValues({ ...customFormValues, [cf.id]: e.target.value })}
+                            placeholder={`Enter ${cf.name}`}
+                          />
+                        ) : cf.field_type === 'textarea' ? (
+                          <Textarea
+                            rows={2}
+                            value={val}
+                            onChange={(e) => setCustomFormValues({ ...customFormValues, [cf.id]: e.target.value })}
+                            placeholder={`Enter ${cf.name}`}
+                          />
+                        ) : (
+                          <Input
+                            type={cf.field_type === 'date' ? 'date' : 'text'}
+                            value={val}
+                            onChange={(e) => setCustomFormValues({ ...customFormValues, [cf.id]: e.target.value })}
+                            placeholder={`Enter ${cf.name}`}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Note</Label>
                 <Textarea rows={2} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })}
@@ -336,10 +428,22 @@ export const RequirementsPanel = () => {
                           {r.note && <p className="mt-1 text-sm">{r.note}</p>}
                           <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
                             {r.packed_at && <p>Packed by {r.packed_by_name} · {format(new Date(r.packed_at), 'dd MMM HH:mm')}{r.packed_qty != null ? ` · ${r.packed_qty} pcs` : ''}</p>}
-                            {r.moved_at && <p>Moved by {r.moved_by_name} · {format(new Date(r.moved_at), 'dd MMM HH:mm')}</p>}
+                            {r.moved_at && <p>Moved by {r.moved_by_name} · {format(new Date(r.moved_at), 'dd MMM HH:mm')}{r.moved_note ? ` · ${r.moved_note}` : ''}</p>}
                             {r.received_at && <p>Received by {r.received_by_name} · {format(new Date(r.received_at), 'dd MMM HH:mm')}</p>}
                             {r.rejected_at && <p className="text-destructive">Rejected by {r.rejected_by_name} · {r.reject_reason}</p>}
                           </div>
+                          {requirementCustomValues[r.id] && Object.keys(requirementCustomValues[r.id]).length > 0 && (
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              {Object.entries(requirementCustomValues[r.id]).map(([cfId, val]) => {
+                                const cf = reqCustomFields.find(f => f.id === cfId);
+                                return (
+                                  <Badge key={cfId} variant="outline" className="text-[10px] px-1.5 py-0 bg-muted/40">
+                                    {cf ? cf.name : 'Detail'}: {val}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {r.status === 'requested' && canFulfil(r) && (
@@ -372,9 +476,9 @@ export const RequirementsPanel = () => {
           </Card>
         </TabsContent>
 
-        {/* ---------- Report ---------- */}
-        <TabsContent value="report" className="mt-4">
-          <RequirementsReport rows={filtered} selected={selectedRows} />
+        {/* ---------- Warehouse Inventory ---------- */}
+        <TabsContent value="inventory" className="mt-4">
+          <WarehouseDashboard />
         </TabsContent>
       </Tabs>
 

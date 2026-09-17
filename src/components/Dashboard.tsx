@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { TrendingUp, TrendingDown, Package, Calendar, CalendarDays, Sparkles, Filter, X, ArrowUpDown, BarChart3, FileDown, FileSpreadsheet, LineChart, LayoutGrid, Users, UserCheck, Store } from 'lucide-react';
+import { TrendingUp, TrendingDown, Package, Calendar, CalendarDays, Sparkles, Filter, X, ArrowUpDown, BarChart3, FileDown, FileSpreadsheet, LineChart, LayoutGrid, Users, UserCheck, Store, Warehouse } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { WarehouseDashboard } from './WarehouseDashboard';
 import { exportToPDFViaHTML, makeImageCell } from '@/utils/htmlPdfExport';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
@@ -705,7 +707,24 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-6 pb-6">
-      {hasNoData ? (
+      <Tabs defaultValue="visits" className="w-full space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b">
+          <TabsList className="grid w-full sm:w-auto grid-cols-2">
+            <TabsTrigger value="visits" className="gap-2">
+              <BarChart3 className="h-4 w-4" /> Visit Analytics
+            </TabsTrigger>
+            <TabsTrigger value="warehouse" className="gap-2">
+              <Warehouse className="h-4 w-4" /> Requirements & Warehouse
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="warehouse" className="space-y-4">
+          <WarehouseDashboard />
+        </TabsContent>
+
+        <TabsContent value="visits" className="space-y-4">
+          {hasNoData ? (
         <div className="flex flex-col items-center justify-center h-[70vh] gap-6 px-4">
           <div className="relative">
             <Package className="h-24 w-24 text-muted-foreground/20" />
@@ -1190,6 +1209,8 @@ export const Dashboard = () => {
           </Dialog>
         </>
       )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

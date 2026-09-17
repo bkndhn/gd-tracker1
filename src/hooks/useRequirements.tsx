@@ -36,6 +36,7 @@ export interface StockRequirement {
   reject_reason: string | null;
   created_at: string;
   updated_at: string;
+  custom_values?: Record<string, string>;
 }
 
 export interface NewRequirement {
@@ -45,6 +46,7 @@ export interface NewRequirement {
   quantity: number;
   urgency: string;
   note?: string | null;
+  custom_values?: Record<string, string>;
 }
 
 export const useRequirements = () => {
@@ -115,7 +117,7 @@ export const useRequirements = () => {
         }
       }
       const shopName = shops.find(s => s.id === input.shop_id)?.name || null;
-      const { error } = await (supabase.from('stock_requirements') as any).insert({
+      const { data: createdReq, error } = await (supabase.from('stock_requirements') as any).insert({
         admin_id: tenantId,
         shop_id: input.shop_id,
         shop_name: shopName,
@@ -127,8 +129,27 @@ export const useRequirements = () => {
         urgency: input.urgency,
         note: input.note || null,
         status: 'requested',
-      });
+      }).select().single();
+
       if (error) throw error;
+
+      if (input.custom_values && Object.keys(input.custom_values).length > 0 && createdReq?.id) {
+        try {
+          const cvRows = Object.entries(input.custom_values)
+            .filter(([_, val]) => Boolean(val && String(val).trim()))
+            .map(([fieldId, val]) => ({
+              requirement_id: createdReq.id,
+              custom_field_id: fieldId,
+              value: String(val),
+            }));
+          if (cvRows.length > 0) {
+            await (supabase.from('gd_entry_custom_values') as any).insert(cvRows);
+          }
+        } catch (cvErr) {
+          if (import.meta.env.DEV) console.error('Failed to save requirement custom values', cvErr);
+        }
+      }
+
       toast.success('Requirement sent to the warehouse');
       await fetchAll();
       return true;
@@ -178,6 +199,35 @@ export const useRequirements = () => {
         actor_name: actorName,
         note: extra.note || null,
       });
+
+      // Automatically deduct from warehouse inventory when packed
+      if (to === 'packed') {
+        try {
+          const { data: invRow } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'warehouse_inventory')
+            .eq('admin_id', req.admin_id)
+            .maybeSingle();
+          if (invRow?.value && Array.isArray(invRow.value)) {
+            const packedCount = patch.packed_qty ?? req.quantity;
+            const normSize = req.size.trim().toLowerCase();
+            const updatedInv = (invRow.value as any[]).map(item => {
+              if (String(item.size).trim().toLowerCase() === normSize) {
+                return { ...item, on_hand: Math.max(0, (item.on_hand || 0) - packedCount), updated_at: now };
+              }
+              return item;
+            });
+            await (supabase.from('app_settings') as any).upsert({
+              key: 'warehouse_inventory',
+              admin_id: req.admin_id,
+              value: updatedInv,
+            }, { onConflict: 'admin_id,key' });
+          }
+        } catch (invErr) {
+          if (import.meta.env.DEV) console.error('Failed to deduct packed inventory', invErr);
+        }
+      }
 
       toast.success(`Marked as ${to}`);
       await fetchAll();

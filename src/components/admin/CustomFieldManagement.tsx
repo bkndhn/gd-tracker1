@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Edit, Trash2, Settings2, Eye, EyeOff, Asterisk, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Settings2, EyeOff, Asterisk, ArrowUp, ArrowDown, Copy, Layers } from 'lucide-react';
 
 const FIELD_TYPES = [
   { value: 'dropdown', label: 'Dropdown' },
@@ -26,27 +26,29 @@ const FIELD_TYPES = [
 
 const HAS_OPTIONS = (t?: string) => (t || 'dropdown') === 'dropdown' || t === 'radio';
 
-/** Labels longer than this are hard to read in the visit form. */
+/** Labels longer than this are hard to read in the form. */
 const MAX_FIELD_NAME = 40;
 const WARN_FIELD_NAME = 24;
 
-/** Live preview of how the field will look in the visit form. */
+/** Live preview of how the field will look in the form. */
 const FieldPreview = ({
   name,
   type,
   mandatory,
   options,
+  scope = 'visit',
 }: {
   name: string;
   type: string;
   mandatory: boolean;
   options: string[];
+  scope?: 'visit' | 'requirement';
 }) => {
   const label = name.trim() || 'Field label';
   return (
     <div className="rounded-lg border bg-muted/30 p-3 min-w-0 overflow-hidden">
       <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-        Preview in visit form
+        Preview in {scope === 'requirement' ? 'requirement form' : 'visit form'}
       </p>
       <div className="space-y-1.5 min-w-0">
         <p className="break-words text-sm font-medium leading-snug min-w-0">
@@ -98,6 +100,7 @@ interface CustomField {
   is_mandatory: boolean;
   display_order: number;
   field_type?: string;
+  scope?: string;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -119,11 +122,19 @@ export const CustomFieldManagement = () => {
   const [options, setOptions] = useState<Record<string, CustomFieldOption[]>>({});
   const [loading, setLoading] = useState(true);
 
+  // Scope: visit form vs requirement / stock form
+  const [activeScope, setActiveScope] = useState<'visit' | 'requirement'>('visit');
+
   // Add field state
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState('dropdown');
   const [newFieldMandatory, setNewFieldMandatory] = useState(false);
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
+
+  // Reuse field state
+  const [isReuseDialogOpen, setIsReuseDialogOpen] = useState(false);
+  const [selectedReuseFieldId, setSelectedReuseFieldId] = useState('');
+  const [reusing, setReusing] = useState(false);
 
   // Edit field state
   const [editingField, setEditingField] = useState<CustomField | null>(null);
@@ -187,13 +198,25 @@ export const CustomFieldManagement = () => {
     }
   };
 
+  const scopedFields = useMemo(() => {
+    return fields.filter(f => (f.scope || 'visit') === activeScope);
+  }, [fields, activeScope]);
+
+  const visitFields = useMemo(() => {
+    return fields.filter(f => (f.scope || 'visit') === 'visit');
+  }, [fields]);
+
+  const requirementFields = useMemo(() => {
+    return fields.filter(f => f.scope === 'requirement');
+  }, [fields]);
+
   /** Blocking validation shared by the add & edit dialogs. */
   const validateName = (name: string, excludeId?: string): string | null => {
     const v = name.trim();
     if (!v) return 'Field name is required.';
     if (v.length > MAX_FIELD_NAME) return `Keep it under ${MAX_FIELD_NAME} characters (currently ${v.length}).`;
-    if (fields.some((f) => f.id !== excludeId && f.name.trim().toLowerCase() === v.toLowerCase()))
-      return 'Another field already uses this name.';
+    if (scopedFields.some((f) => f.id !== excludeId && f.name.trim().toLowerCase() === v.toLowerCase()))
+      return `Another ${activeScope === 'requirement' ? 'requirement' : 'visit'} field already uses this name.`;
     return null;
   };
 
@@ -219,10 +242,11 @@ export const CustomFieldManagement = () => {
           field_type: newFieldType,
           is_mandatory: newFieldMandatory,
           admin_id: (profile as any)?.admin_id || profile?.id,
-          display_order: fields.length,
+          display_order: scopedFields.length,
+          scope: activeScope,
         });
       if (error) throw error;
-      toast.success('Custom field created');
+      toast.success(`${activeScope === 'requirement' ? 'Requirement' : 'Visit'} custom field created`);
       setNewFieldName('');
       setNewFieldType('dropdown');
       setNewFieldMandatory(false);
@@ -230,6 +254,61 @@ export const CustomFieldManagement = () => {
       fetchFields();
     } catch (error: any) {
       toast.error(error.message || 'Failed to create field');
+    }
+  };
+
+  const handleReuseField = async () => {
+    if (!selectedReuseFieldId) return;
+    const sourceField = fields.find(f => f.id === selectedReuseFieldId);
+    if (!sourceField) return;
+
+    // Check duplicate name in requirements
+    const exists = requirementFields.some(
+      f => f.name.trim().toLowerCase() === sourceField.name.trim().toLowerCase()
+    );
+    if (exists) {
+      toast.error(`A requirement field named "${sourceField.name}" already exists`);
+      return;
+    }
+
+    try {
+      setReusing(true);
+      const { data: newField, error: fieldError } = await (supabase.from('custom_fields') as any)
+        .insert({
+          name: sourceField.name,
+          field_type: sourceField.field_type || 'dropdown',
+          is_mandatory: false,
+          is_visible: true,
+          admin_id: (profile as any)?.admin_id || profile?.id,
+          display_order: requirementFields.length,
+          scope: 'requirement',
+        })
+        .select()
+        .single();
+
+      if (fieldError) throw fieldError;
+
+      // Copy options if any
+      const sourceOptions = options[sourceField.id] || [];
+      if (sourceOptions.length > 0 && newField?.id) {
+        const toInsert = sourceOptions.map((opt, idx) => ({
+          custom_field_id: newField.id,
+          value: opt.value,
+          display_order: idx,
+        }));
+        const { error: optError } = await (supabase.from('custom_field_options') as any)
+          .insert(toInsert);
+        if (optError) throw optError;
+      }
+
+      toast.success(`Reused "${sourceField.name}" for requirements with ${sourceOptions.length} option(s)`);
+      setIsReuseDialogOpen(false);
+      setSelectedReuseFieldId('');
+      fetchFields();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to copy field');
+    } finally {
+      setReusing(false);
     }
   };
 
@@ -277,7 +356,7 @@ export const CustomFieldManagement = () => {
         .update({ is_visible: !field.is_visible })
         .eq('id', field.id);
       if (error) throw error;
-      toast.success(`${field.name} is now ${!field.is_visible ? 'visible' : 'hidden'} in visit form`);
+      toast.success(`${field.name} is now ${!field.is_visible ? 'visible' : 'hidden'} in form`);
       fetchFields();
     } catch (error: any) {
       toast.error(error.message || 'Failed to toggle visibility');
@@ -352,13 +431,12 @@ export const CustomFieldManagement = () => {
   };
 
   const handleMoveField = async (field: CustomField, direction: -1 | 1) => {
-    const sorted = [...fields].sort((a, b) => a.display_order - b.display_order);
+    const sorted = [...scopedFields].sort((a, b) => a.display_order - b.display_order);
     const idx = sorted.findIndex(f => f.id === field.id);
     const swapIdx = idx + direction;
     if (idx < 0 || swapIdx < 0 || swapIdx >= sorted.length) return;
     const a = sorted[idx], b = sorted[swapIdx];
     try {
-      // Swap using a temporary value to avoid unique conflicts if any
       await (supabase.from('custom_fields') as any).update({ display_order: -1 }).eq('id', a.id);
       await (supabase.from('custom_fields') as any).update({ display_order: a.display_order }).eq('id', b.id);
       await (supabase.from('custom_fields') as any).update({ display_order: b.display_order }).eq('id', a.id);
@@ -380,26 +458,89 @@ export const CustomFieldManagement = () => {
             <div className="min-w-0">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <Settings2 className="h-5 w-5 shrink-0" />
-                Custom Fields
+                Custom Fields Management
               </CardTitle>
               <CardDescription>
-                Create custom fields that appear in the visit form for your users
+                {activeScope === 'visit'
+                  ? 'Configure custom fields that appear in the Log Non-Purchase Visit form'
+                  : 'Configure custom fields that appear when shop staff raise stock requirements'}
               </CardDescription>
             </div>
-            <Button onClick={() => setIsAddFieldOpen(true)} size="sm" className="w-full sm:w-auto shrink-0">
-              <Plus className="h-4 w-4 mr-1" />
-              Add Field
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              {activeScope === 'requirement' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedReuseFieldId('');
+                    setIsReuseDialogOpen(true);
+                  }}
+                  className="w-full sm:w-auto"
+                >
+                  <Copy className="h-4 w-4 mr-1 text-primary" />
+                  Reuse from Visit Form
+                </Button>
+              )}
+              <Button onClick={() => setIsAddFieldOpen(true)} size="sm" className="w-full sm:w-auto shrink-0">
+                <Plus className="h-4 w-4 mr-1" />
+                {activeScope === 'requirement' ? 'Add Requirement Field' : 'Add Visit Field'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Scope selection tabs */}
+          <div className="flex items-center gap-2 pt-4 border-b">
+            <button
+              onClick={() => setActiveScope('visit')}
+              className={`flex items-center gap-2 pb-2 px-3 text-sm font-medium border-b-2 transition-colors ${
+                activeScope === 'visit'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Layers className="h-4 w-4" />
+              Visit Form Fields
+              <Badge variant={activeScope === 'visit' ? 'default' : 'secondary'} className="text-xs ml-1">
+                {visitFields.length}
+              </Badge>
+            </button>
+            <button
+              onClick={() => setActiveScope('requirement')}
+              className={`flex items-center gap-2 pb-2 px-3 text-sm font-medium border-b-2 transition-colors ${
+                activeScope === 'requirement'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Settings2 className="h-4 w-4" />
+              Requirement / Stock Fields
+              <Badge variant={activeScope === 'requirement' ? 'default' : 'secondary'} className="text-xs ml-1">
+                {requirementFields.length}
+              </Badge>
+            </button>
           </div>
         </CardHeader>
+
         <CardContent className="px-3 sm:px-6">
-          {fields.length === 0 ? (
-            <p className="text-center text-muted-foreground py-4">
-              No custom fields yet. Click "Add Field" to create one.
-            </p>
+          {scopedFields.length === 0 ? (
+            <div className="text-center py-8 border border-dashed rounded-lg">
+              <p className="text-muted-foreground mb-3">
+                No custom fields for {activeScope === 'requirement' ? 'requirements' : 'visit form'} yet.
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                {activeScope === 'requirement' && visitFields.length > 0 && (
+                  <Button variant="outline" size="sm" onClick={() => setIsReuseDialogOpen(true)}>
+                    <Copy className="h-4 w-4 mr-1" /> Reuse from Visit Form
+                  </Button>
+                )}
+                <Button size="sm" onClick={() => setIsAddFieldOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" /> Add Field
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="space-y-3">
-              {fields.map((field) => (
+              {scopedFields.map((field) => (
                 <div key={field.id} className="border rounded-lg p-3 sm:p-4 space-y-3 min-w-0">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between min-w-0">
                     <div className="flex items-center gap-2 flex-wrap min-w-0">
@@ -474,66 +615,66 @@ export const CustomFieldManagement = () => {
 
                   {/* Options list (dropdown + radio) */}
                   {HAS_OPTIONS(field.field_type) && (
-                  <div className="pl-4 border-l-2 border-muted space-y-2">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder={`Add option to "${field.name}"`}
-                        value={managingField?.id === field.id ? newOptionValue : ''}
-                        onChange={(e) => {
-                          setManagingField(field);
-                          setNewOptionValue(e.target.value);
-                        }}
-                        onFocus={() => setManagingField(field)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && managingField?.id === field.id) {
+                    <div className="pl-4 border-l-2 border-muted space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder={`Add option to "${field.name}"`}
+                          value={managingField?.id === field.id ? newOptionValue : ''}
+                          onChange={(e) => {
+                            setManagingField(field);
+                            setNewOptionValue(e.target.value);
+                          }}
+                          onFocus={() => setManagingField(field)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && managingField?.id === field.id) {
+                              handleAddOption();
+                            }
+                          }}
+                          className="h-8 text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          className="h-8"
+                          onClick={() => {
+                            setManagingField(field);
                             handleAddOption();
-                          }
-                        }}
-                        className="h-8 text-sm"
-                      />
-                      <Button
-                        size="sm"
-                        className="h-8"
-                        onClick={() => {
-                          setManagingField(field);
-                          handleAddOption();
-                        }}
-                        disabled={managingField?.id !== field.id || !newOptionValue.trim()}
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {(options[field.id] || []).map((opt) => (
-                        <div key={opt.id} className="flex items-center justify-between gap-2 p-1.5 bg-muted/50 rounded text-sm min-w-0">
-                          <span className="truncate min-w-0">{opt.value}</span>
-                          <div className="flex gap-1 shrink-0">
-                            <Button
-                              variant="ghost" size="icon"
-                              className="h-6 w-6"
-                              onClick={() => {
-                                setEditingOption(opt);
-                                setEditOptionValue(opt.value);
-                                setIsEditOptionOpen(true);
-                              }}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost" size="icon"
-                              className="h-6 w-6"
-                              onClick={() => setDeleteOption(opt)}
-                            >
-                              <Trash2 className="h-3 w-3 text-destructive" />
-                            </Button>
+                          }}
+                          disabled={managingField?.id !== field.id || !newOptionValue.trim()}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {(options[field.id] || []).map((opt) => (
+                          <div key={opt.id} className="flex items-center justify-between gap-2 p-1.5 bg-muted/50 rounded text-sm min-w-0">
+                            <span className="truncate min-w-0">{opt.value}</span>
+                            <div className="flex gap-1 shrink-0">
+                              <Button
+                                variant="ghost" size="icon"
+                                className="h-6 w-6"
+                                onClick={() => {
+                                  setEditingOption(opt);
+                                  setEditOptionValue(opt.value);
+                                  setIsEditOptionOpen(true);
+                                }}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost" size="icon"
+                                className="h-6 w-6"
+                                onClick={() => setDeleteOption(opt)}
+                              >
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                      {(options[field.id] || []).length === 0 && (
-                        <p className="text-xs text-muted-foreground py-1">No options yet</p>
-                      )}
+                        ))}
+                        {(options[field.id] || []).length === 0 && (
+                          <p className="text-xs text-muted-foreground py-1">No options yet</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
                   )}
                 </div>
               ))}
@@ -542,12 +683,75 @@ export const CustomFieldManagement = () => {
         </CardContent>
       </Card>
 
+      {/* Reuse Field Dialog */}
+      <Dialog open={isReuseDialogOpen} onOpenChange={setIsReuseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reuse Field from Visit Form</DialogTitle>
+            <DialogDescription>
+              Copy a field configuration and all its options from the Visit Form into Requirements.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 min-w-0">
+            {visitFields.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No visit form fields available to copy.</p>
+            ) : (
+              <div className="space-y-2">
+                <Label>Select Visit Field to Copy</Label>
+                <Select value={selectedReuseFieldId} onValueChange={setSelectedReuseFieldId}>
+                  <SelectTrigger><SelectValue placeholder="Choose a field to copy" /></SelectTrigger>
+                  <SelectContent>
+                    {visitFields.map(f => {
+                      const alreadyCopied = requirementFields.some(
+                        rf => rf.name.trim().toLowerCase() === f.name.trim().toLowerCase()
+                      );
+                      const optCount = (options[f.id] || []).length;
+                      return (
+                        <SelectItem key={f.id} value={f.id} disabled={alreadyCopied}>
+                          {f.name} ({f.field_type || 'dropdown'}{optCount > 0 ? `, ${optCount} options` : ''})
+                          {alreadyCopied ? ' (already in requirements)' : ''}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {selectedReuseFieldId && (
+                  <div className="mt-3 p-3 bg-muted/40 rounded-lg text-sm space-y-1">
+                    <p className="font-medium">
+                      Field: {visitFields.find(f => f.id === selectedReuseFieldId)?.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Type: {visitFields.find(f => f.id === selectedReuseFieldId)?.field_type || 'dropdown'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Options to copy: {(options[selectedReuseFieldId] || []).length} items
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setIsReuseDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleReuseField} disabled={!selectedReuseFieldId || reusing}>
+                {reusing ? 'Copying...' : 'Copy to Requirements'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Add Field Dialog */}
       <Dialog open={isAddFieldOpen} onOpenChange={setIsAddFieldOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Custom Field</DialogTitle>
-            <DialogDescription>Create a new field for the visit form</DialogDescription>
+            <DialogTitle>
+              {activeScope === 'requirement' ? 'Add Requirement Field' : 'Add Custom Field'}
+            </DialogTitle>
+            <DialogDescription>
+              {activeScope === 'requirement'
+                ? 'Create a new custom field for shop stock requirements'
+                : 'Create a new field for the visit form'}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 min-w-0">
             <div className="space-y-2 min-w-0">
@@ -560,7 +764,7 @@ export const CustomFieldManagement = () => {
               <Input
                 value={newFieldName}
                 onChange={(e) => setNewFieldName(e.target.value.slice(0, MAX_FIELD_NAME + 10))}
-                placeholder="e.g., Color, Brand, Material"
+                placeholder={activeScope === 'requirement' ? 'e.g., Fabric / Material, Priority Reason' : 'e.g., Color, Brand, Material'}
                 onKeyPress={(e) => e.key === 'Enter' && handleCreateField()}
               />
               {newFieldName.trim() && newFieldError && (
@@ -584,8 +788,8 @@ export const CustomFieldManagement = () => {
                 <Label htmlFor="new-mandatory" className="text-sm">Required field</Label>
                 <p className="text-xs text-muted-foreground">
                   {newFieldMandatory
-                    ? 'Users cannot submit a visit until this is filled.'
-                    : 'Users can leave this blank when logging a visit.'}
+                    ? 'Users cannot submit until this is filled.'
+                    : 'Users can leave this blank when raising a request or visit.'}
                 </p>
               </div>
               <Switch id="new-mandatory" checked={newFieldMandatory} onCheckedChange={setNewFieldMandatory} />
@@ -595,7 +799,13 @@ export const CustomFieldManagement = () => {
                 Add the selectable options after creating the field.
               </p>
             )}
-            <FieldPreview name={newFieldName} type={newFieldType} mandatory={newFieldMandatory} options={[]} />
+            <FieldPreview
+              name={newFieldName}
+              type={newFieldType}
+              mandatory={newFieldMandatory}
+              options={[]}
+              scope={activeScope}
+            />
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => { setIsAddFieldOpen(false); setNewFieldName(''); setNewFieldType('dropdown'); setNewFieldMandatory(false); }}>Cancel</Button>
               <Button onClick={handleCreateField} disabled={!!newFieldError}>Create Field</Button>
@@ -653,6 +863,7 @@ export const CustomFieldManagement = () => {
               type={editFieldType}
               mandatory={!!editingField?.is_mandatory}
               options={(options[editingField?.id || ''] || []).map((o) => o.value)}
+              scope={(editingField?.scope as any) || 'visit'}
             />
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => { setIsEditFieldOpen(false); setEditingField(null); }}>Cancel</Button>
@@ -690,7 +901,7 @@ export const CustomFieldManagement = () => {
         onConfirm={handleDeleteField}
         title="Delete Custom Field"
         itemName={deleteField?.name}
-        description={`This will remove "${deleteField?.name}" and all its options from the visit form.`}
+        description={`This will remove "${deleteField?.name}" and all its options from the ${deleteField?.scope === 'requirement' ? 'requirements' : 'visit'} form.`}
         loading={isDeletingField}
       />
 

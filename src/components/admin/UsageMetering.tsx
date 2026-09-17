@@ -62,17 +62,15 @@ export const UsageMetering = () => {
     })();
   }, [profile?.id, adminId]);
 
-  if (!isAdmin) return null;
-
   const nearLimit = meters.some(m => m.limit && m.used / m.limit >= 0.8);
 
   return (
     <Card className="premium-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Gauge className="h-4 w-4 text-primary" /> Plan usage
+          <Gauge className="h-4 w-4 text-primary" /> Plan & Limit Usage
         </CardTitle>
-        <CardDescription>Your current usage against the limits set for your account.</CardDescription>
+        <CardDescription>Current usage against the limits set for your account (visible to all users).</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {loading ? (

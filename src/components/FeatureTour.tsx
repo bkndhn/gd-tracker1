@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ClipboardList, BarChart3, MessageCircle, WifiOff, FileDown } from 'lucide-react';
 
 const tourKey = (uid: string) => `lsi_tour_done_${uid}`;
+const GLOBAL_TOUR_KEY = 'lsi_tour_global_dismissed';
 
 const STEPS = [
   { icon: ClipboardList, title: 'Log every non-purchase visit', body: 'Record why a visitor left without buying — reason, notes, photos and voice notes. Works fully offline and syncs later.' },
@@ -14,20 +15,44 @@ const STEPS = [
   { icon: FileDown, title: 'Digests & alerts', body: 'Get a weekly AI digest, anomaly alerts for unusual spikes, and scheduled email reports — all configurable in Admin.' },
 ];
 
-/** First-login feature tour; re-runnable by clearing the flag. */
+/** First-login feature tour; permanently hidden once dismissed or completed. */
 export const FeatureTour = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    if (profile?.id && !localStorage.getItem(tourKey(profile.id))) {
-      setOpen(true);
+    // If globally dismissed or marked done for this user/profile, do not open
+    if (localStorage.getItem(GLOBAL_TOUR_KEY)) return;
+    const uid = profile?.id || user?.id;
+    if (uid && localStorage.getItem(tourKey(uid))) return;
+
+    // Check if user has already logged in before (if user exists, only show once if never seen)
+    if (uid) {
+      // If we haven't shown it in this session and it's not marked done:
+      const alreadyShownThisSession = sessionStorage.getItem('lsi_tour_shown_session');
+      if (!alreadyShownThisSession) {
+        // Don't show again if dismissed
+      }
     }
-  }, [profile?.id]);
+
+    // Allow manual replay from settings
+    const handleReplay = () => {
+      setStep(0);
+      setOpen(true);
+    };
+    window.addEventListener('replay-feature-tour', handleReplay);
+    return () => window.removeEventListener('replay-feature-tour', handleReplay);
+  }, [profile?.id, user?.id]);
 
   const close = () => {
-    if (profile?.id) localStorage.setItem(tourKey(profile.id), new Date().toISOString());
+    const uid = profile?.id || user?.id;
+    if (uid) {
+      localStorage.setItem(tourKey(uid), new Date().toISOString());
+    }
+    // Set global flag so user is never prompted again on subsequent logins
+    localStorage.setItem(GLOBAL_TOUR_KEY, new Date().toISOString());
+    sessionStorage.setItem('lsi_tour_shown_session', 'true');
     setOpen(false);
   };
 

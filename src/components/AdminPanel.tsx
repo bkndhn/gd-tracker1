@@ -88,6 +88,9 @@ export const AdminPanel = () => {
         onOpenChange={(v) => { setWizardOpen(v); if (!v) fetchData(); }}
       />
 
+      {/* Plan & Usage Metering - visible to all users */}
+      <UsageMetering />
+
       <WhatsAppSettings />
 
       <WhatsAppFollowUpSettings />
@@ -108,8 +111,6 @@ export const AdminPanel = () => {
       <ScoringModelSettings />
 
       <DigestScheduleSettings />
-
-      <UsageMetering />
 
       <RetentionSettings />
 

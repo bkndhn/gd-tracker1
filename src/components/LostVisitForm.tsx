@@ -128,7 +128,11 @@ export const LostVisitForm = () => {
   useEffect(() => {
     const fetchFormData = async () => {
       const cfRes = await (supabase.from('custom_fields') as any)
-        .select('*').is('deleted_at', null).eq('is_visible', true).order('display_order');
+        .select('*')
+        .or('scope.eq.visit,scope.is.null')
+        .is('deleted_at', null)
+        .eq('is_visible', true)
+        .order('display_order');
       if (cfRes.data && cfRes.data.length > 0) {
         setCustomFields(cfRes.data);
         const fieldIds = cfRes.data.map((f: CustomField) => f.id);
@@ -429,10 +433,7 @@ export const LostVisitForm = () => {
         <CardTitle className="flex items-center justify-between">
           <span>Log Non-Purchase Visit</span>
           <div className="flex items-center gap-2 text-sm font-normal">
-            {entryLimitReached && <span className="text-destructive">Entry limit reached</span>}
-            {maxEntries !== null && !entryLimitReached && (
-              <span className="text-muted-foreground">{currentEntryCount}/{maxEntries}</span>
-            )}
+            {entryLimitReached && <span className="text-destructive font-medium">Entry limit reached</span>}
             {!isOnline && (
               <span className="text-orange-500 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>Offline

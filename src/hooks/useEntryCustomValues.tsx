@@ -73,6 +73,7 @@ async function fetchValues(entryIds: string[], fieldIds: string[]) {
 export async function fetchCustomValueIndex(entryIds: string[]): Promise<CustomValueIndex> {
   const fieldsRes = await (supabase.from('custom_fields') as any)
     .select('id, name, is_visible, is_mandatory, display_order, field_type, is_standard, standard_key')
+    .or('scope.eq.visit,scope.is.null')
     .is('deleted_at', null)
     .order('display_order');
 
