@@ -574,7 +574,7 @@ interface EditUserFormProps {
 const EditUserForm = ({ user, shops, categories, sizes, onSave, onCancel }: EditUserFormProps) => {
   const [formData, setFormData] = useState({
     name: user.name,
-    role: user.role,
+    role: user.role as string,
     shop_id: user.shop_id || 'none',
     default_category_id: user.default_category_id || 'none',
     default_size_id: user.default_size_id || 'none',
