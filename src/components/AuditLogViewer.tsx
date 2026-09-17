@@ -66,6 +66,10 @@ export const AuditLogViewer = () => {
     entry_deleted: 'destructive',
     bulk_pause: 'destructive',
     bulk_activate: 'default',
+    data_export: 'default',
+    pii_unmask: 'secondary',
+    screen_lock: 'secondary',
+    screen_unlock: 'default',
   };
 
   return (
@@ -84,6 +88,8 @@ export const AuditLogViewer = () => {
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="All actions" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Actions</SelectItem>
+              <SelectItem value="data_export">📥 Data Exports</SelectItem>
+              <SelectItem value="pii_unmask">👁️ PII Unmasks</SelectItem>
               <SelectItem value="login">Login</SelectItem>
               <SelectItem value="logout">Logout</SelectItem>
               <SelectItem value="signup">Signup</SelectItem>
@@ -98,6 +104,8 @@ export const AuditLogViewer = () => {
               <SelectItem value="bulk_activate">Bulk Activate</SelectItem>
               <SelectItem value="signup_toggle">Signup Toggle</SelectItem>
               <SelectItem value="settings_changed">Settings Changed</SelectItem>
+              <SelectItem value="screen_lock">Screen Lock</SelectItem>
+              <SelectItem value="screen_unlock">Screen Unlock</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -130,8 +138,21 @@ export const AuditLogViewer = () => {
                   <TableCell className="text-xs">
                     {log.target_type && <span>{log.target_type}{log.target_id ? `: ${log.target_id.slice(0, 8)}...` : ''}</span>}
                   </TableCell>
-                  <TableCell className="text-xs max-w-[200px] truncate">
-                    {log.details && Object.keys(log.details).length > 0 ? JSON.stringify(log.details) : '-'}
+                  <TableCell className="text-xs max-w-[280px]">
+                    {log.action === 'data_export' && log.details ? (
+                      <span className="font-medium text-foreground">
+                        📥 {String(log.details.format || 'export').toUpperCase()} · {log.details.count ?? '?'} rows
+                        {log.details.scope ? ` (${log.details.scope})` : ''}
+                      </span>
+                    ) : log.action === 'pii_unmask' && log.details ? (
+                      <span className="font-medium text-amber-600 dark:text-amber-400">
+                        👁️ Unmasked phone ending in ..{log.details.phone_suffix || ''} ({log.details.context || 'view'})
+                      </span>
+                    ) : log.details && Object.keys(log.details).length > 0 ? (
+                      <span className="truncate block max-w-[240px] text-muted-foreground">{JSON.stringify(log.details)}</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

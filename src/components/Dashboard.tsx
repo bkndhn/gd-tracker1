@@ -36,6 +36,7 @@ import { WhatsAppFollowUpButton } from '@/components/WhatsAppFollowUpButton';
 import { CustomerProfileDialog } from '@/components/CustomerProfileDialog';
 
 import { isValidPhone, type FollowUpContext } from '@/lib/whatsappFollowUp';
+import { logAudit } from '@/utils/auditLog';
 import { DashboardSkeleton } from '@/components/PageSkeleton';
 
 const DASHBOARD_CACHE_KEY = 'dashboard:entries';
@@ -531,6 +532,12 @@ export const Dashboard = () => {
 
     const fileName = formatISTFileName(new Date(), `Visits_${modalFilter.type}_${modalFilter.value}`) + '.xlsx';
     XLSX.writeFile(wb, fileName);
+
+    logAudit({
+      action: 'data_export',
+      targetType: 'dashboard_drilldown',
+      details: { format: 'excel', count: getModalEntries.length, filter: modalFilter },
+    });
   };
 
   // Export to PDF using HTML print method (supports Tamil + images)
@@ -549,6 +556,12 @@ export const Dashboard = () => {
       makeImageCell((entry.gd_entry_images || []).map(img => img.image_url)),
       formatDateTime(entry.created_at)
     ]);
+
+    logAudit({
+      action: 'data_export',
+      targetType: 'dashboard_drilldown',
+      details: { format: 'pdf', count: getModalEntries.length, filter: modalFilter },
+    });
 
     exportToPDFViaHTML({
       title: `Lost Sale Report: ${modalFilter.value}`,

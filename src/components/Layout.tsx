@@ -1,7 +1,7 @@
 import { ReactNode, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, Package, User, Moon, Sun, Languages, Download, CheckCircle2 } from 'lucide-react';
+import { LogOut, Package, User, Moon, Sun, Languages, Download, CheckCircle2, Lock } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { toast } from 'sonner';
 import { NotificationBell } from './NotificationBell';
@@ -9,6 +9,8 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
 import { WhatsNew } from './WhatsNew';
+import { ScreenLockOverlay } from './ScreenLockOverlay';
+import { isScreenLocked } from '@/utils/screenLockSecurity';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,12 +39,13 @@ export const Layout = ({ children }: LayoutProps) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const handleSessionTimeout = useCallback(async () => {
-    toast.info('Session expired due to inactivity. Please sign in again.', { duration: 6000 });
-    await signOut();
-  }, [signOut]);
+  const [isLocked, setIsLocked] = useState(() => isScreenLocked());
 
-  useSessionTimeout(handleSessionTimeout, !!profile);
+  const handleSessionLock = useCallback(() => {
+    setIsLocked(true);
+  }, []);
+
+  const { lockNow } = useSessionTimeout(handleSessionLock, !!profile);
   useSessionTracking();
 
   const handleSignOut = async () => {
@@ -211,6 +214,19 @@ export const Layout = ({ children }: LayoutProps) => {
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem
+                    onClick={lockNow}
+                    className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2 text-xs font-medium text-foreground">
+                      <Lock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      Lock Screen
+                    </span>
+                    <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+                      Privacy
+                    </Badge>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
                     onClick={() => setShowLogoutConfirm(true)}
                     className="flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-medium text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                   >
@@ -237,6 +253,13 @@ export const Layout = ({ children }: LayoutProps) => {
         description="Are you sure you want to sign out?"
         loading={loggingOut}
       />
+
+      {isLocked && profile && (
+        <ScreenLockOverlay
+          onUnlock={() => setIsLocked(false)}
+          onSignOut={handleSignOut}
+        />
+      )}
     </div>
   );
 };

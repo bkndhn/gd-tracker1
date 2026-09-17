@@ -23,6 +23,7 @@ import {
   RESET_LABELS, normalizeReset, periodStart, periodLabel, type LeaderboardReset,
 } from '@/lib/leaderboardPeriod';
 import { formatISTShort } from '@/lib/dateUtils';
+import { MaskedPhone } from '@/components/MaskedPhone';
 
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
@@ -261,7 +262,11 @@ export const FollowUpPanel = () => {
               {dueReminders.map(r => (
                 <div key={r.id} className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">+91 {r.phone} · {r.shop_name || 'Unknown shop'}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
+                      <MaskedPhone phone={r.phone} context="reminder_list" showWhatsAppBtn />
+                      <span className="text-muted-foreground">·</span>
+                      <span className="truncate">{r.shop_name || 'Unknown shop'}</span>
+                    </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {r.reason_label || 'No reason'} · sent {fmtDate(r.sent_at)} by {r.sent_by_name || 'staff'} · stage {r.reminder_stage + 1} · <DeliveryChip row={r} />
                     </p>
@@ -299,9 +304,12 @@ export const FollowUpPanel = () => {
                       <tr key={r.id} className="border-t">
                         <td className="p-2 whitespace-nowrap">{fmtDate(r.sent_at)}</td>
                         <td className="p-2 whitespace-nowrap">
-                          <button className="underline underline-offset-2" onClick={() => setTimelinePhone(r.phone)}>
-                            +91 {r.phone}
-                          </button>
+                          <MaskedPhone
+                            phone={r.phone}
+                            context="follow_up_audit_trail"
+                            onTimelineClick={(p) => setTimelinePhone(p)}
+                            showWhatsAppBtn
+                          />
                         </td>
                         <td className="p-2 truncate max-w-[160px]">{r.shop_name || '—'}</td>
                         <td className="p-2 truncate max-w-[140px]">{r.sent_by_name || '—'}</td>

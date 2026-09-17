@@ -38,6 +38,7 @@ import { WhatsAppFollowUpButton } from '@/components/WhatsAppFollowUpButton';
 import { CustomerProfileDialog } from '@/components/CustomerProfileDialog';
 
 import { isValidPhone, type FollowUpContext } from '@/lib/whatsappFollowUp';
+import { logAudit } from '@/utils/auditLog';
 
 /** Snapshot of everything Reports needs, kept in IndexedDB for offline reads. */
 const REPORTS_CACHE_KEY = 'reports:snapshot';
@@ -1031,6 +1032,12 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
       const fileName = `${formatISTFileName(new Date(), 'gd_report_with_images')}.xlsx`;
       XLSX.writeFile(wb, fileName, { compression: true });
 
+      logAudit({
+        action: 'data_export',
+        targetType: 'lost_sale_reports',
+        details: { format: 'excel', count: filteredEntries.length, mode: 'multi_sheet' },
+      });
+
       toast.success(`Excel report exported with embedded image thumbnails! ${filteredEntries.length} entries across multiple sheets`);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error exporting Excel:', error);
@@ -1084,6 +1091,12 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+
+      logAudit({
+        action: 'data_export',
+        targetType: 'lost_sale_reports',
+        details: { format: 'excel', count: filteredEntries.length, mode: 'embedded_images' },
+      });
 
       toast.success(`Excel exported with ${filteredEntries.length} entries and embedded images!`);
     } catch (error) {
@@ -1200,6 +1213,12 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
         columns,
         sections,
         orientation: 'landscape',
+      });
+
+      logAudit({
+        action: 'data_export',
+        targetType: 'lost_sale_reports',
+        details: { format: 'pdf', count: filteredEntries.length, sectionsCount: sections.length },
       });
 
       toast.success(`PDF report opened! ${filteredEntries.length} entries across ${sections.length} sections`);

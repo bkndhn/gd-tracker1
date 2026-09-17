@@ -22,7 +22,11 @@ export type AuditAction =
   | 'size_created'
   | 'size_deleted'
   | 'signup_toggle'
-  | 'settings_changed';
+  | 'settings_changed'
+  | 'data_export'
+  | 'pii_unmask'
+  | 'screen_lock'
+  | 'screen_unlock';
 
 interface AuditLogParams {
   action: AuditAction;

@@ -10,6 +10,7 @@ import { User, Phone, TrendingUp, CalendarDays, MessageCircle, Store } from 'luc
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
 import { OUTCOME_LABELS } from '@/hooks/useFollowUps';
 import { formatISTDateTime } from '@/lib/dateUtils';
+import { MaskedPhone } from '@/components/MaskedPhone';
 
 const fmt = (iso?: string | null) =>
   iso ? formatISTDateTime(iso) : '—';
@@ -48,8 +49,8 @@ export const CustomerProfileDialog = ({ phone, customerName, trigger }: Props) =
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-primary" />
-            {customerName || 'Customer'} · {phone}
+            <span>{customerName || 'Customer'} ·</span>
+            <MaskedPhone phone={phone} context="customer_profile_dialog" showWhatsAppBtn />
           </DialogTitle>
           <DialogDescription>Every visit and follow-up recorded for this number.</DialogDescription>
         </DialogHeader>

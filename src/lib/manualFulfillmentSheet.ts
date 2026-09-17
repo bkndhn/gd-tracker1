@@ -17,6 +17,7 @@ import { exportToPDFViaHTML } from '@/utils/htmlPdfExport';
 import type { StockRequirement } from '@/hooks/useRequirements';
 import type { ExportTemplate } from '@/lib/reportTemplate';
 import { DEFAULT_EXPORT_TEMPLATE } from '@/lib/reportTemplate';
+import { logAudit } from '@/utils/auditLog';
 
 export interface FulfillmentExportOptions {
   rows: StockRequirement[];
@@ -44,6 +45,12 @@ export function directPrintFulfillmentSheet({
   const generatedTimeIST = formatISTDateTime(new Date());
   const orgName = template.orgName || 'GD Tracker';
   const totalQty = rows.reduce((sum, r) => sum + (r.quantity || 0), 0);
+
+  logAudit({
+    action: 'data_export',
+    targetType: 'warehouse_queue',
+    details: { format: 'print', count: rows.length, totalQty, scope: scopeLabel },
+  });
   const urgentCount = rows.filter(r => r.urgency === 'urgent').length;
 
   const tableRowsHtml = rows.map((r, index) => {
@@ -328,6 +335,12 @@ export function exportFulfillmentSheetToExcel({
   const generatedTimeIST = formatISTDateTime(new Date());
   const orgName = template.orgName || 'GD Tracker';
 
+  logAudit({
+    action: 'data_export',
+    targetType: 'warehouse_queue',
+    details: { format: 'excel', count: rows.length, scope: scopeLabel },
+  });
+
   const head: (string | number)[][] = [
     [orgName],
     [`WAREHOUSE STOCK FULFILLMENT & PICKING SHEET — ${scopeLabel.toUpperCase()}`],
@@ -433,6 +446,12 @@ export function exportFulfillmentSheetToPDF({
 }: FulfillmentExportOptions) {
   const generatedTimeIST = formatISTDateTime(new Date());
   const orgName = template.orgName || 'GD Tracker';
+
+  logAudit({
+    action: 'data_export',
+    targetType: 'warehouse_queue',
+    details: { format: 'pdf', count: rows.length, scope: scopeLabel },
+  });
 
   exportToPDFViaHTML({
     title: `${orgName} — Warehouse Stock Fulfillment Sheet`,
