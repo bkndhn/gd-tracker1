@@ -12,9 +12,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/utils/auditLog';
 import { validatePassword } from '@/utils/passwordPolicy';
 import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
-
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION = 60_000; // 1 minute
+import {
+  checkRateLimit,
+  recordRateLimitAttempt,
+  getRateLimitCooldown,
+  type RateLimitAction,
+} from '@/utils/rateLimiter';
 
 export const AuthForm = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -28,13 +31,30 @@ export const AuthForm = () => {
     name: '',
   });
 
-  // Rate limiting state
-  const [attempts, setAttempts] = useState(0);
-  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  // Persistent rate limiting state
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { signIn, signUp, resetPassword } = useAuth();
+
+  const currentAction: RateLimitAction = isForgotPassword
+    ? 'auth:forgot-password'
+    : isSignUp
+    ? 'auth:signup'
+    : 'auth:signin';
+
+  const userIdentifier = formData.email.trim().toLowerCase() || 'anonymous';
+
+  // Live cooldown timer that survives page reloads
+  useEffect(() => {
+    const updateCooldown = () => {
+      const remaining = getRateLimitCooldown(currentAction, userIdentifier);
+      setCooldownSeconds(remaining);
+    };
+
+    updateCooldown();
+    const interval = setInterval(updateCooldown, 1000);
+    return () => clearInterval(interval);
+  }, [currentAction, userIdentifier]);
 
   // Fetch signup visibility setting
   useEffect(() => {
@@ -53,33 +73,16 @@ export const AuthForm = () => {
     fetchSignupSetting();
   }, []);
 
-  // Cooldown timer
-  useEffect(() => {
-    if (lockedUntil) {
-      const update = () => {
-        const remaining = Math.ceil((lockedUntil - Date.now()) / 1000);
-        if (remaining <= 0) {
-          setCooldownSeconds(0);
-          setLockedUntil(null);
-          setAttempts(0);
-          if (timerRef.current) clearInterval(timerRef.current);
-        } else {
-          setCooldownSeconds(remaining);
-        }
-      };
-      update();
-      timerRef.current = setInterval(update, 1000);
-      return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }
-  }, [lockedUntil]);
-
-  const isLocked = lockedUntil !== null && Date.now() < lockedUntil;
+  const isLocked = cooldownSeconds > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isLocked) {
-      toast.error(`Too many attempts. Please wait ${cooldownSeconds} seconds.`);
+    // 1. Enforce rate limit check before contacting backend
+    const check = checkRateLimit(currentAction, userIdentifier);
+    if (!check.allowed) {
+      toast.error(check.message || `Too many attempts. Please wait ${check.retryAfterSeconds}s.`);
+      setCooldownSeconds(check.retryAfterSeconds);
       return;
     }
 
@@ -92,7 +95,11 @@ export const AuthForm = () => {
           return;
         }
         const { error } = await resetPassword(formData.email);
-        if (error) throw error;
+        if (error) {
+          recordRateLimitAttempt(currentAction, userIdentifier, false);
+          throw error;
+        }
+        recordRateLimitAttempt(currentAction, userIdentifier, true);
         toast.success('Password reset email sent! Please check your inbox.');
         setIsForgotPassword(false);
         setFormData({ ...formData, email: '' });
@@ -103,20 +110,23 @@ export const AuthForm = () => {
           return;
         }
         const { error } = await signUp(formData.email, formData.password, formData.name);
-        if (error) throw error;
+        if (error) {
+          recordRateLimitAttempt(currentAction, userIdentifier, false);
+          throw error;
+        }
+        recordRateLimitAttempt(currentAction, userIdentifier, true);
         setSignupSuccess(true);
       } else {
         const { error } = await signIn(formData.email, formData.password);
         if (error) {
-          const newAttempts = attempts + 1;
-          setAttempts(newAttempts);
-          if (newAttempts >= MAX_ATTEMPTS) {
-            setLockedUntil(Date.now() + LOCKOUT_DURATION);
-            toast.error(`Too many failed attempts. Locked for 60 seconds.`);
+          const res = recordRateLimitAttempt(currentAction, userIdentifier, false);
+          if (!res.allowed) {
+            setCooldownSeconds(res.retryAfterSeconds);
+            toast.error(`Too many failed sign-in attempts. Locked for ${res.retryAfterSeconds}s.`);
           }
           throw error;
         }
-        setAttempts(0);
+        recordRateLimitAttempt(currentAction, userIdentifier, true);
         toast.success('Signed in successfully!');
       }
     } catch (error: any) {

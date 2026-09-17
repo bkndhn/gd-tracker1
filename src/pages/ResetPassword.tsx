@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Package, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { checkRateLimit, recordRateLimitAttempt } from '@/utils/rateLimiter';
 
 export const ResetPassword = () => {
   const navigate = useNavigate();
@@ -134,22 +135,34 @@ export const ResetPassword = () => {
   // Handle Forgot Password - send reset email
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const normEmail = email.trim().toLowerCase();
+    if (!normEmail) {
+      setError('Please enter your email');
+      return;
+    }
+
+    const check = checkRateLimit('auth:forgot-password', normEmail);
+    if (!check.allowed) {
+      setError(check.message || `Too many reset requests. Please wait ${check.retryAfterSeconds}s.`);
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      if (!email) {
-        setError('Please enter your email');
-        return;
-      }
-
       // Use the Vercel production URL for password reset redirects
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(normEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) throw error;
+      if (error) {
+        recordRateLimitAttempt('auth:forgot-password', normEmail, false);
+        throw error;
+      }
 
+      recordRateLimitAttempt('auth:forgot-password', normEmail, true);
       toast.success('Reset link sent to your email.');
       setEmail('');
     } catch (err: any) {
@@ -162,29 +175,38 @@ export const ResetPassword = () => {
   // Handle Reset Password - update password
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+
+    const check = checkRateLimit('auth:reset-password', 'session');
+    if (!check.allowed) {
+      setError(check.message || `Too many password update attempts. Please wait ${check.retryAfterSeconds}s.`);
+      return;
+    }
 
     // Validation
     if (newPassword.length < 8) {
       setError('Password must be at least 8 characters');
-      setLoading(false);
       return;
     }
 
     if (newPassword !== confirmPassword) {
       setError('Passwords do not match');
-      setLoading(false);
       return;
     }
+
+    setLoading(true);
+    setError('');
 
     try {
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
-      if (error) throw error;
+      if (error) {
+        recordRateLimitAttempt('auth:reset-password', 'session', false);
+        throw error;
+      }
 
+      recordRateLimitAttempt('auth:reset-password', 'session', true);
       toast.success('Password updated successfully');
       
       // Clear URL hash
