@@ -16,6 +16,8 @@ import { OnboardingWizard, hasCompletedOnboarding } from '@/components/Onboardin
 import { FeatureTour } from '@/components/FeatureTour';
 import { identifySession, addBreadcrumb } from '@/lib/errorTracking';
 import { supabase } from '@/integrations/supabase/client';
+import { useRequirementsAccess } from '@/hooks/useRequirementsAccess';
+import { ClipboardList } from 'lucide-react';
 
 // Lazy load heavy components with prefetch helpers for instant nav
 const importDashboard = () => import('@/components/Dashboard').then(m => ({ default: m.Dashboard }));
@@ -27,13 +29,17 @@ const Dashboard = React.lazy(importDashboard);
 const ReportsPanel = React.lazy(importReports);
 const AdminPanel = React.lazy(importAdmin);
 const FollowUpPanel = React.lazy(importFollowUps);
+const importRequirements = () => import('@/components/RequirementsPanel').then(m => ({ default: m.RequirementsPanel }));
 const SuperAdminDashboard = React.lazy(importSuperAdmin);
+const RequirementsPanel = React.lazy(importRequirements);
 
-type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'followups' | 'super_admin';
+type ActiveTab = 'gd' | 'dashboard' | 'admin' | 'reports' | 'followups' | 'requirements' | 'super_admin';
 
 export const MainApp = () => {
   const { isSuperAdmin, isAdmin, isManager, profile, user, signOut, adminId } = useAuth();
   const { permission } = usePushNotifications();
+  const isWarehouse = (profile as any)?.role === 'warehouse';
+  const { enabled: requirementsEnabled } = useRequirementsAccess();
   const [activeTab, setActiveTab] = useState<ActiveTab>(
     isSuperAdmin ? 'super_admin' : (isAdmin || isManager) ? 'dashboard' : 'gd'
   );
