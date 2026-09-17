@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
@@ -74,8 +75,14 @@ type GoodsEntry = Database['public']['Tables']['goods_damaged_entries']['Row'] &
 
 type Shop = Database['public']['Tables']['shops']['Row'];
 
-export const ReportsPanel = () => {
+interface ReportsPanelProps {
+  defaultTab?: 'visits' | 'requirements';
+}
+
+export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
   const { profile, isAdmin, isManager, userShopId } = useAuth();
+  const isWarehouse = (profile as any)?.role === 'warehouse';
+  const initialTab = defaultTab || (isWarehouse ? 'requirements' : 'visits');
   const { isOnline, pendingCount } = useOfflineSync();
   const { labels } = useFieldLabels();
   const { startJob } = useExportJobs();
@@ -1207,7 +1214,7 @@ export const ReportsPanel = () => {
 
   return (
     <div className="space-y-6 w-full min-w-0">
-      <Tabs defaultValue="visits" className="w-full space-y-4">
+      <Tabs defaultValue={initialTab} className="w-full space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b">
           <TabsList className="grid w-full sm:w-auto grid-cols-2">
             <TabsTrigger value="visits" className="gap-2">

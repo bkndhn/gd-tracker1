@@ -149,8 +149,8 @@ export const MainApp = () => {
           <ErrorBoundary boundary="RequirementsPanel"><Suspense fallback={<LoadingSpinner />}><RequirementsPanel /></Suspense></ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       case 'reports':
-        return (isAdmin || isManager) && !isSuperAdmin ? (
-          <ErrorBoundary boundary="ReportsPanel"><Suspense fallback={<LoadingSpinner />}><ReportsPanel /></Suspense></ErrorBoundary>
+        return (isAdmin || isManager || isWarehouse) && !isSuperAdmin ? (
+          <ErrorBoundary boundary="ReportsPanel"><Suspense fallback={<LoadingSpinner />}><ReportsPanel defaultTab={isWarehouse ? 'requirements' : 'visits'} /></Suspense></ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;
       default:
         return isSuperAdmin ? (
@@ -207,7 +207,7 @@ export const MainApp = () => {
                     <BarChart3 className="h-4 w-4" />Dashboard
                   </Button>
                 )}
-                {(isAdmin || isManager) && (
+                {(isAdmin || isManager || isWarehouse) && (
                   <Button variant={activeTab === 'reports' ? 'default' : 'ghost'} onClick={() => setActiveTab('reports')}
                     onMouseEnter={() => importReports()} onFocus={() => importReports()}
                     className="flex items-center gap-2 flex-shrink-0">

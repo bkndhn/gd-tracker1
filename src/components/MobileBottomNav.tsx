@@ -52,7 +52,7 @@ export const MobileBottomNav = ({ activeTab, setActiveTab, isAdmin, isManager, i
                 <BarChart3 className="h-4 w-4" /><span className="text-xs">Dashboard</span>
               </Button>
             )}
-            {(isAdmin || isManager) && (
+            {(isAdmin || isManager || isWarehouse) && (
               <Button variant={activeTab === 'reports' ? 'default' : 'ghost'} onClick={() => setActiveTab('reports')}
                 className="flex flex-col items-center gap-1 h-auto py-2 px-3" size="sm">
                 <FileText className="h-4 w-4" /><span className="text-xs">Reports</span>

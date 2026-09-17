@@ -53,6 +53,36 @@ export const RequirementsPanel = () => {
     note: '',
   });
 
+  const [isCustomSize, setIsCustomSize] = useState(false);
+
+  // User's assigned shop (matches LostVisitForm pattern)
+  const userShop = useMemo(() => {
+    if (!p?.shop_id) return null;
+    return visibleShops.find(s => s.id === p.shop_id) || null;
+  }, [p?.shop_id, visibleShops]);
+
+  // Auto-select shop based on user profile or single shop
+  useEffect(() => {
+    if (p?.shop_id) {
+      setForm(f => ({ ...f, shop_id: p.shop_id }));
+    } else if (!form.shop_id && visibleShops.length === 1) {
+      setForm(f => ({ ...f, shop_id: visibleShops[0].id }));
+    }
+  }, [p?.shop_id, visibleShops]);
+
+  // If only 1 category exists, auto-select it
+  useEffect(() => {
+    if (categories.length === 1 && !form.category) {
+      setForm(f => ({ ...f, category: categories[0].name }));
+    }
+  }, [categories]);
+
+  // Quick-select sizes
+  const quickSizes = useMemo(() => {
+    if (sizes.length > 0) return sizes.map(s => s.size);
+    return ['36', '38', '40', '42', '44', 'S', 'M', 'L', 'XL', 'XXL'];
+  }, [sizes]);
+
   // filters
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState('');
@@ -210,36 +240,142 @@ export const RequirementsPanel = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
+                {/* Shop auto-select or select dropdown */}
+                {p?.shop_id ? (
+                  <div className="space-y-2">
+                    <Label>Shop</Label>
+                    <Input
+                      value={userShop?.name || 'Loading shop...'}
+                      disabled
+                      className="bg-muted cursor-not-allowed font-medium text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
+                      Shop automatically assigned from your profile
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Shop *</Label>
+                    <Select value={form.shop_id} onValueChange={v => setForm({ ...form, shop_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select shop" /></SelectTrigger>
+                      <SelectContent>
+                        {visibleShops.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Size dropdown with quick chips and custom input option */}
                 <div className="space-y-2">
-                  <Label>Shop</Label>
-                  <Select value={form.shop_id} onValueChange={v => setForm({ ...form, shop_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select shop" /></SelectTrigger>
-                    <SelectContent>
-                      {visibleShops.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center justify-between">
+                    <Label>Size *</Label>
+                    {isCustomSize ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs text-primary hover:text-primary/80 px-1"
+                        onClick={() => setIsCustomSize(false)}
+                      >
+                        Choose from list
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs text-muted-foreground hover:text-foreground px-1"
+                        onClick={() => setIsCustomSize(true)}
+                      >
+                        + Type custom size
+                      </Button>
+                    )}
+                  </div>
+
+                  {isCustomSize ? (
+                    <Input
+                      value={form.size}
+                      onChange={e => setForm({ ...form, size: e.target.value })}
+                      placeholder="Type custom size (e.g. 42 / Large)"
+                      autoFocus
+                    />
+                  ) : (
+                    <Select
+                      value={form.size}
+                      onValueChange={v => {
+                        if (v === '__custom__') {
+                          setIsCustomSize(true);
+                          setForm({ ...form, size: '' });
+                        } else {
+                          setForm({ ...form, size: v });
+                        }
+                      }}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select size from list" /></SelectTrigger>
+                      <SelectContent>
+                        {sizes.map(s => (
+                          <SelectItem key={s.id} value={s.size}>
+                            Size {s.size}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__custom__" className="text-primary font-medium">
+                          + Other / Enter custom size...
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  {/* Quick-select size chips for ultra-fast selection */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {quickSizes.slice(0, 10).map(sz => (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => {
+                          setIsCustomSize(false);
+                          setForm(f => ({ ...f, size: sz }));
+                        }}
+                        className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-all ${
+                          form.size === sz
+                            ? 'bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary'
+                            : 'bg-muted/40 hover:bg-muted text-foreground border-border/80 hover:border-primary/40'
+                        }`}
+                      >
+                        {sz}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Size</Label>
-                  <Input
-                    list="requirement-sizes"
-                    value={form.size}
-                    onChange={e => setForm({ ...form, size: e.target.value })}
-                    placeholder="e.g. 42"
-                  />
-                  <datalist id="requirement-sizes">
-                    {sizes.map(s => <option key={s.id} value={s.size} />)}
-                  </datalist>
-                </div>
+
+                {/* Category with quick chips */}
                 <div className="space-y-2">
                   <Label>Category</Label>
                   <Select value={form.category || 'none'} onValueChange={v => setForm({ ...form, category: v === 'none' ? '' : v })}>
-                    <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Optional category" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Not specified</SelectItem>
                       {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {categories.length > 0 && categories.length <= 6 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {categories.map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, category: f.category === c.name ? '' : c.name }))}
+                          className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+                            form.category === c.name
+                              ? 'bg-secondary text-secondary-foreground border-secondary shadow-xs'
+                              : 'bg-muted/40 hover:bg-muted text-foreground border-border/80'
+                          }`}
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
