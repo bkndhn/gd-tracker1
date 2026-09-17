@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json()
-    const { name, email, password, role, shop_id } = body
+    const { name, email, password, role, shop_id, warehouse_all_shops, warehouse_shop_ids } = body
 
     if (!name || !email || !password) {
       return new Response(JSON.stringify({ error: 'Name, email, and password are required' }), {
@@ -75,8 +75,8 @@ Deno.serve(async (req) => {
       })
     }
 
-    if (role && !['user', 'manager'].includes(role)) {
-      return new Response(JSON.stringify({ error: 'Role must be user or manager' }), {
+    if (role && !['user', 'manager', 'warehouse'].includes(role)) {
+      return new Response(JSON.stringify({ error: 'Role must be user, manager or warehouse' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

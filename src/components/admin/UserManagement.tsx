@@ -577,13 +577,17 @@ const EditUserForm = ({ user, shops, categories, sizes, onSave, onCancel }: Edit
     role: user.role,
     shop_id: user.shop_id || 'none',
     default_category_id: user.default_category_id || 'none',
-    default_size_id: user.default_size_id || 'none'
+    default_size_id: user.default_size_id || 'none',
+    warehouse_all_shops: (user as any).warehouse_all_shops ?? true,
+    warehouse_shop_ids: ((user as any).warehouse_shop_ids || []) as string[],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
       ...formData,
+      warehouse_all_shops: formData.role === 'warehouse' ? formData.warehouse_all_shops : false,
+      warehouse_shop_ids: formData.role === 'warehouse' && !formData.warehouse_all_shops ? formData.warehouse_shop_ids : [],
       shop_id: formData.shop_id === 'none' ? null : formData.shop_id,
       default_category_id: formData.default_category_id === 'none' ? null : formData.default_category_id,
       default_size_id: formData.default_size_id === 'none' ? null : formData.default_size_id
@@ -603,9 +607,37 @@ const EditUserForm = ({ user, shops, categories, sizes, onSave, onCancel }: Edit
           <SelectContent>
             <SelectItem value="user">User</SelectItem>
             <SelectItem value="manager">Manager</SelectItem>
+            <SelectItem value="warehouse">Warehouse staff</SelectItem>
           </SelectContent>
         </Select>
       </div>
+      {formData.role === 'warehouse' && (
+        <div className="space-y-2 rounded-md border p-3">
+          <div className="flex items-center justify-between">
+            <Label>Handles all shops</Label>
+            <Switch checked={formData.warehouse_all_shops}
+              onCheckedChange={(v) => setFormData({ ...formData, warehouse_all_shops: v })} />
+          </div>
+          {!formData.warehouse_all_shops && (
+            <div className="max-h-40 space-y-2 overflow-y-auto pt-1">
+              {shops.map((shop) => (
+                <label key={shop.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={formData.warehouse_shop_ids.includes(shop.id)}
+                    onCheckedChange={(c) => setFormData({
+                      ...formData,
+                      warehouse_shop_ids: c
+                        ? [...formData.warehouse_shop_ids, shop.id]
+                        : formData.warehouse_shop_ids.filter((id) => id !== shop.id),
+                    })}
+                  />
+                  {shop.name}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="shop">Shop</Label>
         <Select value={formData.shop_id} onValueChange={(value) => setFormData({ ...formData, shop_id: value })}>
