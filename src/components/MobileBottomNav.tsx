@@ -71,9 +71,9 @@ export const MobileBottomNav = ({
   return (
     <nav
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-3 inset-x-3 z-50 max-w-lg mx-auto select-none pointer-events-auto"
+      className="md:hidden fixed bottom-3.5 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md select-none pointer-events-auto"
     >
-      <div className="flex items-center justify-between gap-1 p-1.5 rounded-2xl bg-card/90 dark:bg-card/95 backdrop-blur-xl border border-border/80 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] ring-1 ring-black/5 dark:ring-white/5 transition-all">
+      <div className="flex items-center justify-between gap-1 p-1.5 px-2 rounded-full bg-card/90 dark:bg-card/95 backdrop-blur-2xl border border-border/80 shadow-[0_14px_36px_-6px_rgba(0,0,0,0.22),0_4px_12px_-2px_rgba(0,0,0,0.08)] ring-1 ring-black/5 dark:ring-white/10 transition-all">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -83,9 +83,9 @@ export const MobileBottomNav = ({
               key={item.id}
               type="button"
               onClick={() => setActiveTab(item.id)}
-              className={`flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none ${
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 px-1 rounded-full transition-all duration-200 active:scale-95 focus:outline-none ${
                 isActive
-                  ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/30 font-semibold'
+                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30 font-semibold'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal'
               }`}
             >
