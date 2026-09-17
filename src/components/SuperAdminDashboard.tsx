@@ -42,6 +42,9 @@ interface AdminProfile {
   ai_daily_limit?: number | null;
   ai_monthly_limit?: number | null;
   ai_lifetime_limit?: number | null;
+  requirements_enabled?: boolean;
+  max_requirements_monthly?: number | null;
+  max_warehouse_users?: number | null;
 }
 
 export const SuperAdminDashboard = () => {
@@ -64,6 +67,9 @@ export const SuperAdminDashboard = () => {
   const [aiDaily, setAiDaily] = useState<number | ''>('');
   const [aiMonthly, setAiMonthly] = useState<number | ''>('');
   const [aiLifetime, setAiLifetime] = useState<number | ''>('');
+  const [reqEnabled, setReqEnabled] = useState<boolean>(true);
+  const [maxReqMonthly, setMaxReqMonthly] = useState<number | ''>('');
+  const [maxWarehouseUsers, setMaxWarehouseUsers] = useState<number | ''>(3);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused'>('all');
   const [sortKey, setSortKey] = useState<'name' | 'created_at' | 'last_login_at' | 'entries'>('name');
