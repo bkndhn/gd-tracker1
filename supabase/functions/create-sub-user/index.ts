@@ -167,11 +167,11 @@ Deno.serve(async (req) => {
       .from('profiles')
       .update({
         name,
-        role: role === 'manager' ? 'manager' : 'user',
-        admin_id: (callerProfile as any).role === 'super_admin'
-          ? userId
-          : ((callerProfile as any).admin_id || userId),
-        shop_id: shop_id || null,
+        role: role === 'manager' ? 'manager' : role === 'warehouse' ? 'warehouse' : 'user',
+        admin_id: tenantId,
+        shop_id: role === 'warehouse' ? null : (shop_id || null),
+        warehouse_all_shops: whAll,
+        warehouse_shop_ids: whShops,
         status: 'active',
       })
       .eq('id', newUser.user.id)
