@@ -24,13 +24,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   PackagePlus, Filter, Search, Truck, PackageCheck, CheckCircle2, XCircle,
-  ClipboardList, Warehouse, Printer, Download, FileText, FileSpreadsheet, User,
+  ClipboardList, Warehouse, Printer, Download, FileText, FileSpreadsheet, User, RotateCcw,
 } from 'lucide-react';
 import { formatISTDateTime, formatISTShort } from '@/lib/dateUtils';
 import {
   directPrintFulfillmentSheet,
   exportFulfillmentSheetToExcel,
   exportFulfillmentSheetToPDF,
+  exportFulfillmentSheetToCSV,
 } from '@/lib/manualFulfillmentSheet';
 import { toast } from 'sonner';
 
@@ -51,7 +52,10 @@ export const RequirementsPanel = () => {
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isManager = role === 'manager';
 
-  const { requirements, visibleShops, loading, saving, createRequirement, updateStatus } = useRequirements();
+  const { requirements, visibleShops, loading, saving, createRequirement, updateStatus, undoStatus } = useRequirements();
+
+  const [undoTarget, setUndoTarget] = useState<StockRequirement | null>(null);
+  const [undoReason, setUndoReason] = useState('');
 
   const [sizes, setSizes] = useState<{ id: string; size: string }[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
@@ -258,6 +262,32 @@ export const RequirementsPanel = () => {
       rows: targetRows,
       scopeLabel: scope === 'selected' ? `Selected (${targetRows.length})` : scope === 'all' ? 'All Available' : 'Filtered Queue',
     });
+  };
+
+  const handleExportCSV = (scope: 'filtered' | 'selected' | 'all') => {
+    const targetRows = scope === 'selected' && selectedRows.length > 0
+      ? selectedRows
+      : scope === 'all'
+      ? requirements
+      : filtered;
+    if (targetRows.length === 0) {
+      toast.error('No requirements to export');
+      return;
+    }
+    exportFulfillmentSheetToCSV({
+      rows: targetRows,
+      scopeLabel: scope === 'selected' ? `Selected (${targetRows.length})` : scope === 'all' ? 'All Available' : 'Filtered Queue',
+    });
+    toast.success(`Exported ${targetRows.length} items to CSV`);
+  };
+
+  const handleConfirmUndo = async () => {
+    if (!undoTarget) return;
+    const ok = await undoStatus(undoTarget, undoReason.trim() || undefined);
+    if (ok) {
+      setUndoTarget(null);
+      setUndoReason('');
+    }
   };
 
   const submit = async () => {
@@ -582,6 +612,15 @@ export const RequirementsPanel = () => {
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleExportCSV('filtered')}>
+                        <Download className="h-4 w-4 mr-2 text-primary" /> Export CSV (Filtered)
+                      </DropdownMenuItem>
+                      {selectedIds.size > 0 && (
+                        <DropdownMenuItem onClick={() => handleExportCSV('selected')}>
+                          <Download className="h-4 w-4 mr-2 text-primary" /> Export CSV (Selected {selectedIds.size})
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => handleExportExcel('all')}>
                         <Download className="h-4 w-4 mr-2 text-muted-foreground" /> Export All Available ({requirements.length})
                       </DropdownMenuItem>
@@ -702,67 +741,100 @@ export const RequirementsPanel = () => {
                   </label>
 
                   {filtered.map(r => (
-                    <div key={r.id} className="rounded-lg border p-3">
-                      <div className="flex flex-wrap items-start gap-3">
-                        <Checkbox
-                          className="mt-1"
-                          checked={selectedIds.has(r.id)}
-                          onCheckedChange={v => toggleOne(r.id, !!v)}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold">Size {r.size} × {r.quantity}</span>
-                            <Badge className={STATUS_TONE[r.status]} variant="secondary">{r.status}</Badge>
-                            {r.urgency === 'urgent' && <Badge variant="destructive">urgent</Badge>}
-                            <Badge variant="outline" className="text-[11px] gap-1 px-2 py-0.5 font-medium bg-muted/40">
-                              <User className="h-3 w-3 text-muted-foreground" /> {r.requested_by_name || 'Staff'}
-                            </Badge>
-                          </div>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {r.shop_name || '—'} · {r.category || 'no category'} · asked by <strong>{r.requested_by_name || 'Staff'}</strong> on {formatISTDateTime(r.created_at)}
-                          </p>
-                          {r.note && <p className="mt-1 text-sm">{r.note}</p>}
-                          <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                            {r.packed_at && <p>Packed by {r.packed_by_name} · {formatISTDateTime(r.packed_at)}{r.packed_qty != null ? ` · ${r.packed_qty} pcs` : ''}</p>}
-                            {r.moved_at && <p>Moved by {r.moved_by_name} · {formatISTDateTime(r.moved_at)}{r.moved_note ? ` · ${r.moved_note}` : ''}</p>}
-                            {r.received_at && <p>Received by {r.received_by_name} · {formatISTDateTime(r.received_at)}</p>}
-                            {r.rejected_at && <p className="text-destructive">Rejected by {r.rejected_by_name} · {r.reject_reason}</p>}
-                          </div>
-                          {requirementCustomValues[r.id] && Object.keys(requirementCustomValues[r.id]).length > 0 && (
-                            <div className="mt-1.5 flex flex-wrap gap-1">
-                              {Object.entries(requirementCustomValues[r.id]).map(([cfId, val]) => {
-                                const cf = reqCustomFields.find(f => f.id === cfId);
-                                return (
-                                  <Badge key={cfId} variant="outline" className="text-[10px] px-1.5 py-0 bg-muted/40">
-                                    {cf ? cf.name : 'Detail'}: {val}
-                                  </Badge>
-                                );
-                              })}
-                            </div>
-                          )}
+                    <div key={r.id} className="rounded-xl border bg-card p-3.5 space-y-2.5 shadow-xs transition-shadow hover:shadow-sm">
+                      {/* Top Header: Checkbox + Size × Qty + Badges */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                          <Checkbox
+                            className="mt-0.5"
+                            checked={selectedIds.has(r.id)}
+                            onCheckedChange={v => toggleOne(r.id, !!v)}
+                          />
+                          <span className="font-bold text-sm sm:text-base text-foreground whitespace-nowrap">
+                            Size {r.size} × {r.quantity}
+                          </span>
+                          <Badge className={STATUS_TONE[r.status]} variant="secondary">
+                            {r.status}
+                          </Badge>
+                          {r.urgency === 'urgent' && <Badge variant="destructive">urgent</Badge>}
                         </div>
+                        <Badge variant="outline" className="text-[11px] gap-1 px-2 py-0.5 font-medium bg-muted/40 shrink-0">
+                          <User className="h-3 w-3 text-muted-foreground" /> {r.requested_by_name || 'Staff'}
+                        </Badge>
+                      </div>
+
+                      {/* Full-width Details Block - 100% width, no vertical single-word wrapping! */}
+                      <div className="w-full text-xs space-y-1 pt-0.5">
+                        <p className="text-muted-foreground leading-relaxed">
+                          <strong className="text-foreground font-semibold">{r.shop_name || 'Unassigned Shop'}</strong>
+                          {' · '}
+                          <span className="text-foreground font-medium">{r.category || 'General'}</span>
+                          {' · '}
+                          <span>Asked on {formatISTDateTime(r.created_at)}</span>
+                        </p>
+                        {r.note && (
+                          <div className="p-2 rounded-md bg-muted/40 border border-border/60 text-xs text-foreground font-medium">
+                            <span className="text-muted-foreground font-normal">Note: </span>{r.note}
+                          </div>
+                        )}
+                        <div className="space-y-0.5 text-xs text-muted-foreground">
+                          {r.packed_at && <p className="text-blue-600 dark:text-blue-400">✓ Packed by {r.packed_by_name} · {formatISTDateTime(r.packed_at)}{r.packed_qty != null ? ` · ${r.packed_qty} pcs` : ''}</p>}
+                          {r.moved_at && <p className="text-violet-600 dark:text-violet-400">✓ Moved by {r.moved_by_name} · {formatISTDateTime(r.moved_at)}{r.moved_note ? ` · ${r.moved_note}` : ''}</p>}
+                          {r.received_at && <p className="text-emerald-600 dark:text-emerald-400">✓ Received by {r.received_by_name} · {formatISTDateTime(r.received_at)}</p>}
+                          {r.rejected_at && <p className="text-destructive font-medium">✕ Rejected by {r.rejected_by_name} · {r.reject_reason}</p>}
+                        </div>
+                        {requirementCustomValues[r.id] && Object.keys(requirementCustomValues[r.id]).length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-0.5">
+                            {Object.entries(requirementCustomValues[r.id]).map(([cfId, val]) => {
+                              const cf = reqCustomFields.find(f => f.id === cfId);
+                              return (
+                                <Badge key={cfId} variant="outline" className="text-[10px] px-1.5 py-0 bg-muted/40">
+                                  {cf ? cf.name : 'Detail'}: {val}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer Action Row: Packed, Moved, Received, Reject, Undo */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t">
                         <div className="flex flex-wrap gap-1.5">
                           {r.status === 'requested' && canFulfil(r) && (
-                            <Button size="sm" variant="outline" className="gap-1" onClick={() => openAction(r, 'packed')}>
-                              <PackageCheck className="h-3.5 w-3.5" /> Packed
+                            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => openAction(r, 'packed')}>
+                              <PackageCheck className="h-3.5 w-3.5 text-blue-600" /> Packed
                             </Button>
                           )}
                           {r.status === 'packed' && canFulfil(r) && (
-                            <Button size="sm" variant="outline" className="gap-1" onClick={() => openAction(r, 'moved')}>
-                              <Truck className="h-3.5 w-3.5" /> Moved
+                            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => openAction(r, 'moved')}>
+                              <Truck className="h-3.5 w-3.5 text-violet-600" /> Moved
                             </Button>
                           )}
                           {r.status === 'moved' && canReceive(r) && (
-                            <Button size="sm" className="gap-1" onClick={() => openAction(r, 'received')}>
+                            <Button size="sm" className="gap-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => openAction(r, 'received')}>
                               <CheckCircle2 className="h-3.5 w-3.5" /> Received
                             </Button>
                           )}
                           {(r.status === 'requested' || r.status === 'packed') && canFulfil(r) && (
-                            <Button size="sm" variant="ghost" className="gap-1 text-destructive" onClick={() => openAction(r, 'rejected')}>
+                            <Button size="sm" variant="ghost" className="gap-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => openAction(r, 'rejected')}>
                               <XCircle className="h-3.5 w-3.5" /> Reject
                             </Button>
                           )}
                         </div>
+
+                        {/* Admin & Manager Undo Button */}
+                        {r.status !== 'requested' && (isAdmin || isManager) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1 text-xs text-muted-foreground hover:text-foreground h-8"
+                            onClick={() => setUndoTarget(r)}
+                            title="Undo this status (revert back to requested)"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5 text-amber-500" />
+                            <span>Undo Status</span>
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -773,31 +845,111 @@ export const RequirementsPanel = () => {
         </TabsContent>
       </Tabs>
 
+      {/* Workflow Confirmation Dialog */}
       <Dialog open={!!action} onOpenChange={o => !o && setAction(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="capitalize">Mark as {action?.to}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 capitalize">
+              {action?.to === 'packed' && <PackageCheck className="h-5 w-5 text-blue-600" />}
+              {action?.to === 'moved' && <Truck className="h-5 w-5 text-violet-600" />}
+              {action?.to === 'received' && <CheckCircle2 className="h-5 w-5 text-emerald-600" />}
+              {action?.to === 'rejected' && <XCircle className="h-5 w-5 text-destructive" />}
+              Confirm: Mark as {action?.to.toUpperCase()}?
+            </DialogTitle>
             <DialogDescription>
-              Size {action?.req.size} × {action?.req.quantity} for {action?.req.shop_name || 'this shop'}.
+              Please verify requirement details before confirming this status update.
             </DialogDescription>
           </DialogHeader>
+
+          {action && (
+            <div className="rounded-xl border bg-muted/40 p-3 text-xs space-y-1">
+              <div className="flex justify-between items-center font-semibold text-foreground text-sm">
+                <span>Size {action.req.size} × {action.req.quantity}</span>
+                <span className="text-primary">{action.req.shop_name || 'Unassigned'}</span>
+              </div>
+              <p className="text-muted-foreground">
+                Category: <span className="text-foreground">{action.req.category || 'General'}</span> · Asked by: <span className="text-foreground">{action.req.requested_by_name || 'Staff'}</span>
+              </p>
+              <p className="text-muted-foreground">
+                Requested on {formatISTDateTime(action.req.created_at)}
+              </p>
+            </div>
+          )}
+
           <div className="space-y-3">
             {action?.to === 'packed' && (
               <div className="space-y-2">
                 <Label>Packed quantity</Label>
-                <Input type="number" min={0} value={actionQty}
+                <Input type="number" min={1} value={actionQty}
                   onChange={e => setActionQty(e.target.value === '' ? '' : Number(e.target.value))} />
               </div>
             )}
             {action?.to !== 'received' && (
               <div className="space-y-2">
-                <Label>{action?.to === 'rejected' ? 'Reason' : 'Note (optional)'}</Label>
-                <Textarea rows={2} value={actionNote} onChange={e => setActionNote(e.target.value)} />
+                <Label>{action?.to === 'rejected' ? 'Rejection Reason *' : 'Dispatch / Action Note (optional)'}</Label>
+                <Textarea
+                  rows={2}
+                  value={actionNote}
+                  placeholder={action?.to === 'rejected' ? 'Why is this request rejected?' : 'Add optional note...'}
+                  onChange={e => setActionNote(e.target.value)}
+                />
               </div>
             )}
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setAction(null)}>Cancel</Button>
-              <Button onClick={confirmAction}>Confirm</Button>
+              <Button
+                variant={action?.to === 'rejected' ? 'destructive' : 'default'}
+                onClick={confirmAction}
+              >
+                Yes, Mark as {action?.to}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Undo Confirmation Dialog */}
+      <Dialog open={!!undoTarget} onOpenChange={o => !o && setUndoTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <RotateCcw className="h-5 w-5" /> Undo Status / Revert to Requested
+            </DialogTitle>
+            <DialogDescription>
+              Revert this requirement back to &quot;Requested&quot; status. All fulfillment timestamps for this cycle will be reset and returned to the active queue.
+            </DialogDescription>
+          </DialogHeader>
+
+          {undoTarget && (
+            <div className="rounded-xl border bg-amber-500/10 border-amber-500/20 p-3 text-xs space-y-1">
+              <div className="flex justify-between items-center font-semibold text-foreground text-sm">
+                <span>Size {undoTarget.size} × {undoTarget.quantity}</span>
+                <span className="font-semibold">{undoTarget.shop_name}</span>
+              </div>
+              <p className="text-muted-foreground">
+                Current Status: <strong className="uppercase text-amber-700 dark:text-amber-300">{undoTarget.status}</strong>
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Reason for Undo (Optional)</Label>
+              <Input
+                placeholder="e.g. Marked packed by mistake"
+                value={undoReason}
+                onChange={e => setUndoReason(e.target.value)}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setUndoTarget(null)}>Cancel</Button>
+              <Button
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={handleConfirmUndo}
+              >
+                Yes, Revert to Requested
+              </Button>
             </div>
           </div>
         </DialogContent>

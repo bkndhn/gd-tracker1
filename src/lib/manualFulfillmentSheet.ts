@@ -405,34 +405,114 @@ export function exportFulfillmentSheetToExcel({
   const aoa = [...head, columns, ...dataRows, ...foot];
   const sheet = XLSX.utils.aoa_to_sheet(aoa);
 
-  sheet['!cols'] = [
-    { wch: 10 }, // Checkbox
-    { wch: 8 },  // Req #
-    { wch: 22 }, // Requested At (IST)
-    { wch: 20 }, // Shop
-    { wch: 12 }, // Size
-    { wch: 15 }, // Category
-    { wch: 10 }, // Quantity
-    { wch: 12 }, // Urgency
-    { wch: 20 }, // Requested By
-    { wch: 14 }, // Status
-    { wch: 18 }, // Packed By
-    { wch: 22 }, // Packed At
-    { wch: 12 }, // Packed Qty
-    { wch: 18 }, // Moved By
-    { wch: 22 }, // Moved At
-    { wch: 18 }, // Received By
-    { wch: 22 }, // Received At
-    { wch: 24 }, // Pack signoff
-    { wch: 22 }, // Dispatch signoff
-    { wch: 22 }, // Store sign
-    { wch: 30 }, // Notes
-  ];
+  // Real dynamic Auto-fit column widths based on longest string in each column
+  sheet['!cols'] = columns.map((col, colIdx) => {
+    let maxLen = col.length;
+    for (const r of dataRows) {
+      const val = r[colIdx];
+      if (val != null) {
+        const len = String(val).length;
+        if (len > maxLen) maxLen = len;
+      }
+    }
+    return { wch: Math.min(50, Math.max(10, maxLen + 3)) };
+  });
 
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, 'Fulfillment');
   const fileName = formatISTFileName(new Date(), `warehouse-fulfillment-${scopeLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`);
   XLSX.writeFile(book, `${fileName}.xlsx`);
+}
+
+/**
+ * Plain CSV Export for warehouse fulfillment with physical tick mark column `[  ]` and IST timestamps.
+ */
+export function exportFulfillmentSheetToCSV({
+  rows,
+  scopeLabel = 'Warehouse Queue',
+  template = DEFAULT_EXPORT_TEMPLATE,
+}: FulfillmentExportOptions) {
+  const generatedTimeIST = formatISTDateTime(new Date());
+  const orgName = template.orgName || 'GD Tracker';
+
+  logAudit({
+    action: 'data_export',
+    targetType: 'warehouse_queue',
+    details: { format: 'csv', count: rows.length, scope: scopeLabel },
+  });
+
+  const esc = (v: string | number) => {
+    const s = String(v ?? '');
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+
+  const columns = [
+    'Check [ ]',
+    'Req #',
+    'Requested At (IST)',
+    'Shop Name',
+    'Size',
+    'Category',
+    'Quantity',
+    'Urgency',
+    'Requested By',
+    'Status',
+    'Packed By',
+    'Packed At (IST)',
+    'Packed Qty',
+    'Moved By',
+    'Moved At (IST)',
+    'Received By',
+    'Received At (IST)',
+    'Notes / Reason',
+  ];
+
+  const lines: string[] = [];
+  lines.push(esc(orgName));
+  lines.push(esc(`WAREHOUSE STOCK FULFILLMENT & PICKING SHEET — ${scopeLabel.toUpperCase()}`));
+  lines.push(esc(`Generated: ${generatedTimeIST} (IST) · Total Requests: ${rows.length}`));
+  lines.push('');
+  lines.push(columns.map(esc).join(','));
+
+  rows.forEach((r, idx) => {
+    const row = [
+      '[  ]',
+      `#${idx + 1}`,
+      formatISTDateTime(r.created_at),
+      r.shop_name || '—',
+      r.size,
+      r.category || 'General',
+      r.quantity,
+      r.urgency.toUpperCase(),
+      r.requested_by_name || '—',
+      r.status.toUpperCase(),
+      r.packed_by_name || '—',
+      r.packed_at ? formatISTDateTime(r.packed_at) : '—',
+      r.packed_qty ?? (r.status === 'packed' ? r.quantity : '—'),
+      r.moved_by_name || '—',
+      r.moved_at ? formatISTDateTime(r.moved_at) : '—',
+      r.received_by_name || '—',
+      r.received_at ? formatISTDateTime(r.received_at) : '—',
+      r.note || r.reject_reason || '—',
+    ];
+    lines.push(row.map(esc).join(','));
+  });
+
+  lines.push('');
+  lines.push(esc('Manual Warehouse Fulfillment Sign-off:'));
+  lines.push('Packer Signature: _______________________,Dispatcher Signature: _______________________,Store Receiver Signature: _______________________');
+
+  const csvContent = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const fileName = formatISTFileName(new Date(), `warehouse-fulfillment-${scopeLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`);
+  a.download = `${fileName}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /**

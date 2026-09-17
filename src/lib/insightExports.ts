@@ -75,7 +75,18 @@ export function exportTableToExcel(table: SheetTable, template: ExportTemplate =
 
   const aoa = [...head, table.columns, ...table.rows, ...foot];
   const sheet = XLSX.utils.aoa_to_sheet(aoa);
-  sheet['!cols'] = table.columns.map(c => ({ wch: Math.max(12, c.length + 4) }));
+  // Dynamic Auto-fit column widths based on maximum cell content across all rows
+  sheet['!cols'] = table.columns.map((c, colIdx) => {
+    let maxLen = c.length;
+    for (const r of table.rows) {
+      const val = r[colIdx];
+      if (val != null) {
+        const len = String(val).length;
+        if (len > maxLen) maxLen = len;
+      }
+    }
+    return { wch: Math.min(50, Math.max(12, maxLen + 3)) };
+  });
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, 'Report');
   XLSX.writeFile(book, `${table.fileName}.xlsx`);

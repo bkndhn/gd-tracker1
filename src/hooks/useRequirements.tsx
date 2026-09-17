@@ -290,6 +290,93 @@ export const useRequirements = () => {
     }
   }, [user?.id, p?.name, p?.email, requirements, fetchAll]);
 
+  const undoStatus = useCallback(async (req: StockRequirement, reason?: string) => {
+    if (!user?.id) return false;
+    const now = new Date().toISOString();
+    const actorName = p?.name || p?.email || 'Admin';
+
+    // Revert to requested status and clear transition timestamps and actors
+    const patch: any = {
+      status: 'requested',
+      updated_at: now,
+      packed_by: null,
+      packed_by_name: null,
+      packed_at: null,
+      packed_qty: null,
+      packed_note: null,
+      moved_by: null,
+      moved_by_name: null,
+      moved_at: null,
+      moved_note: null,
+      received_by: null,
+      received_by_name: null,
+      received_at: null,
+      rejected_by: null,
+      rejected_by_name: null,
+      rejected_at: null,
+      reject_reason: null,
+    };
+
+    const previousReqs = requirements;
+    setRequirements(prev => prev.map(item => item.id === req.id ? { ...item, ...patch } : item));
+    window.dispatchEvent(new CustomEvent('gd:requirement_updated', { detail: { id: req.id, patch } }));
+
+    try {
+      const { error } = await (supabase.from('stock_requirements') as any)
+        .update(patch)
+        .eq('id', req.id);
+      if (error) throw error;
+
+      await (supabase.from('stock_requirement_events') as any).insert({
+        admin_id: req.admin_id,
+        requirement_id: req.id,
+        from_status: req.status,
+        to_status: 'requested',
+        actor_id: user.id,
+        actor_name: actorName,
+        note: reason ? `Admin Undo: ${reason}` : `Admin Undo (reverted from ${req.status})`,
+      });
+
+      // If it was packed previously, restore the inventory quantity
+      if (req.packed_qty || (req.status === 'packed' && req.quantity)) {
+        try {
+          const { data: invRow } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'warehouse_inventory')
+            .eq('admin_id', req.admin_id)
+            .maybeSingle();
+          if (invRow?.value && Array.isArray(invRow.value)) {
+            const restoreCount = req.packed_qty ?? req.quantity;
+            const normSize = req.size.trim().toLowerCase();
+            const updatedInv = (invRow.value as any[]).map(item => {
+              if (String(item.size).trim().toLowerCase() === normSize) {
+                return { ...item, on_hand: (item.on_hand || 0) + restoreCount, updated_at: now };
+              }
+              return item;
+            });
+            await (supabase.from('app_settings') as any).upsert({
+              key: 'warehouse_inventory',
+              admin_id: req.admin_id,
+              value: updatedInv,
+            }, { onConflict: 'admin_id,key' });
+          }
+        } catch (invErr) {
+          if (import.meta.env.DEV) console.error('Failed to restore packed inventory on undo', invErr);
+        }
+      }
+
+      toast.success('Requirement reverted to Requested status');
+      await fetchAll();
+      return true;
+    } catch (e: any) {
+      setRequirements(previousReqs);
+      window.dispatchEvent(new CustomEvent('gd:requirement_updated', { detail: { rollback: true } }));
+      toast.error(e.message || 'Could not undo requirement');
+      return false;
+    }
+  }, [user?.id, p?.name, p?.email, requirements, fetchAll]);
+
   const visibleShops = useMemo(() => {
     if (role === 'super_admin' || role === 'admin') return shops;
     if (isWarehouse) {
@@ -305,7 +392,7 @@ export const useRequirements = () => {
 
   return {
     requirements, shops, visibleShops, loading, saving,
-    createRequirement, updateStatus, refresh: fetchAll,
+    createRequirement, updateStatus, undoStatus, refresh: fetchAll,
     tenantId, canFulfil, isWarehouse,
   };
 };
