@@ -99,6 +99,21 @@ export const useRequirements = () => {
     if (!tenantId || !user?.id) { toast.error('No account context'); return false; }
     setSaving(true);
     try {
+      // Monthly cap set by the super admin for this account
+      const { data: limitRow } = await supabase
+        .from('profiles').select('max_requirements_monthly').eq('id', tenantId).maybeSingle();
+      const cap = (limitRow as any)?.max_requirements_monthly;
+      if (cap != null) {
+        const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+        const { count } = await (supabase.from('stock_requirements') as any)
+          .select('*', { count: 'exact', head: true })
+          .eq('admin_id', tenantId)
+          .gte('created_at', monthStart.toISOString());
+        if ((count || 0) >= cap) {
+          toast.error(`Monthly requirement limit reached (${cap}). Contact your provider to raise it.`);
+          return false;
+        }
+      }
       const shopName = shops.find(s => s.id === input.shop_id)?.name || null;
       const { error } = await (supabase.from('stock_requirements') as any).insert({
         admin_id: tenantId,
