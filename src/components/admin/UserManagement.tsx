@@ -139,6 +139,8 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
           password: newUser.password,
           role: newUser.role,
           shop_id: newUser.shop_id === 'none' ? null : newUser.shop_id,
+          warehouse_all_shops: newUser.role === 'warehouse' ? newUser.warehouse_all_shops : false,
+          warehouse_shop_ids: newUser.role === 'warehouse' && !newUser.warehouse_all_shops ? newUser.warehouse_shop_ids : [],
         },
       });
 
@@ -147,7 +149,7 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
 
       toast.success(`Sub-user "${newUser.name}" created successfully`);
       setIsCreateOpen(false);
-      setNewUser({ name: '', email: '', password: '', role: 'user', shop_id: 'none' });
+      setNewUser({ name: '', email: '', password: '', role: 'user', shop_id: 'none', warehouse_all_shops: true, warehouse_shop_ids: [] });
       if (propOnRefresh) propOnRefresh();
       else fetchData();
     } catch (error: any) {
