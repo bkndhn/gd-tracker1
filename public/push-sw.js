@@ -1,7 +1,8 @@
 // Push + in-app notification handling, imported by the generated service worker.
 // Kept separate so Workbox precaching and this messaging logic stay independent.
 
-const ICON = '/lovable-uploads/d9731f6e-4026-4be4-aaf0-1a401d8ba7be.png';
+const ICON = '/icon-192.png';
+const BADGE = '/favicon-32.png';
 
 const EVENT_TITLES = {
   STOCK_REQUIREMENT_NEW: '🚨 Urgent Stock Request',
@@ -25,7 +26,7 @@ function buildNotificationOptions(data) {
     options: {
       body,
       icon: ICON,
-      badge: ICON,
+      badge: BADGE,
       data: { url, eventType },
       requireInteraction: data.requireInteraction !== false,
       tag: `gd-${eventType.toLowerCase()}-${Date.now()}`,

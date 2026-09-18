@@ -42,8 +42,25 @@ export function registerServiceWorker() {
   }
 
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register(SW_URL, { scope: '/' }).catch(() => {
-      /* offline support is best-effort */
-    });
+    navigator.serviceWorker
+      .register(SW_URL, { scope: '/' })
+      .then((reg) => {
+        // Promptly check for manifest and cache updates on every launch
+        reg.update().catch(() => {});
+
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          }
+        });
+      })
+      .catch(() => {
+        /* offline support is best-effort */
+      });
   });
 }

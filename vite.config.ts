@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => ({
       injectRegister: null,
       filename: 'sw.js',
       devOptions: { enabled: false },
-      includeAssets: ['favicon.ico', 'favicon.svg', 'favicon.png', 'icon-192.png', 'icon-512.png', 'robots.txt', 'placeholder.svg'],
+      includeAssets: ['favicon.ico', 'favicon.svg', 'favicon.png', 'favicon-32.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'apple-touch-icon-180x180.png', 'robots.txt', 'placeholder.svg'],
       manifest: false, // public/manifest.json is maintained by hand
       workbox: {
         importScripts: ['/push-sw.js'],

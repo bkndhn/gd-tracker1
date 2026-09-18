@@ -1,7 +1,8 @@
 import React from 'react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
-import { X, Download, Share, Smartphone, PlusSquare, Check } from 'lucide-react';
+import { X, Download, Share, PlusSquare, Check } from 'lucide-react';
+import { AppLogo } from '@/components/AppLogo';
 import {
   Dialog,
   DialogContent,
@@ -30,12 +31,10 @@ export const PWAInstallPrompt: React.FC = () => {
         <div className="fixed bottom-24 inset-x-4 max-w-sm mx-auto md:bottom-6 md:right-6 md:left-auto md:w-96 z-40 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-card/95 dark:bg-card/95 backdrop-blur-xl border border-border/80 shadow-[0_16px_36px_-6px_rgba(0,0,0,0.28)] ring-1 ring-black/5 dark:ring-white/10">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary to-primary/80 flex items-center justify-center text-primary-foreground shadow-md shadow-primary/25 shrink-0">
-                <Smartphone className="h-5 w-5" />
-              </div>
+              <AppLogo variant="icon" size="md" animated />
               <div className="min-w-0">
                 <h4 className="text-xs sm:text-sm font-semibold text-foreground truncate">
-                  Install GD Tracker App
+                  Install Lost Sale Insights
                 </h4>
                 <p className="text-[11px] text-muted-foreground truncate">
                   Fast 0ms load • Works 100% offline
@@ -69,14 +68,14 @@ export const PWAInstallPrompt: React.FC = () => {
       <Dialog open={iosModalOpen} onOpenChange={setIosModalOpen}>
         <DialogContent className="max-w-sm rounded-2xl p-6 sm:max-w-md">
           <DialogHeader className="text-left space-y-2">
-            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-1">
-              <Smartphone className="h-6 w-6" />
+            <div className="mb-1">
+              <AppLogo variant="icon" size="lg" animated />
             </div>
             <DialogTitle className="text-base sm:text-lg font-bold">
               Install on iPhone or iPad
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-              Follow these simple steps in Safari to add GD Tracker to your Home Screen:
+              Follow these simple steps in Safari to add Lost Sale Insights to your Home Screen:
             </DialogDescription>
           </DialogHeader>
 
