@@ -39,27 +39,45 @@ export const UsageMetering = () => {
         const monthStart = new Date();
         monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
 
-        const [adminProf, entries, users, shops, images, ai, customFields] = await Promise.all([
-          supabase.from('profiles').select('max_entries, max_users, max_shops, max_images_total, ai_monthly_limit, max_custom_fields, custom_fields_enabled, show_plan_to_client, payment_enabled' as any).eq('id', adminId).single(),
+        const [adminProf, entries, users, shops, images, ai, customFields, reqs, warehouseStaff] = await Promise.all([
+          supabase.from('profiles').select('max_entries, max_users, max_shops, max_images_total, ai_monthly_limit, max_custom_fields, custom_fields_enabled, show_plan_to_client, payment_enabled, max_requirements_monthly, max_warehouse_users, requirements_enabled' as any).eq('id', adminId).single(),
           supabase.from('goods_damaged_entries').select('id', { count: 'exact', head: true }).eq('admin_id', adminId).gte('created_at', monthStart.toISOString()),
           supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('admin_id', adminId).is('deleted_at', null),
           supabase.from('shops').select('id', { count: 'exact', head: true }).eq('admin_id', adminId).is('deleted_at', null),
           supabase.from('gd_entry_images').select('id', { count: 'exact', head: true }),
           supabase.from('ai_usage_log').select('id', { count: 'exact', head: true }).eq('admin_id', adminId).gte('created_at', monthStart.toISOString()),
           (supabase.from('custom_fields') as any).select('id', { count: 'exact', head: true }).eq('admin_id', adminId).is('deleted_at', null),
+          supabase.from('stock_requirements').select('id', { count: 'exact', head: true }).eq('admin_id', adminId).gte('created_at', monthStart.toISOString()),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('admin_id', adminId).eq('role', 'warehouse').is('deleted_at', null),
         ]);
 
         const p = (adminProf.data || {}) as any;
         setShowPlanToClient(p.show_plan_to_client !== false);
 
-        setMeters([
+        const meterList: Meter[] = [
           { label: 'Entries this month', used: entries.count || 0, limit: p.max_entries ?? null },
           { label: 'Team members', used: users.count || 0, limit: p.max_users ?? null },
           { label: 'Shops', used: shops.count || 0, limit: p.max_shops ?? null },
-          { label: 'Custom Fields', used: customFields?.count || 0, limit: p.custom_fields_enabled === false ? 0 : (p.max_custom_fields ?? null) },
-          { label: 'Images stored', used: images.count || 0, limit: p.max_images_total ?? null },
-          { label: 'AI insights this month', used: ai.count || 0, limit: p.ai_monthly_limit ?? null },
-        ]);
+        ];
+
+        if (p.requirements_enabled !== false) {
+          meterList.push({
+            label: 'Stock Requirements this month',
+            used: reqs.count || 0,
+            limit: p.max_requirements_monthly ?? null,
+          });
+          meterList.push({
+            label: 'Warehouse staff',
+            used: warehouseStaff.count || 0,
+            limit: p.max_warehouse_users ?? null,
+          });
+        }
+
+        meterList.push({ label: 'Custom Fields', used: customFields?.count || 0, limit: p.custom_fields_enabled === false ? 0 : (p.max_custom_fields ?? null) });
+        meterList.push({ label: 'Images stored', used: images.count || 0, limit: p.max_images_total ?? null });
+        meterList.push({ label: 'AI insights this month', used: ai.count || 0, limit: p.ai_monthly_limit ?? null });
+
+        setMeters(meterList);
       } catch (e) {
         if (import.meta.env.DEV) console.error('UsageMetering', e);
       } finally {
@@ -80,7 +98,8 @@ export const UsageMetering = () => {
     );
   }
 
-  const nearLimit = meters.some(m => m.limit && m.used / m.limit >= 0.8);
+  const capped = meters.some(m => m.limit && m.used >= m.limit);
+  const nearLimit = !capped && meters.some(m => m.limit && m.used / m.limit >= 0.8);
 
   return (
     <div className="space-y-6">
@@ -99,9 +118,15 @@ export const UsageMetering = () => {
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : (
             <>
+              {capped && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-center gap-2 font-medium">
+                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                  <span>One or more plan quotas have reached 100% capacity. Contact your platform provider to upgrade.</span>
+                </div>
+              )}
               {nearLimit && (
                 <p className="rounded-md bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
-                  You are close to a plan limit. Contact your provider to upgrade before new entries are blocked.
+                  You are approaching a plan quota (≥80% used). Contact your provider to upgrade before new items are blocked.
                 </p>
               )}
               {meters.map(m => (

@@ -25,6 +25,7 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { CreateTenantDialog } from './admin/CreateTenantDialog';
 import { GoogleDriveBackupPanel } from './admin/GoogleDriveBackupPanel';
 import { PlatformPaymentSettings } from './admin/PlatformPaymentSettings';
+import { SupabaseFreeTierDashboard } from './admin/SupabaseFreeTierDashboard';
 import { AuditLogViewer } from './AuditLogViewer';
 import { formatISTDate, formatISTDateTime } from '@/lib/dateUtils';
 import { useAuth } from '@/hooks/useAuth';
@@ -1011,7 +1012,13 @@ export const SuperAdminDashboard = () => {
         <AuditLogViewer />
       </TabsContent>
 
-      <TabsContent value="health">
+      <TabsContent value="health" className="space-y-6">
+        <SupabaseFreeTierDashboard
+          onOpenLimits={(tenantId) => {
+            const adm = admins.find(a => a.id === tenantId) || allProfiles.find(p => p.id === tenantId);
+            if (adm) openLimitsDialog(adm);
+          }}
+        />
         <ReleaseHealthPanel />
       </TabsContent>
     </Tabs>

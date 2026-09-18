@@ -27,7 +27,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   PackagePlus, Filter, Search, Truck, PackageCheck, CheckCircle2, XCircle,
   ClipboardList, Warehouse, Printer, Download, FileText, FileSpreadsheet, User, RotateCcw,
-  Sparkles, Settings2, Plus,
+  Sparkles, Settings2, Plus, Clock,
 } from 'lucide-react';
 import { formatISTDateTime, formatISTShort } from '@/lib/dateUtils';
 import {
@@ -39,6 +39,7 @@ import {
 import { toast } from 'sonner';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { PredictiveReorderPanel } from './PredictiveReorderPanel';
+import { RequirementsReport } from '@/components/RequirementsReport';
 
 const STATUS_TONE: Record<string, string> = {
   requested: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
@@ -46,6 +47,15 @@ const STATUS_TONE: Record<string, string> = {
   moved: 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
   received: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
   rejected: 'bg-destructive/15 text-destructive',
+};
+
+const getTurnaround = (r: StockRequirement) => {
+  const end = r.received_at || r.moved_at || r.packed_at || r.rejected_at;
+  if (!end) return null;
+  const mins = Math.round((new Date(end).getTime() - new Date(r.created_at).getTime()) / 60000);
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  return h < 24 ? `${h}h ${mins % 60}m` : `${Math.floor(h / 24)}d ${h % 24}h`;
 };
 
 export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => {
@@ -430,15 +440,6 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
     toast.success(`Exported ${targetRows.length} items to CSV`);
   };
 
-  const handleConfirmUndo = async () => {
-    if (!undoTarget) return;
-    const ok = await undoStatus(undoTarget, undoReason.trim() || undefined);
-    if (ok) {
-      setUndoTarget(null);
-      setUndoReason('');
-    }
-  };
-
   const submit = async () => {
     if (!form.shop_id) return toast.error('Choose a shop');
 
@@ -570,6 +571,15 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
     }
   };
 
+  const handleConfirmUndo = async () => {
+    if (!undoTarget) return;
+    const ok = await undoStatus(undoTarget, undoReason.trim() || undefined);
+    if (ok) {
+      setUndoTarget(null);
+      setUndoReason('');
+    }
+  };
+
   const canFulfil = (r: StockRequirement) => isWarehouse || isAdmin;
   const canReceive = (r: StockRequirement) =>
     isAdmin || isManager || (r.requested_by === user?.id) || (p?.shop_id && r.shop_id === p.shop_id);
@@ -604,6 +614,13 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
             >
               <Sparkles className="h-4 w-4 shrink-0 text-violet-500 group-data-[state=active]:text-white transition-colors" />
               <span className="font-semibold whitespace-nowrap">AI Demand</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="reports"
+              className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"
+            >
+              <FileText className="h-4 w-4 shrink-0 text-emerald-500 group-data-[state=active]:text-white transition-colors" />
+              <span className="font-semibold whitespace-nowrap">Reports</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -1098,14 +1115,19 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
                             {r.status}
                           </Badge>
                           {r.urgency === 'urgent' && <Badge variant="destructive">urgent</Badge>}
+                          {getTurnaround(r) && (
+                            <Badge variant="outline" className="text-[10px] gap-1 px-2 py-0.5 font-medium bg-muted/40 text-muted-foreground shrink-0">
+                              <Clock className="h-3 w-3 text-muted-foreground" /> {getTurnaround(r)}
+                            </Badge>
+                          )}
                         </div>
                         <Badge variant="outline" className="text-[11px] gap-1 px-2 py-0.5 font-medium bg-muted/40 shrink-0">
                           <User className="h-3 w-3 text-muted-foreground" /> {r.requested_by_name || 'Staff'}
                         </Badge>
                       </div>
 
-                      {/* Full-width Details Block - 100% width, no vertical single-word wrapping! */}
-                      <div className="w-full text-xs space-y-1 pt-0.5">
+                      {/* Full-width Details Block */}
+                      <div className="w-full text-xs space-y-1.5 pt-0.5">
                         <p className="text-muted-foreground leading-relaxed">
                           <strong className="text-foreground font-semibold">{r.shop_name || 'Unassigned Shop'}</strong>
                           {r.category && r.category !== '—' && (
@@ -1122,11 +1144,79 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
                             <span className="text-muted-foreground font-normal">Note: </span>{r.note}
                           </div>
                         )}
-                        <div className="space-y-0.5 text-xs text-muted-foreground">
-                          {r.packed_at && <p className="text-blue-600 dark:text-blue-400">✓ Packed by {r.packed_by_name} · {formatISTDateTime(r.packed_at)}{r.packed_qty != null ? ` · ${r.packed_qty} pcs` : ''}</p>}
-                          {r.moved_at && <p className="text-violet-600 dark:text-violet-400">✓ Moved by {r.moved_by_name} · {formatISTDateTime(r.moved_at)}{r.moved_note ? ` · ${r.moved_note}` : ''}</p>}
-                          {r.received_at && <p className="text-emerald-600 dark:text-emerald-400">✓ Received by {r.received_by_name} · {formatISTDateTime(r.received_at)}</p>}
-                          {r.rejected_at && <p className="text-destructive font-medium">✕ Rejected by {r.rejected_by_name} · {r.reject_reason}</p>}
+
+                        {/* Lifecycle Stepper & Packed / Moved Logs */}
+                        <div className="pt-2 border-t border-border/50 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                          {/* 1. Requested */}
+                          <div className={`p-2 rounded-lg border ${r.status !== 'rejected' ? 'bg-amber-500/5 border-amber-500/20 text-amber-900 dark:text-amber-200' : 'bg-muted/40 border-border/40 text-muted-foreground'}`}>
+                            <div className="flex items-center gap-1 font-semibold">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                              <span>1. Requested</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                              {r.requested_by_name || 'Staff'}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {formatISTShort(r.created_at)}
+                            </p>
+                          </div>
+
+                          {/* 2. Packed */}
+                          <div className={`p-2 rounded-lg border ${r.packed_at ? 'bg-blue-500/5 border-blue-500/20 text-blue-900 dark:text-blue-200' : 'bg-muted/30 border-border/30 text-muted-foreground'}`}>
+                            <div className="flex items-center gap-1 font-semibold">
+                              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${r.packed_at ? 'bg-blue-500' : 'bg-muted-foreground/40'}`} />
+                              <span>2. Packed</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                              {r.packed_by_name ? `${r.packed_by_name} (${r.packed_qty ?? r.quantity} pcs)` : 'Awaiting packing'}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {r.packed_at ? formatISTShort(r.packed_at) : '—'}
+                            </p>
+                            {r.packed_note && (
+                              <p className="text-[10px] italic text-blue-700 dark:text-blue-300 truncate" title={r.packed_note}>
+                                &ldquo;{r.packed_note}&rdquo;
+                              </p>
+                            )}
+                          </div>
+
+                          {/* 3. Moved / Dispatched */}
+                          <div className={`p-2 rounded-lg border ${r.moved_at ? 'bg-violet-500/5 border-violet-500/20 text-violet-900 dark:text-violet-200' : 'bg-muted/30 border-border/30 text-muted-foreground'}`}>
+                            <div className="flex items-center gap-1 font-semibold">
+                              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${r.moved_at ? 'bg-violet-500' : 'bg-muted-foreground/40'}`} />
+                              <span>3. In Transit</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                              {r.moved_by_name ? r.moved_by_name : 'Awaiting dispatch'}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {r.moved_at ? formatISTShort(r.moved_at) : '—'}
+                            </p>
+                            {r.moved_note && (
+                              <p className="text-[10px] italic text-violet-700 dark:text-violet-300 truncate" title={r.moved_note}>
+                                &ldquo;{r.moved_note}&rdquo;
+                              </p>
+                            )}
+                          </div>
+
+                          {/* 4. Received / Closed */}
+                          <div className={`p-2 rounded-lg border ${r.status === 'received' ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-900 dark:text-emerald-200' : r.status === 'rejected' ? 'bg-destructive/5 border-destructive/20 text-destructive' : 'bg-muted/30 border-border/30 text-muted-foreground'}`}>
+                            <div className="flex items-center gap-1 font-semibold">
+                              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${r.status === 'received' ? 'bg-emerald-500' : r.status === 'rejected' ? 'bg-destructive' : 'bg-muted-foreground/40'}`} />
+                              <span>{r.status === 'rejected' ? 'Rejected' : '4. Received'}</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                              {r.status === 'received' ? (r.received_by_name || 'Store Staff') : r.status === 'rejected' ? (r.rejected_by_name || 'Rejected') : 'Pending store receipt'}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {r.status === 'received' && r.received_at ? formatISTShort(r.received_at) : r.status === 'rejected' && r.rejected_at ? formatISTShort(r.rejected_at) : '—'}
+                            </p>
+                            {r.status === 'rejected' && r.reject_reason && (
+                              <p className="text-[10px] text-destructive italic truncate" title={r.reject_reason}>
+                                Reason: {r.reject_reason}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         {requirementCustomValues[r.id] && Object.keys(requirementCustomValues[r.id]).length > 0 && (
                           <div className="flex flex-wrap gap-1 pt-0.5">
@@ -1190,6 +1280,9 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
         </TabsContent>
         <TabsContent value="predictive" className="mt-4">
           <PredictiveReorderPanel />
+        </TabsContent>
+        <TabsContent value="reports" className="mt-4">
+          <RequirementsReport rows={requirements} />
         </TabsContent>
       </Tabs>
 
