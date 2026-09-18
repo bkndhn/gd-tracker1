@@ -91,7 +91,7 @@ export const StockGapReport = ({ entries, onDrill }: StockGapReportProps) => {
           </div>
         </div>
 
-        <ScrollArea className="max-h-[340px] w-full">
+        <div className="w-full overflow-x-auto overflow-y-auto max-h-[360px] rounded-xl border border-border/80 bg-card shadow-xs touch-pan-x overscroll-x-contain -webkit-overflow-scrolling-touch">
           <div className="min-w-[520px]">
             <Table>
               <TableHeader>
@@ -144,7 +144,7 @@ export const StockGapReport = ({ entries, onDrill }: StockGapReportProps) => {
               </TableBody>
             </Table>
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );

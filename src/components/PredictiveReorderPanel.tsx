@@ -18,6 +18,7 @@ import {
   Layers,
   ArrowUpRight,
   ShieldAlert,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { usePredictiveDemand } from '@/hooks/usePredictiveDemand';
 import { useExportTemplate } from '@/hooks/useExportTemplate';
@@ -96,30 +97,35 @@ export const PredictiveReorderPanel = ({ entries }: Props) => {
           </div>
 
           {/* Export Actions */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Button size="sm" variant="outline" className="h-8 gap-1 px-2.5 text-xs shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-950/30" onClick={handleExportExcel}>
-              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" /> Export PO (Excel)
+          <div className="grid grid-cols-3 sm:flex items-center gap-1.5 w-full sm:w-auto">
+            <Button size="sm" variant="outline" className="h-8 gap-1 px-2.5 text-xs rounded-xl justify-center font-medium shadow-2xs hover:bg-emerald-50 dark:hover:bg-emerald-950/30" onClick={handleExportExcel}>
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+              <span className="sm:inline">Excel</span>
             </Button>
-            <Button size="sm" variant="outline" className="h-8 gap-1 px-2.5 text-xs shadow-sm hover:bg-red-50 dark:hover:bg-red-950/30" onClick={handleExportPDF}>
-              <FileText className="h-3.5 w-3.5 text-red-600" /> PDF
+            <Button size="sm" variant="outline" className="h-8 gap-1 px-2.5 text-xs rounded-xl justify-center font-medium shadow-2xs hover:bg-red-50 dark:hover:bg-red-950/30" onClick={handleExportPDF}>
+              <FileText className="h-3.5 w-3.5 text-red-600 shrink-0" />
+              <span className="sm:inline">PDF</span>
             </Button>
-            <Button size="sm" variant="outline" className="h-8 gap-1 px-2.5 text-xs shadow-sm" onClick={handleExportCSV}>
-              <Download className="h-3.5 w-3.5" /> CSV
+            <Button size="sm" variant="outline" className="h-8 gap-1 px-2.5 text-xs rounded-xl justify-center font-medium shadow-2xs" onClick={handleExportCSV}>
+              <Download className="h-3.5 w-3.5 shrink-0" />
+              <span className="sm:inline">CSV</span>
             </Button>
           </div>
         </div>
 
         {/* Responsive Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/50">
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
             {/* Horizon Selector */}
-            <div className="flex rounded-lg border bg-muted p-0.5">
+            <div className="grid grid-cols-4 sm:flex rounded-xl border bg-muted/70 p-1 w-full sm:w-auto gap-0.5">
               {RANGES.map((r) => (
                 <Button
                   key={r.days}
                   size="sm"
                   variant={windowDays === r.days ? 'secondary' : 'ghost'}
-                  className="h-7 text-xs px-2.5 font-medium"
+                  className={`h-7.5 text-xs px-2 sm:px-2.5 font-medium rounded-lg justify-center transition-all ${
+                    windowDays === r.days ? 'bg-background shadow-xs text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
+                  }`}
                   onClick={() => setWindowDays(r.days)}
                 >
                   {r.label}
@@ -221,8 +227,17 @@ export const PredictiveReorderPanel = ({ entries }: Props) => {
           </div>
         </div>
 
+        {/* Mobile Touch Swipe Indicator */}
+        <div className="sm:hidden flex items-center justify-between px-2.5 py-1 text-[11px] font-medium text-muted-foreground bg-muted/40 rounded-lg border border-border/50">
+          <span className="flex items-center gap-1.5">
+            <ArrowLeftRight className="h-3 w-3 text-violet-600 animate-pulse" />
+            Swipe table horizontally to view all forecasting columns
+          </span>
+          <span className="text-[10px] text-violet-600 font-semibold">Touch scroll</span>
+        </div>
+
         {/* Predictive Recommendations Table */}
-        <ScrollArea className="max-h-[460px] w-full border rounded-md">
+        <div className="w-full overflow-x-auto overflow-y-auto max-h-[500px] rounded-xl border border-border/80 bg-card shadow-xs touch-pan-x overscroll-x-contain -webkit-overflow-scrolling-touch">
           <div className="min-w-[850px]">
             <Table>
               <TableHeader>
@@ -345,7 +360,7 @@ export const PredictiveReorderPanel = ({ entries }: Props) => {
               </TableBody>
             </Table>
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );

@@ -233,19 +233,10 @@ export const CustomFieldManagement = () => {
     return fields.filter(f => f.scope === 'requirement');
   }, [fields]);
 
-  /** Blocking validation shared by the add & edit dialogs. */
-  const CORE_REQ_FIELDS = new Set([
-    'shop', 'shops', 'store', 'stores', 'branch', 'branches', 'shop name',
-    'size', 'sizes', 'quantity', 'urgency', 'note', 'notes', 'category', 'categories',
-  ]);
-
   const validateName = (name: string, excludeId?: string): string | null => {
     const v = name.trim();
     if (!v) return 'Field name is required.';
     if (v.length > MAX_FIELD_NAME) return `Keep it under ${MAX_FIELD_NAME} characters (currently ${v.length}).`;
-    if (activeScope === 'requirement' && CORE_REQ_FIELDS.has(v.toLowerCase())) {
-      return `"${v}" is already a built-in core field for stock requirements.`;
-    }
     if (scopedFields.some((f) => f.id !== excludeId && f.name.trim().toLowerCase() === v.toLowerCase()))
       return `Another ${activeScope === 'requirement' ? 'requirement' : 'visit'} field already uses this name.`;
     return null;
@@ -301,11 +292,6 @@ export const CustomFieldManagement = () => {
     if (!selectedReuseFieldId) return;
     const sourceField = fields.find(f => f.id === selectedReuseFieldId);
     if (!sourceField) return;
-
-    if ((sourceField as any).is_standard || CORE_REQ_FIELDS.has(sourceField.name.trim().toLowerCase())) {
-      toast.error(`"${sourceField.name}" is already a built-in core entity in stock requirements and cannot be copied.`);
-      return;
-    }
 
     // Check duplicate name in requirements
     const exists = requirementFields.some(
@@ -807,15 +793,14 @@ export const CustomFieldManagement = () => {
                   <SelectTrigger><SelectValue placeholder="Choose a field to copy" /></SelectTrigger>
                   <SelectContent>
                     {visitFields.map(f => {
-                      const isCoreOrStandard = (f as any).is_standard || CORE_REQ_FIELDS.has(f.name.trim().toLowerCase());
                       const alreadyCopied = requirementFields.some(
                         rf => rf.name.trim().toLowerCase() === f.name.trim().toLowerCase()
                       );
                       const optCount = (options[f.id] || []).length;
                       return (
-                        <SelectItem key={f.id} value={f.id} disabled={alreadyCopied || isCoreOrStandard}>
+                        <SelectItem key={f.id} value={f.id} disabled={alreadyCopied}>
                           {f.name} ({f.field_type || 'dropdown'}{optCount > 0 ? `, ${optCount} options` : ''})
-                          {isCoreOrStandard ? ' (built-in requirement entity)' : alreadyCopied ? ' (already in requirements)' : ''}
+                          {alreadyCopied ? ' (already in requirements)' : ''}
                         </SelectItem>
                       );
                     })}

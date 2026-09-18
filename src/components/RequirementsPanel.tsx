@@ -136,13 +136,12 @@ export const RequirementsPanel = () => {
       if (!catRes.error) setCategories((catRes.data || []) as any);
 
       if (cfRes?.data && cfRes.data.length > 0) {
-        // Exclude standard or core fields (e.g. Shop, Size, Quantity) so they never create duplicate form inputs
-        const CORE_REQ_FIELDS = new Set([
-          'shop', 'shops', 'store', 'stores', 'branch', 'branches', 'shop name',
-          'size', 'sizes', 'quantity', 'urgency', 'note', 'notes', 'category', 'categories',
+        // Only exclude native fixed fields (shop, quantity) so all custom and copied fields render
+        const NATIVE_FIXED_FIELDS = new Set([
+          'shop', 'shops', 'store', 'stores', 'branch', 'branches', 'shop name', 'quantity',
         ]);
         const validFields = cfRes.data.filter(
-          (f: any) => !f.is_standard && !CORE_REQ_FIELDS.has(f.name.trim().toLowerCase())
+          (f: any) => !NATIVE_FIXED_FIELDS.has(f.name.trim().toLowerCase())
         );
         setReqCustomFields(validFields);
         const cfIds = validFields.map((f: any) => f.id);
@@ -304,11 +303,15 @@ export const RequirementsPanel = () => {
         return toast.error(`Please provide ${cf.name}`);
       }
     }
+    const catCustomField = reqCustomFields.find(f => f.name.trim().toLowerCase() === 'category');
+    const effectiveCategory = (catCustomField && customFormValues[catCustomField.id])
+      ? customFormValues[catCustomField.id]
+      : form.category || null;
 
     const ok = await createRequirement({
       shop_id: form.shop_id,
       size: form.size.trim(),
-      category: form.category || null,
+      category: effectiveCategory,
       quantity: Number(form.quantity),
       urgency: form.urgency,
       note: form.note.trim() || null,

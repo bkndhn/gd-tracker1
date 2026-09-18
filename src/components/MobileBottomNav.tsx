@@ -71,7 +71,7 @@ export const MobileBottomNav = ({
   return (
     <nav
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-3.5 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md select-none pointer-events-auto"
+      className="md:hidden fixed bottom-[calc(0.875rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.75rem)] max-w-md select-none pointer-events-auto"
     >
       <div className="flex items-center justify-between gap-1 p-1.5 px-2 rounded-full bg-card/90 dark:bg-card/95 backdrop-blur-2xl border border-border/80 shadow-[0_14px_36px_-6px_rgba(0,0,0,0.22),0_4px_12px_-2px_rgba(0,0,0,0.08)] ring-1 ring-black/5 dark:ring-white/10 transition-all">
         {items.map((item) => {
