@@ -86,7 +86,7 @@ export const MandatoryPasswordChangeModal: React.FC = () => {
   return (
     <Dialog open={true}>
       <DialogContent
-        className="max-w-md p-6 sm:p-8 [&>button]:hidden"
+        className="w-[94vw] max-w-md max-h-[92dvh] overflow-y-auto p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-border/80 shadow-2xl [&>button]:hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >

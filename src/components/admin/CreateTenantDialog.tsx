@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,7 +18,10 @@ import {
   RefreshCw,
   Copy,
   Check,
+  Building,
   Building2,
+  Mail,
+  Hash,
   Sliders,
   Sparkles,
   ClipboardList,
@@ -74,6 +77,7 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
     tenantId: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pwdCopied, setPwdCopied] = useState(false);
 
   // Form states
   const [name, setName] = useState('');
@@ -107,6 +111,14 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
 
   const handleRegeneratePassword = () => {
     setTempPassword(generateRandomPassword());
+    toast.info('New temporary password generated');
+  };
+
+  const handleCopyPasswordDirect = async () => {
+    await navigator.clipboard.writeText(tempPassword);
+    setPwdCopied(true);
+    toast.success('Temporary password copied!');
+    setTimeout(() => setPwdCopied(false), 2000);
   };
 
   const resetForm = () => {
@@ -292,43 +304,45 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(val) => (!loading ? (val ? onOpenChange(true) : handleClose()) : null)}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6 sm:p-7">
-        <DialogHeader>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
+      <DialogContent className="w-[96vw] max-w-2xl max-h-[92dvh] sm:max-h-[88vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 shadow-2xl bg-card">
+        {/* Sticky Header */}
+        <DialogHeader className="p-4 sm:p-5 border-b border-border/60 bg-muted/30 shrink-0 text-left">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500/20 to-blue-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 shrink-0">
               <UserPlus className="h-5 w-5" />
             </div>
-            <div>
-              <DialogTitle className="text-xl font-bold">
-                {createdCredentials ? 'Tenant Workspace Created' : 'Create New Tenant'}
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-lg sm:text-xl font-bold truncate">
+                {createdCredentials ? 'Tenant Provisioned Successfully' : 'Create New Tenant'}
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
+              <DialogDescription className="text-xs text-muted-foreground truncate">
                 {createdCredentials
-                  ? 'The tenant workspace is live. Provide these credentials to the tenant administrator.'
-                  : 'Provision an isolated tenant with custom limits, permissions, theme and temporary password.'}
+                  ? 'The workspace is active. Copy credentials to share with the admin.'
+                  : 'Configure quotas, limits, brand theme, and temporary credentials.'}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
         {createdCredentials ? (
-          <div className="space-y-6 pt-2">
-            <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-4">
+          /* Success Screen */
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0 overscroll-contain space-y-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-4">
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold text-sm">
                 <CheckCircle2 className="h-5 w-5 shrink-0" />
                 <span>Tenant Workspace Ready for Login</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-background/80 rounded-xl p-4 border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-card/90 rounded-xl p-3.5 sm:p-4 border border-border/60">
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Workspace Name</span>
+                  <span className="text-muted-foreground block text-[11px]">Workspace / Brand</span>
                   <span className="font-semibold text-foreground text-sm">{createdCredentials.name}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Admin Login Email</span>
-                  <span className="font-semibold text-foreground text-sm font-mono">{createdCredentials.email}</span>
+                  <span className="text-muted-foreground block text-[11px]">Administrator Email</span>
+                  <span className="font-semibold text-foreground text-sm font-mono break-all">{createdCredentials.email}</span>
                 </div>
-                <div className="sm:col-span-2 pt-2 border-t">
+                <div className="sm:col-span-2 pt-2 border-t border-border/60">
                   <span className="text-muted-foreground block text-[11px] mb-1">Temporary Password</span>
                   <div className="flex items-center justify-between gap-2 p-2.5 bg-muted/60 rounded-lg font-mono text-sm font-bold tracking-wide border">
                     <span className="select-all break-all">{createdCredentials.tempPassword}</span>
@@ -347,16 +361,16 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
 
               <div className="text-xs text-muted-foreground flex items-start gap-2 pt-1">
                 <Lock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <p>
-                  <strong>First-Time Login Policy:</strong> The tenant administrator is required to set a permanent, secure password immediately upon their first login before they can access their dashboard.
+                <p className="leading-relaxed">
+                  <strong>First-Time Login Policy:</strong> The tenant administrator is mandatory prompted to set a permanent password upon logging in before they can access the workspace.
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
               <Button
                 variant="default"
-                className="flex-1 gap-2"
+                className="flex-1 gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-md shadow-indigo-500/20"
                 onClick={handleCopyCredentials}
               >
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -364,7 +378,7 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
               </Button>
               <Button
                 variant="outline"
-                className="sm:w-32"
+                className="sm:w-28"
                 onClick={handleClose}
               >
                 Done
@@ -372,18 +386,42 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6 pt-2">
-            <Tabs defaultValue="basics" className="w-full">
-              <TabsList className="grid grid-cols-3 w-full mb-4">
-                <TabsTrigger value="basics" className="text-xs">Account & Auth</TabsTrigger>
-                <TabsTrigger value="limits" className="text-xs">Resource Limits</TabsTrigger>
-                <TabsTrigger value="features" className="text-xs">Features & Theme</TabsTrigger>
-              </TabsList>
+          /* Form Screen */
+          <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0 overscroll-contain">
+              <Tabs defaultValue="basics" className="w-full">
+                {/* Colorful, Proper Responsive Tabs */}
+                <TabsList className="w-full flex items-center gap-1.5 p-1.5 bg-muted/50 border border-border/60 rounded-2xl overflow-x-auto no-scrollbar mb-5 shrink-0">
+                  <TabsTrigger
+                    value="basics"
+                    className="group flex-1 min-w-[125px] sm:min-w-0 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/25"
+                  >
+                    <KeyRound className="h-3.5 w-3.5 text-indigo-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
+                    <span className="truncate">Account & Auth</span>
+                  </TabsTrigger>
+
+                  <TabsTrigger
+                    value="limits"
+                    className="group flex-1 min-w-[125px] sm:min-w-0 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/25"
+                  >
+                    <Sliders className="h-3.5 w-3.5 text-violet-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
+                    <span className="truncate">Resource Limits</span>
+                  </TabsTrigger>
+
+                  <TabsTrigger
+                    value="features"
+                    className="group flex-1 min-w-[125px] sm:min-w-0 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/25"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-emerald-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
+                    <span className="truncate">Features & Theme</span>
+                  </TabsTrigger>
+                </TabsList>
 
               {/* Tab 1: Basics & Temporary Credentials */}
-              <TabsContent value="basics" className="space-y-4">
+              <TabsContent value="basics" className="space-y-4 focus-visible:outline-none">
                 <div className="space-y-1.5">
-                  <Label htmlFor="tenant-name" className="text-xs font-semibold">
+                  <Label htmlFor="tenant-name" className="text-xs font-semibold flex items-center gap-1.5">
+                    <Building className="h-3.5 w-3.5 text-primary" />
                     Tenant Workspace / Brand Name <span className="text-rose-500">*</span>
                   </Label>
                   <Input
@@ -391,12 +429,14 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                     placeholder="e.g. Metro Fashion Brands"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    className="h-10 text-sm"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="tenant-email" className="text-xs font-semibold">
+                  <Label htmlFor="tenant-email" className="text-xs font-semibold flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5 text-primary" />
                     Administrator Email Address <span className="text-rose-500">*</span>
                   </Label>
                   <Input
@@ -405,12 +445,13 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                     placeholder="admin@tenantbrand.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    className="h-10 text-sm font-mono"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="temp-password" className="text-xs font-semibold flex items-center gap-1.5">
                       <KeyRound className="h-3.5 w-3.5 text-primary" />
                       Temporary Password <span className="text-rose-500">*</span>
@@ -420,46 +461,60 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                       variant="ghost"
                       size="sm"
                       onClick={handleRegeneratePassword}
-                      className="h-6 text-[11px] gap-1 px-2 text-muted-foreground hover:text-foreground"
+                      className="h-6 text-[11px] gap-1 px-2 text-muted-foreground hover:text-foreground shrink-0"
                     >
                       <RefreshCw className="h-3 w-3" /> Regenerate
                     </Button>
                   </div>
-                  <Input
-                    id="temp-password"
-                    value={tempPassword}
-                    onChange={(e) => setTempPassword(e.target.value)}
-                    className="font-mono text-sm tracking-wide"
-                    required
-                  />
+
+                  <div className="relative flex items-center">
+                    <Input
+                      id="temp-password"
+                      value={tempPassword}
+                      onChange={(e) => setTempPassword(e.target.value)}
+                      className="font-mono text-sm tracking-wider pr-16 h-10 select-all"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyPasswordDirect}
+                      className="absolute right-1 h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      title="Copy password"
+                    >
+                      {pwdCopied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
-                    A strong auto-generated password. You will receive a copy to share with the tenant.
+                    Auto-generated high-entropy temporary password. You can copy it or share credentials after creation.
                   </p>
                 </div>
 
-                <Card className="border-border/60 bg-muted/30">
-                  <CardContent className="p-3.5 flex items-center justify-between gap-3">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-semibold text-foreground">Mandatory First Login Password Change</span>
-                        <Badge variant="outline" className="text-[9px] py-0 px-1 border-primary/40 text-primary">Required</Badge>
+                <Card className="border-border/60 bg-muted/30 rounded-2xl overflow-hidden mt-3">
+                  <CardContent className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-foreground">Mandatory First Login Password Change</span>
+                        <Badge variant="outline" className="text-[9px] py-0 px-1.5 border-primary/40 text-primary font-bold">Recommended</Badge>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        Forces the tenant admin to change their temporary password immediately after first sign-in.
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Requires the tenant admin to change their temporary password immediately upon their first sign-in before accessing the dashboard.
                       </p>
                     </div>
                     <Switch
                       checked={mustChangePassword}
                       onCheckedChange={setMustChangePassword}
+                      className="shrink-0"
                     />
                   </CardContent>
                 </Card>
               </TabsContent>
 
               {/* Tab 2: Resource Limits */}
-              <TabsContent value="limits" className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
+              <TabsContent value="limits" className="space-y-4 focus-visible:outline-none">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
                     <Label htmlFor="max-shops" className="text-xs font-semibold flex items-center gap-1.5">
                       <Building2 className="h-3.5 w-3.5 text-indigo-500" /> Max Shops Quota
                     </Label>
@@ -469,11 +524,12 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                       min={1}
                       value={maxShops}
                       onChange={(e) => setMaxShops(Number(e.target.value) || 1)}
+                      className="h-9 text-sm"
                     />
-                    <p className="text-[11px] text-muted-foreground">Maximum physical branches/stores allowed.</p>
+                    <p className="text-[10px] text-muted-foreground">Maximum physical branches allowed.</p>
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
                     <Label htmlFor="max-users" className="text-xs font-semibold flex items-center gap-1.5">
                       <Sliders className="h-3.5 w-3.5 text-sky-500" /> Max Users / Staff
                     </Label>
@@ -483,13 +539,14 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                       min={1}
                       value={maxUsers}
                       onChange={(e) => setMaxUsers(Number(e.target.value) || 1)}
+                      className="h-9 text-sm"
                     />
-                    <p className="text-[11px] text-muted-foreground">Maximum staff accounts that can be created.</p>
+                    <p className="text-[10px] text-muted-foreground">Maximum staff accounts allowed.</p>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="max-warehouse" className="text-xs font-semibold">
-                      Max Warehouse Staff
+                  <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
+                    <Label htmlFor="max-warehouse" className="text-xs font-semibold flex items-center gap-1.5">
+                      <Building className="h-3.5 w-3.5 text-amber-500" /> Max Warehouse Staff
                     </Label>
                     <Input
                       id="max-warehouse"
@@ -498,12 +555,14 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                       placeholder="e.g. 3"
                       value={maxWarehouseUsers}
                       onChange={(e) => setMaxWarehouseUsers(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="h-9 text-sm"
                     />
+                    <p className="text-[10px] text-muted-foreground">Fulfillment staff quota.</p>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="max-entries" className="text-xs font-semibold">
-                      Max Visits / Entries (Blank = Unlimited)
+                  <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
+                    <Label htmlFor="max-entries" className="text-xs font-semibold flex items-center gap-1.5">
+                      <Hash className="h-3.5 w-3.5 text-purple-500" /> Max Visits / Entries
                     </Label>
                     <Input
                       id="max-entries"
@@ -512,12 +571,14 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                       placeholder="Unlimited"
                       value={maxEntries}
                       onChange={(e) => setMaxEntries(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="h-9 text-sm"
                     />
+                    <p className="text-[10px] text-muted-foreground">Leave blank for unlimited.</p>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="max-img-entry" className="text-xs font-semibold">
-                      Max Images Per Entry
+                  <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
+                    <Label htmlFor="max-img-entry" className="text-xs font-semibold flex items-center gap-1.5">
+                      <Layers className="h-3.5 w-3.5 text-teal-500" /> Max Images / Entry
                     </Label>
                     <Input
                       id="max-img-entry"
@@ -526,12 +587,14 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                       max={30}
                       value={maxImagesPerEntry}
                       onChange={(e) => setMaxImagesPerEntry(Number(e.target.value) || 10)}
+                      className="h-9 text-sm"
                     />
+                    <p className="text-[10px] text-muted-foreground">Photos per visit (default 10).</p>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="max-img-total" className="text-xs font-semibold">
-                      Max Total Images (Blank = Unlimited)
+                  <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
+                    <Label htmlFor="max-img-total" className="text-xs font-semibold flex items-center gap-1.5">
+                      <Layers className="h-3.5 w-3.5 text-rose-500" /> Max Total Images
                     </Label>
                     <Input
                       id="max-img-total"
@@ -540,54 +603,58 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                       placeholder="Unlimited"
                       value={maxImagesTotal}
                       onChange={(e) => setMaxImagesTotal(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="h-9 text-sm"
                     />
+                    <p className="text-[10px] text-muted-foreground">Total storage image ceiling.</p>
                   </div>
                 </div>
               </TabsContent>
 
               {/* Tab 3: Features & Theme */}
-              <TabsContent value="features" className="space-y-4">
+              <TabsContent value="features" className="space-y-4 focus-visible:outline-none">
                 {/* AI Features */}
-                <div className="p-3.5 rounded-xl border bg-muted/20 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-purple-500" />
-                      <div>
-                        <span className="text-xs font-semibold">AI Insights & Voice Transcription</span>
-                        <p className="text-[11px] text-muted-foreground">Voice note transcription and smart anomaly reports.</p>
+                <div className="p-3.5 sm:p-4 rounded-2xl border bg-muted/20 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shrink-0">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs sm:text-sm font-semibold block truncate">AI Insights & Voice Transcription</span>
+                        <p className="text-[11px] text-muted-foreground truncate">Voice note transcription and smart anomaly reports.</p>
                       </div>
                     </div>
-                    <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
+                    <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} className="shrink-0" />
                   </div>
 
                   {aiEnabled && (
-                    <div className="grid grid-cols-3 gap-2 pt-1 border-t text-xs">
-                      <div>
-                        <Label className="text-[11px] text-muted-foreground">Daily Limit</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t text-xs">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground font-medium">Daily Limit</Label>
                         <Input
-                          className="h-8 text-xs mt-1"
+                          className="h-9 text-xs"
                           type="number"
-                          placeholder="None"
+                          placeholder="Unlimited"
                           value={aiDaily}
                           onChange={(e) => setAiDaily(e.target.value === '' ? '' : Number(e.target.value))}
                         />
                       </div>
-                      <div>
-                        <Label className="text-[11px] text-muted-foreground">Monthly Limit</Label>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground font-medium">Monthly Limit</Label>
                         <Input
-                          className="h-8 text-xs mt-1"
+                          className="h-9 text-xs"
                           type="number"
-                          placeholder="None"
+                          placeholder="Unlimited"
                           value={aiMonthly}
                           onChange={(e) => setAiMonthly(e.target.value === '' ? '' : Number(e.target.value))}
                         />
                       </div>
-                      <div>
-                        <Label className="text-[11px] text-muted-foreground">Lifetime</Label>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground font-medium">Lifetime Limit</Label>
                         <Input
-                          className="h-8 text-xs mt-1"
+                          className="h-9 text-xs"
                           type="number"
-                          placeholder="None"
+                          placeholder="Unlimited"
                           value={aiLifetime}
                           onChange={(e) => setAiLifetime(e.target.value === '' ? '' : Number(e.target.value))}
                         />
@@ -597,23 +664,25 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                 </div>
 
                 {/* Requirements Module */}
-                <div className="p-3.5 rounded-xl border bg-muted/20 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ClipboardList className="h-4 w-4 text-amber-500" />
-                      <div>
-                        <span className="text-xs font-semibold">Stock Requirements Module</span>
-                        <p className="text-[11px] text-muted-foreground">Fulfillment workflow between shops and warehouse.</p>
+                <div className="p-3.5 sm:p-4 rounded-2xl border bg-muted/20 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                        <ClipboardList className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs sm:text-sm font-semibold block truncate">Stock Requirements Module</span>
+                        <p className="text-[11px] text-muted-foreground truncate">Fulfillment workflow between shops and warehouse.</p>
                       </div>
                     </div>
-                    <Switch checked={reqEnabled} onCheckedChange={setReqEnabled} />
+                    <Switch checked={reqEnabled} onCheckedChange={setReqEnabled} className="shrink-0" />
                   </div>
 
                   {reqEnabled && (
-                    <div className="pt-1 border-t">
-                      <Label className="text-[11px] text-muted-foreground">Max Requirements / Month (Blank = Unlimited)</Label>
+                    <div className="pt-2 border-t space-y-1.5">
+                      <Label className="text-[11px] text-muted-foreground font-medium">Max Requirements / Month (Blank = Unlimited)</Label>
                       <Input
-                        className="h-8 text-xs mt-1 w-48"
+                        className="h-9 text-xs w-full sm:w-56"
                         type="number"
                         placeholder="Unlimited"
                         value={maxReqMonthly}
@@ -624,33 +693,35 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                 </div>
 
                 {/* Custom Fields */}
-                <div className="p-3.5 rounded-xl border bg-muted/20 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Layers className="h-4 w-4 text-teal-500" />
-                      <div>
-                        <span className="text-xs font-semibold">Dynamic Custom Fields</span>
-                        <p className="text-[11px] text-muted-foreground">Create unlimited dropdowns, text, phone and number fields.</p>
+                <div className="p-3.5 sm:p-4 rounded-2xl border bg-muted/20 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-2 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 shrink-0">
+                        <Layers className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs sm:text-sm font-semibold block truncate">Dynamic Custom Fields</span>
+                        <p className="text-[11px] text-muted-foreground truncate">Create unlimited dropdowns, text, phone and number fields.</p>
                       </div>
                     </div>
-                    <Switch checked={customFieldsEnabled} onCheckedChange={setCustomFieldsEnabled} />
+                    <Switch checked={customFieldsEnabled} onCheckedChange={setCustomFieldsEnabled} className="shrink-0" />
                   </div>
 
                   {customFieldsEnabled && (
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t text-xs">
-                      <div>
-                        <Label className="text-[11px] text-muted-foreground">Max Custom Fields</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t text-xs">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground font-medium">Max Custom Fields</Label>
                         <Input
-                          className="h-8 text-xs mt-1"
+                          className="h-9 text-xs"
                           type="number"
                           value={maxCustomFields}
                           onChange={(e) => setMaxCustomFields(e.target.value === '' ? '' : Number(e.target.value))}
                         />
                       </div>
-                      <div>
-                        <Label className="text-[11px] text-muted-foreground">Max Options per Field</Label>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground font-medium">Max Options per Field</Label>
                         <Input
-                          className="h-8 text-xs mt-1"
+                          className="h-9 text-xs"
                           type="number"
                           value={maxOptionsPerField}
                           onChange={(e) => setMaxOptionsPerField(e.target.value === '' ? '' : Number(e.target.value))}
@@ -663,17 +734,17 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                 {/* Brand Theme */}
                 <div className="space-y-2 pt-1">
                   <Label className="text-xs font-semibold flex items-center gap-1.5">
-                    <Palette className="h-3.5 w-3.5 text-primary" /> Initial Workspace Brand Theme
+                    <Palette className="h-3.5 w-3.5 text-primary" /> Workspace Brand Theme
                   </Label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {Object.values(THEME_PALETTES).map((pal) => (
                       <button
                         key={pal.id}
                         type="button"
                         onClick={() => setThemeColor(pal.id)}
-                        className={`flex items-center gap-2 p-2 rounded-lg border text-left text-xs transition-all ${
+                        className={`flex items-center gap-2 p-2 rounded-xl border text-left text-xs transition-all ${
                           themeColor === pal.id
-                            ? 'border-primary ring-2 ring-primary/20 bg-primary/5 font-semibold'
+                            ? 'border-primary ring-2 ring-primary/20 bg-primary/10 font-bold shadow-sm'
                             : 'border-border/60 hover:bg-muted/40'
                         }`}
                       >
@@ -688,17 +759,29 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                 </div>
               </TabsContent>
             </Tabs>
+          </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t">
-              <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading} className="gap-2">
-                {loading && <RefreshCw className="h-4 w-4 animate-spin" />}
-                Create Tenant Workspace
-              </Button>
-            </div>
-          </form>
+          {/* Sticky Dedicated Footer (Never clipped on mobile!) */}
+          <div className="p-3.5 sm:p-4 border-t border-border/60 bg-card/95 backdrop-blur-md shrink-0 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={loading}
+              className="h-10 sm:h-9"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="h-10 sm:h-9 gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-md shadow-indigo-500/20 font-semibold"
+            >
+              {loading && <RefreshCw className="h-4 w-4 animate-spin" />}
+              Create Tenant Workspace
+            </Button>
+          </div>
+        </form>
         )}
       </DialogContent>
     </Dialog>

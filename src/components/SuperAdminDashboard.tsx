@@ -12,9 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReleaseHealthPanel } from '@/components/admin/ReleaseHealthPanel';
-import { HeartPulse } from 'lucide-react';
 import { toast } from 'sonner';
-import { Play, Pause, Trash2, Settings, Users, Building, Shield, Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity, UserPlus, Sparkles, RefreshCw, MoreHorizontal, ArrowUpDown } from 'lucide-react';
+import { HeartPulse, Play, Pause, Trash2, Settings, Users, Building, Shield, Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity, UserPlus, Sparkles, RefreshCw, MoreHorizontal, ArrowUpDown, ClipboardList, Layers } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
@@ -668,113 +667,113 @@ export const SuperAdminDashboard = () => {
 
       {/* Limits Dialog */}
       <Dialog open={limitsDialogOpen} onOpenChange={setLimitsDialogOpen}>
-        <DialogContent className="max-h-[85dvh] flex flex-col p-0 gap-0">
-          <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
-            <DialogTitle>Set Limits for {selectedAdmin?.name}</DialogTitle>
-            <DialogDescription>Configure resource limits for this admin tenant.</DialogDescription>
+        <DialogContent className="w-[96vw] max-w-lg max-h-[88dvh] flex flex-col p-0 gap-0 rounded-2xl sm:rounded-3xl border border-border/80 shadow-2xl overflow-hidden bg-card">
+          <DialogHeader className="p-4 sm:p-5 border-b border-border/60 bg-muted/30 shrink-0 text-left">
+            <DialogTitle className="text-base sm:text-lg font-bold truncate">Set Limits for {selectedAdmin?.name}</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">Configure resource limits for this admin tenant.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 overflow-y-auto px-6 py-4 flex-1 min-h-0 overscroll-contain">
+          <div className="space-y-4 overflow-y-auto p-4 sm:p-5 flex-1 min-h-0 overscroll-contain">
 
             <div className="space-y-2">
               <Label>Maximum Shops</Label>
-              <Input type="number" min={1} value={maxShops} onChange={e => setMaxShops(Number(e.target.value))} />
+              <Input type="number" min={1} value={maxShops} onChange={e => setMaxShops(Number(e.target.value))} className="h-9 text-sm" />
             </div>
             <div className="space-y-2">
               <Label>Maximum Sub-Users</Label>
-              <Input type="number" min={1} value={maxUsers} onChange={e => setMaxUsers(Number(e.target.value))} />
+              <Input type="number" min={1} value={maxUsers} onChange={e => setMaxUsers(Number(e.target.value))} className="h-9 text-sm" />
             </div>
             <div className="space-y-2">
               <Label>Maximum Visits <span className="text-xs text-muted-foreground">(blank = unlimited)</span></Label>
               <Input type="number" min={0} value={maxEntries}
-                onChange={e => setMaxEntries(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Unlimited" />
+                onChange={e => setMaxEntries(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Unlimited" className="h-9 text-sm" />
               <p className="text-xs text-muted-foreground">Current usage: {entryCounts[selectedAdmin?.id || ''] || 0} entries</p>
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-2"><Image className="h-4 w-4" /> Max Images Per Entry</Label>
-              <Input type="number" min={0} max={20} value={maxImagesPerEntry} onChange={e => setMaxImagesPerEntry(Number(e.target.value))} />
+              <Input type="number" min={0} max={20} value={maxImagesPerEntry} onChange={e => setMaxImagesPerEntry(Number(e.target.value))} className="h-9 text-sm" />
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-2"><Image className="h-4 w-4" /> Max Images Total <span className="text-xs text-muted-foreground">(blank = unlimited)</span></Label>
               <Input type="number" min={0} value={maxImagesTotal}
-                onChange={e => setMaxImagesTotal(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Unlimited" />
+                onChange={e => setMaxImagesTotal(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Unlimited" className="h-9 text-sm" />
               <p className="text-xs text-muted-foreground">Current usage: {imageCounts[selectedAdmin?.id || ''] || 0} images</p>
             </div>
-            <div className="flex items-center justify-between rounded-md border p-3">
+            <div className="flex items-center justify-between rounded-xl border p-3 bg-muted/20">
               <div>
-                <Label className="flex items-center gap-2"><Sparkles className="h-4 w-4" /> AI Insights</Label>
+                <Label className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="h-4 w-4 text-purple-500" /> AI Insights</Label>
                 <p className="text-xs text-muted-foreground">Allow this tenant (admin + sub-users) to use AI Summary & Ask AI.</p>
               </div>
               <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
             </div>
             {aiEnabled && (
-              <div className="grid grid-cols-3 gap-2 rounded-md border p-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-xl border p-3 bg-muted/20">
                 <div className="space-y-1">
-                  <Label className="text-xs">Daily cap</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Daily cap</Label>
                   <Input type="number" min={0} placeholder="∞" value={aiDaily}
-                    onChange={e => setAiDaily(e.target.value === '' ? '' : Number(e.target.value))} />
+                    onChange={e => setAiDaily(e.target.value === '' ? '' : Number(e.target.value))} className="h-9 text-sm" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Monthly cap</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Monthly cap</Label>
                   <Input type="number" min={0} placeholder="∞" value={aiMonthly}
-                    onChange={e => setAiMonthly(e.target.value === '' ? '' : Number(e.target.value))} />
+                    onChange={e => setAiMonthly(e.target.value === '' ? '' : Number(e.target.value))} className="h-9 text-sm" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Lifetime cap</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Lifetime cap</Label>
                   <Input type="number" min={0} placeholder="∞" value={aiLifetime}
-                    onChange={e => setAiLifetime(e.target.value === '' ? '' : Number(e.target.value))} />
+                    onChange={e => setAiLifetime(e.target.value === '' ? '' : Number(e.target.value))} className="h-9 text-sm" />
                 </div>
-                <p className="text-xs text-muted-foreground col-span-3">Blank = unlimited. Counters reset at midnight (daily) and on the 1st (monthly).</p>
+                <p className="text-[11px] text-muted-foreground sm:col-span-3">Blank = unlimited. Counters reset at midnight (daily) and on the 1st (monthly).</p>
               </div>
             )}
-            <div className="flex items-center justify-between rounded-md border p-3">
+            <div className="flex items-center justify-between rounded-xl border p-3 bg-muted/20">
               <div>
-                <Label>Stock Requirements</Label>
+                <Label className="text-sm font-semibold flex items-center gap-2"><ClipboardList className="h-4 w-4 text-amber-500" /> Stock Requirements</Label>
                 <p className="text-xs text-muted-foreground">Allow this tenant to raise and fulfil stock requirements.</p>
               </div>
               <Switch checked={reqEnabled} onCheckedChange={setReqEnabled} />
             </div>
             {reqEnabled && (
-              <div className="grid grid-cols-2 gap-2 rounded-md border p-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-xl border p-3 bg-muted/20">
                 <div className="space-y-1">
-                  <Label className="text-xs">Requirements per month</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Requirements per month</Label>
                   <Input type="number" min={0} placeholder="∞" value={maxReqMonthly}
-                    onChange={e => setMaxReqMonthly(e.target.value === '' ? '' : Number(e.target.value))} />
+                    onChange={e => setMaxReqMonthly(e.target.value === '' ? '' : Number(e.target.value))} className="h-9 text-sm" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Max warehouse staff</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Max warehouse staff</Label>
                   <Input type="number" min={0} placeholder="∞" value={maxWarehouseUsers}
-                    onChange={e => setMaxWarehouseUsers(e.target.value === '' ? '' : Number(e.target.value))} />
+                    onChange={e => setMaxWarehouseUsers(e.target.value === '' ? '' : Number(e.target.value))} className="h-9 text-sm" />
                 </div>
               </div>
             )}
-            <div className="flex items-center justify-between rounded-md border p-3">
+            <div className="flex items-center justify-between rounded-xl border p-3 bg-muted/20">
               <div>
-                <Label>Custom Fields Permission</Label>
+                <Label className="text-sm font-semibold flex items-center gap-2"><Layers className="h-4 w-4 text-teal-500" /> Custom Fields Permission</Label>
                 <p className="text-xs text-muted-foreground">Allow this tenant to create custom fields. Toggle off to restrict to standard fields only.</p>
               </div>
               <Switch checked={customFieldsEnabled} onCheckedChange={setCustomFieldsEnabled} />
             </div>
             {customFieldsEnabled && (
-              <div className="grid grid-cols-2 gap-2 rounded-md border p-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-xl border p-3 bg-muted/20">
                 <div className="space-y-1">
-                  <Label className="text-xs">Max Custom Fields</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Max Custom Fields</Label>
                   <Input type="number" min={1} placeholder="5" value={maxCustomFields}
-                    onChange={e => setMaxCustomFields(e.target.value === '' ? '' : Number(e.target.value))} />
+                    onChange={e => setMaxCustomFields(e.target.value === '' ? '' : Number(e.target.value))} className="h-9 text-sm" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Max Options Per Field</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Max Options Per Field</Label>
                   <Input type="number" min={1} placeholder="20" value={maxOptionsPerField}
-                    onChange={e => setMaxOptionsPerField(e.target.value === '' ? '' : Number(e.target.value))} />
+                    onChange={e => setMaxOptionsPerField(e.target.value === '' ? '' : Number(e.target.value))} className="h-9 text-sm" />
                 </div>
-                <p className="text-[11px] text-muted-foreground col-span-2">
+                <p className="text-[11px] text-muted-foreground sm:col-span-2">
                   Stops clients from bypassing shop/resource limits by creating fake branches as custom field options.
                 </p>
               </div>
             )}
           </div>
-          <div className="flex gap-2 justify-end border-t px-6 py-3 shrink-0 bg-background">
-            <Button variant="outline" onClick={() => setLimitsDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSetLimits}>Save Limits</Button>
+          <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end border-t border-border/60 p-3.5 sm:p-4 shrink-0 bg-card/95 backdrop-blur-md">
+            <Button variant="outline" onClick={() => setLimitsDialogOpen(false)} className="h-10 sm:h-9">Cancel</Button>
+            <Button onClick={handleSetLimits} className="h-10 sm:h-9 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-md font-semibold">Save Limits</Button>
           </div>
         </DialogContent>
 
