@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Package, ArrowLeft } from 'lucide-react';
+import { AppLogo } from '@/components/AppLogo';
 import { useNavigate } from 'react-router-dom';
 import { checkRateLimit, recordRateLimitAttempt } from '@/utils/rateLimiter';
 
@@ -229,7 +230,7 @@ export const ResetPassword = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
-            <Package className="h-8 w-8 text-primary" />
+            <AppLogo size="xl" />
           </div>
           <CardTitle className="text-2xl text-center">
             {isRecovery ? 'Reset Password' : 'Forgot Password'}

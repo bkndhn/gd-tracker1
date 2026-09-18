@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useClientTheme, THEME_PALETTES, type RoleThemes } from '@/hooks/useClientTheme';
 import { Palette, Check, Sparkles, Smartphone, Eye, Users, Shield, Store, Warehouse, RotateCcw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AppLogo } from '@/components/AppLogo';
 
 export const ThemeSettings: React.FC = () => {
   const {
@@ -75,17 +76,17 @@ export const ThemeSettings: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Button size="sm" className="shadow-xs gap-1.5">
-              <Sparkles className="h-3.5 w-3.5" /> Primary Action
-            </Button>
-            <Button variant="outline" size="sm" className="border-primary/40 text-primary hover:bg-primary/10">
-              Secondary Action
-            </Button>
-            <Badge className="bg-primary/15 text-primary hover:bg-primary/20">
-              Active Status Badge
-            </Badge>
-            <div className="h-4 w-4 rounded-full bg-primary shadow-xs ring-2 ring-primary/20" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-card/80 border">
+            <AppLogo variant="full" size="md" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" className="shadow-xs gap-1.5">
+                <Sparkles className="h-3.5 w-3.5" /> Action
+              </Button>
+              <Badge className="bg-primary/15 text-primary hover:bg-primary/20">
+                Themed Badge
+              </Badge>
+              <div className="h-4 w-4 rounded-full bg-primary shadow-xs ring-2 ring-primary/20" />
+            </div>
           </div>
         </div>
 

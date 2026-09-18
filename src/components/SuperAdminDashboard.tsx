@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { ThemedSearchInput } from '@/components/ThemedSearchInput';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -498,10 +499,12 @@ export const SuperAdminDashboard = () => {
 
       {/* Search + filters + bulk actions */}
       <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-        <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search by name or email..." value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        <div className="flex-1 min-w-0">
+          <ThemedSearchInput
+            placeholder="Search by name or email..."
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+          />
         </div>
         <div className="flex items-center gap-1 p-1 bg-muted/60 border rounded-xl overflow-x-auto no-scrollbar">
           <button

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { Check, ChevronRight, Loader2, PartyPopper, Plus, Sparkles, Store, Tag, X } from 'lucide-react';
+import { AppLogo } from '@/components/AppLogo';
 
 interface FieldRow {
   id: string;
@@ -169,7 +170,7 @@ export const OnboardingWizard = ({ open, onOpenChange, onFinished }: Props) => {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <AppLogo variant="icon" pixelSize={22} />
             Set up your Lost Sale Insights
           </DialogTitle>
           <DialogDescription>

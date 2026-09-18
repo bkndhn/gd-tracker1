@@ -24,6 +24,7 @@ import { ThemeSettings } from '@/components/admin/ThemeSettings';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ThemedSearchInput } from '@/components/ThemedSearchInput';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -364,25 +365,12 @@ export const AdminPanel = () => {
 
       {/* Sticky Search Bar */}
       <div className="sticky top-2 z-20 p-2 rounded-xl bg-background/90 backdrop-blur-md border shadow-sm">
-        <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search all settings (e.g. shops, custom fields, whatsapp, users, scoring, retention, privacy)..."
-            className="pl-10 pr-9 h-10 text-sm bg-background border-muted-foreground/20 focus-visible:ring-primary"
-          />
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
-              onClick={() => setSearchQuery('')}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+        <ThemedSearchInput
+          value={searchQuery}
+          onValueChange={setSearchQuery}
+          placeholder="Search all settings (e.g. shops, custom fields, whatsapp, users, scoring, retention, privacy)..."
+          shortcut="/"
+        />
       </div>
 
       {/* Search Results View OR Tabbed View */}

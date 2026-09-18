@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { updateDynamicFavicon } from '@/utils/dynamicFavicon';
 
 export interface ThemePalette {
   id: string;
@@ -185,14 +186,26 @@ export const updateDynamicManifest = (themeHex: string) => {
       orientation: "portrait-primary",
       icons: [
         {
-          src: "/lovable-uploads/d9731f6e-4026-4be4-aaf0-1a401d8ba7be.png",
+          src: "/icon-192.png",
           sizes: "192x192",
           type: "image/png",
           purpose: "maskable any"
         },
         {
-          src: "/lovable-uploads/d9731f6e-4026-4be4-aaf0-1a401d8ba7be.png",
+          src: "/icon-512.png",
           sizes: "512x512",
+          type: "image/png",
+          purpose: "maskable any"
+        },
+        {
+          src: "/favicon.svg",
+          sizes: "any",
+          type: "image/svg+xml",
+          purpose: "any"
+        },
+        {
+          src: "/lovable-uploads/d9731f6e-4026-4be4-aaf0-1a401d8ba7be.png",
+          sizes: "192x192",
           type: "image/png",
           purpose: "maskable any"
         }
@@ -288,6 +301,9 @@ export const applyThemeToDom = (themeId: string) => {
 
   // 6. Dynamically update manifest so installed PWA honors active theme
   updateDynamicManifest(themeHex);
+
+  // 7. Dynamically update browser tab favicon with theme-adaptive SVG logo
+  updateDynamicFavicon(palette);
 };
 
 export interface RoleThemes {

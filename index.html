@@ -3,7 +3,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" id="app-favicon">
+    <link rel="alternate icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self';" />
     <title>GD Tracker & Requirement Request App — Lost Sale Insights & Warehouse Fulfillment</title>
@@ -46,6 +48,12 @@
           if (mNav) {
             mNav.setAttribute('content', hex);
             mNav.content = hex;
+          }
+          // Set dynamic theme SVG favicon immediately
+          var fav = document.getElementById('app-favicon');
+          if (fav) {
+            var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0c0818"/><stop offset="100%" stop-color="#171032"/></linearGradient><linearGradient id="st" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="' + hex + '"/><stop offset="100%" stop-color="#ffffff"/></linearGradient></defs><rect x="16" y="16" width="480" height="480" rx="124" fill="url(#bg)" stroke="' + hex + '" stroke-width="16"/><g><polygon points="256,380 376,310 376,334 256,404 136,334 136,310" fill="' + hex + '" opacity="0.3"/><path d="M 148 206 L 244 262 L 244 382 L 148 326 Z" fill="' + hex + '"/><path d="M 268 262 L 364 206 L 364 326 L 268 382 Z" fill="' + hex + '" opacity="0.85"/><path d="M 256 142 L 352 198 L 256 254 L 160 198 Z" fill="' + hex + '" opacity="0.9"/><path d="M 216 280 L 256 216 L 336 136" stroke="#ffffff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><path d="M 216 280 L 256 216 L 336 136" stroke="url(#st)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/><polygon points="360,112 308,124 332,148" fill="#ffffff"/><circle cx="256" cy="216" r="18" fill="#ffffff"/><circle cx="256" cy="216" r="11" fill="' + hex + '"/><circle cx="256" cy="216" r="4.5" fill="#ffffff"/></g></svg>';
+            fav.href = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
           }
           var gdTheme = localStorage.getItem('gd_theme');
           var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;

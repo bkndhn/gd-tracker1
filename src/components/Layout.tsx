@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { LogOut, Package, User, Moon, Sun, Languages, Download, CheckCircle2, Lock, Bell } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { toast } from 'sonner';
+import { AppLogo } from '@/components/AppLogo';
 import { NotificationBell } from './NotificationBell';
 import { NotificationPromptBanner } from './NotificationPromptBanner';
 import { NotificationSettingsModal } from './NotificationSettingsModal';
@@ -87,13 +88,7 @@ export const Layout = ({ children }: LayoutProps) => {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16 min-w-0">
             <div className="flex items-center min-w-0 flex-shrink-0">
-              <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary/15 to-accent/15 ring-1 ring-primary/20">
-                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
-              </div>
-              <span className="ml-2 text-lg sm:text-xl font-bold text-gradient-primary truncate tracking-tight">
-                <span className="sm:hidden">LSI</span>
-                <span className="hidden sm:inline">Lost Sale Insights</span>
-              </span>
+              <AppLogo variant="full" size="md" />
             </div>
             
             {/* Desktop Action Cluster */}

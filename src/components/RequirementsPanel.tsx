@@ -6,6 +6,7 @@ import { useTranslation } from '@/i18n';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ThemedSearchInput } from '@/components/ThemedSearchInput';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -964,10 +965,13 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
                   </Collapsible>
                 </div>
               </div>
-              <div className="relative mt-2">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-8" placeholder="Search shop, size, staff, status…"
-                  value={search} onChange={e => setSearch(e.target.value)} />
+              <div className="mt-2">
+                <ThemedSearchInput
+                  placeholder="Search shop, size, staff, status…"
+                  value={search}
+                  onValueChange={setSearch}
+                  shortcut="/"
+                />
               </div>
 
               {/* Strict role-isolated context badge */}

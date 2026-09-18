@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { ThemedSearchInput } from '@/components/ThemedSearchInput';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -79,10 +80,12 @@ export const AuditLogViewer = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by email..." value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setPage(0); }} className="pl-9" />
+          <div className="flex-1 min-w-[200px]">
+            <ThemedSearchInput
+              placeholder="Search by email..."
+              value={searchQuery}
+              onValueChange={v => { setSearchQuery(v); setPage(0); }}
+            />
           </div>
           <Select value={actionFilter} onValueChange={v => { setActionFilter(v); setPage(0); }}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="All actions" /></SelectTrigger>

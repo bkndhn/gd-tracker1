@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ThemedSearchInput } from '@/components/ThemedSearchInput';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -152,13 +153,12 @@ export const WarehouseDashboard = () => {
             </div>
             {/* Filter controls */}
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative w-full sm:w-56">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
+              <div className="w-full sm:w-60">
+                <ThemedSearchInput
                   placeholder="Search shop, size, note..."
                   value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="pl-8 h-9 text-xs"
+                  onValueChange={setSearchTerm}
+                  className="h-9 text-xs"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
