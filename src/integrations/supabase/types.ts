@@ -791,14 +791,17 @@ export type Database = {
           ai_lifetime_limit: number | null
           ai_monthly_limit: number | null
           created_at: string | null
+          custom_fields_enabled: boolean
           default_category_id: string | null
           default_size_id: string | null
           deleted_at: string | null
           email: string | null
           id: string
+          max_custom_fields: number | null
           max_entries: number | null
           max_images_per_entry: number | null
           max_images_total: number | null
+          max_options_per_field: number | null
           max_requirements_monthly: number | null
           max_shops: number | null
           max_users: number | null
@@ -808,6 +811,7 @@ export type Database = {
           role: string
           shop_id: string | null
           status: string
+          theme_color: string
           updated_at: string | null
           user_id: string | null
           warehouse_all_shops: boolean
@@ -820,14 +824,17 @@ export type Database = {
           ai_lifetime_limit?: number | null
           ai_monthly_limit?: number | null
           created_at?: string | null
+          custom_fields_enabled?: boolean
           default_category_id?: string | null
           default_size_id?: string | null
           deleted_at?: string | null
           email?: string | null
           id: string
+          max_custom_fields?: number | null
           max_entries?: number | null
           max_images_per_entry?: number | null
           max_images_total?: number | null
+          max_options_per_field?: number | null
           max_requirements_monthly?: number | null
           max_shops?: number | null
           max_users?: number | null
@@ -837,6 +844,7 @@ export type Database = {
           role?: string
           shop_id?: string | null
           status?: string
+          theme_color?: string
           updated_at?: string | null
           user_id?: string | null
           warehouse_all_shops?: boolean
@@ -849,14 +857,17 @@ export type Database = {
           ai_lifetime_limit?: number | null
           ai_monthly_limit?: number | null
           created_at?: string | null
+          custom_fields_enabled?: boolean
           default_category_id?: string | null
           default_size_id?: string | null
           deleted_at?: string | null
           email?: string | null
           id?: string
+          max_custom_fields?: number | null
           max_entries?: number | null
           max_images_per_entry?: number | null
           max_images_total?: number | null
+          max_options_per_field?: number | null
           max_requirements_monthly?: number | null
           max_shops?: number | null
           max_users?: number | null
@@ -866,6 +877,7 @@ export type Database = {
           role?: string
           shop_id?: string | null
           status?: string
+          theme_color?: string
           updated_at?: string | null
           user_id?: string | null
           warehouse_all_shops?: boolean
@@ -1522,14 +1534,17 @@ export type Database = {
           ai_lifetime_limit: number | null
           ai_monthly_limit: number | null
           created_at: string | null
+          custom_fields_enabled: boolean
           default_category_id: string | null
           default_size_id: string | null
           deleted_at: string | null
           email: string | null
           id: string
+          max_custom_fields: number | null
           max_entries: number | null
           max_images_per_entry: number | null
           max_images_total: number | null
+          max_options_per_field: number | null
           max_requirements_monthly: number | null
           max_shops: number | null
           max_users: number | null
@@ -1539,6 +1554,7 @@ export type Database = {
           role: string
           shop_id: string | null
           status: string
+          theme_color: string
           updated_at: string | null
           user_id: string | null
           warehouse_all_shops: boolean
