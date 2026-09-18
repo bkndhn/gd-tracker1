@@ -60,20 +60,28 @@ export const useOfflineSync = () => {
     let unmounted = false;
 
     const performSilentSync = async () => {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        if (!unmounted) setIsOnline(false);
+        return;
+      }
+      if (!unmounted) setIsOnline(true);
       const reachable = await checkOnlineHeartbeat();
       if (unmounted) return;
-      setIsOnline(reachable);
-      if (reachable) {
-        const res = await syncOutbox();
-        if (res.sent > 0) {
-          toast.success(`Silently synced ${res.sent} pending visit${res.sent === 1 ? '' : 's'}.`, {
-            duration: 3000,
-          });
-        }
+      if (!reachable && typeof navigator !== 'undefined' && !navigator.onLine) {
+        setIsOnline(false);
+        return;
+      }
+      setIsOnline(true);
+      const res = await syncOutbox();
+      if (res.sent > 0) {
+        toast.success(`Silently synced ${res.sent} pending visit${res.sent === 1 ? '' : 's'}.`, {
+          duration: 3000,
+        });
       }
     };
 
     const handleOnline = () => {
+      setIsOnline(true);
       void performSilentSync();
     };
 
@@ -83,7 +91,8 @@ export const useOfflineSync = () => {
     };
 
     const handleFocus = () => {
-      if (navigator.onLine) {
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        setIsOnline(true);
         void performSilentSync();
       }
     };

@@ -140,13 +140,17 @@ All colors MUST be HSL.
     font-family: var(--tamil-font) !important;
   }
 
-  html, body {
+  html {
+    overflow-x: hidden;
+    width: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
     overflow-x: hidden;
     width: 100%;
     max-width: 100vw;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    overscroll-behavior-y: none;
   }
 
   body {

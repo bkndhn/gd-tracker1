@@ -66,7 +66,19 @@ export const MainApp = () => {
 
   // Enable realtime sync for instant updates across all pages
   useRealtimeSync({
-    tables: ['goods_damaged_entries', 'profiles', 'shops', 'categories', 'sizes', 'customer_types', 'gd_entry_images', 'app_settings', 'stock_requirements'],
+    tables: [
+      'goods_damaged_entries',
+      'profiles',
+      'shops',
+      'categories',
+      'sizes',
+      'customer_types',
+      'gd_entry_images',
+      'app_settings',
+      'stock_requirements',
+      'custom_fields',
+      'custom_field_options',
+    ],
     onProfileDeleted: handleProfileDeleted,
     onProfilePaused: handleProfilePaused,
     enabled: !!user,
@@ -179,7 +191,7 @@ export const MainApp = () => {
         return requirementsEnabled && !isSuperAdmin ? (
           <ErrorBoundary boundary="RequirementsPanel">
             <Suspense fallback={<PageSkeleton variant="requirements" />}>
-              <RequirementsPanel />
+              <RequirementsPanel isActive={activeTab === 'requirements'} />
             </Suspense>
           </ErrorBoundary>
         ) : <div className="text-center text-muted-foreground">Access denied</div>;

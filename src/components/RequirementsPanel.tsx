@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequirements, type StockRequirement, type RequirementStatus } from '@/hooks/useRequirements';
@@ -46,7 +46,7 @@ const STATUS_TONE: Record<string, string> = {
   rejected: 'bg-destructive/15 text-destructive',
 };
 
-export const RequirementsPanel = () => {
+export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => {
   const { t } = useTranslation();
   const { profile, user } = useAuth();
   const { notifyNewRequirement, notifyDispatched, notifyReceived } = usePushNotifications();
@@ -79,6 +79,7 @@ export const RequirementsPanel = () => {
   });
 
   const [isCustomSize, setIsCustomSize] = useState(false);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   // User's assigned shop (matches LostVisitForm pattern)
   const userShop = useMemo(() => {
@@ -94,13 +95,6 @@ export const RequirementsPanel = () => {
       setForm(f => ({ ...f, shop_id: visibleShops[0].id }));
     }
   }, [p?.shop_id, visibleShops]);
-
-  // If only 1 category exists, auto-select it
-  useEffect(() => {
-    if (categories.length === 1 && !form.category) {
-      setForm(f => ({ ...f, category: categories[0].name }));
-    }
-  }, [categories]);
 
   // Quick-select sizes
   const quickSizes = useMemo(() => {
@@ -124,21 +118,27 @@ export const RequirementsPanel = () => {
   const [actionNote, setActionNote] = useState('');
   const [actionQty, setActionQty] = useState<number | ''>('');
 
-  useEffect(() => {
-    (async () => {
+  const fetchMeta = useCallback(async () => {
+    try {
       const [sizeRes, catRes, cfRes, cvRes] = await Promise.all([
         supabase.from('sizes').select('id, size').is('deleted_at', null).order('size'),
         supabase.from('categories').select('id, name').is('deleted_at', null).order('name'),
-        (supabase.from('custom_fields') as any).select('*').eq('scope', 'requirement').is('deleted_at', null).order('display_order'),
-        (supabase.from('gd_entry_custom_values') as any).select('*').not('requirement_id', 'is', null),
+        (supabase.from('custom_fields') as any)
+          .select('*')
+          .eq('scope', 'requirement')
+          .is('deleted_at', null)
+          .order('display_order'),
+        (supabase.from('gd_entry_custom_values') as any)
+          .select('*')
+          .not('requirement_id', 'is', null),
       ]);
       if (!sizeRes.error) setSizes((sizeRes.data || []) as any);
       if (!catRes.error) setCategories((catRes.data || []) as any);
 
-      if (cfRes?.data && cfRes.data.length > 0) {
-        // Only exclude native fixed fields (shop, quantity) so all custom and copied fields render
+      if (cfRes?.data) {
+        // Exclude native fixed fields (shop, quantity, size) from the generic custom field list
         const NATIVE_FIXED_FIELDS = new Set([
-          'shop', 'shops', 'store', 'stores', 'branch', 'branches', 'shop name', 'quantity',
+          'shop', 'shops', 'store', 'stores', 'branch', 'branches', 'shop name', 'quantity', 'size',
         ]);
         const validFields = cfRes.data.filter(
           (f: any) => !NATIVE_FIXED_FIELDS.has(f.name.trim().toLowerCase())
@@ -149,13 +149,16 @@ export const RequirementsPanel = () => {
           const { data: optData } = await (supabase.from('custom_field_options') as any)
             .select('*')
             .in('custom_field_id', cfIds)
-            .is('deleted_at', null);
+            .is('deleted_at', null)
+            .order('display_order');
           const map: Record<string, any[]> = {};
           (optData || []).forEach((o: any) => {
             if (!map[o.custom_field_id]) map[o.custom_field_id] = [];
             map[o.custom_field_id].push(o);
           });
           setReqCustomOptions(map);
+        } else {
+          setReqCustomOptions({});
         }
       }
 
@@ -167,8 +170,68 @@ export const RequirementsPanel = () => {
         });
         setRequirementCustomValues(byReq);
       }
-    })();
+    } catch (e) {
+      if (import.meta.env.DEV) console.error('fetchMeta error in RequirementsPanel', e);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchMeta();
+    const handleUpdate = () => { fetchMeta(); };
+    window.addEventListener('focus', handleUpdate);
+    window.addEventListener('gd:custom_fields_updated', handleUpdate);
+    window.addEventListener('gd:requirement_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('focus', handleUpdate);
+      window.removeEventListener('gd:custom_fields_updated', handleUpdate);
+      window.removeEventListener('gd:requirement_updated', handleUpdate);
+    };
+  }, [fetchMeta]);
+
+  // Refetch whenever the requirements tab becomes active
+  useEffect(() => {
+    if (isActive) {
+      fetchMeta();
+    }
+  }, [isActive, fetchMeta]);
+
+  // Identify Category custom field if defined in Admin -> Custom Fields (Requirement / Stock Fields)
+  const categoryCustomField = useMemo(() => {
+    return reqCustomFields.find(f => {
+      const name = f.name.trim().toLowerCase();
+      return name === 'category' || name === 'categories' || name === 'item' || name === 'item type';
+    }) || null;
+  }, [reqCustomFields]);
+
+  // Combined available categories: Custom field options (e.g. Shirt) + categories table
+  const availableCategories = useMemo(() => {
+    const list: string[] = [];
+    if (categoryCustomField && reqCustomOptions[categoryCustomField.id]) {
+      reqCustomOptions[categoryCustomField.id].forEach((opt: any) => {
+        if (opt.value && !list.includes(opt.value)) list.push(opt.value);
+      });
+    }
+    categories.forEach(c => {
+      if (c.name && !list.includes(c.name)) list.push(c.name);
+    });
+    return list;
+  }, [categoryCustomField, reqCustomOptions, categories]);
+
+  // Other custom fields to render below (excluding category since it's prominent in the main form)
+  const otherCustomFields = useMemo(() => {
+    return reqCustomFields.filter(f => f.id !== categoryCustomField?.id);
+  }, [reqCustomFields, categoryCustomField]);
+
+  // If only 1 category exists, auto-select it
+  useEffect(() => {
+    if (availableCategories.length === 1 && !form.category) {
+      const single = availableCategories[0];
+      setForm(f => ({ ...f, category: single }));
+      if (categoryCustomField) {
+        setCustomFormValues(prev => ({ ...prev, [categoryCustomField.id]: single }));
+      }
+    }
+  }, [availableCategories, categoryCustomField, form.category]);
 
   const uniqueRequesters = useMemo(() => {
     const names = new Set<string>();
@@ -298,24 +361,34 @@ export const RequirementsPanel = () => {
     if (!form.size.trim()) return toast.error('Enter the size you need');
     if (!form.quantity || form.quantity < 1) return toast.error('Enter a quantity');
 
-    for (const cf of reqCustomFields) {
+    const effectiveCategory =
+      form.category.trim() ||
+      (categoryCustomField ? customFormValues[categoryCustomField.id] || '' : '') ||
+      '';
+
+    if (categoryCustomField?.is_mandatory && !effectiveCategory) {
+      return toast.error(`Please provide ${categoryCustomField.name || 'Category'}`);
+    }
+
+    for (const cf of otherCustomFields) {
       if (cf.is_mandatory && !customFormValues[cf.id]?.trim()) {
         return toast.error(`Please provide ${cf.name}`);
       }
     }
-    const catCustomField = reqCustomFields.find(f => f.name.trim().toLowerCase() === 'category');
-    const effectiveCategory = (catCustomField && customFormValues[catCustomField.id])
-      ? customFormValues[catCustomField.id]
-      : form.category || null;
+
+    const finalCustomValues: Record<string, string> = { ...customFormValues };
+    if (categoryCustomField && effectiveCategory) {
+      finalCustomValues[categoryCustomField.id] = effectiveCategory;
+    }
 
     const ok = await createRequirement({
       shop_id: form.shop_id,
       size: form.size.trim(),
-      category: effectiveCategory,
+      category: effectiveCategory || null,
       quantity: Number(form.quantity),
       urgency: form.urgency,
       note: form.note.trim() || null,
-      custom_values: customFormValues,
+      custom_values: finalCustomValues,
     });
     if (ok) {
       notifyNewRequirement({
@@ -324,8 +397,20 @@ export const RequirementsPanel = () => {
         shop_name: visibleShops.find(s => s.id === form.shop_id)?.name,
         urgency: form.urgency,
       });
-      setForm(f => ({ ...f, size: '', category: '', quantity: 1, urgency: 'normal', note: '' }));
-      setCustomFormValues({});
+      const resetCategory = availableCategories.length === 1 ? availableCategories[0] : '';
+      setForm(f => ({
+        ...f,
+        size: '',
+        category: resetCategory,
+        quantity: 1,
+        urgency: 'normal',
+        note: '',
+      }));
+      setCustomFormValues(
+        categoryCustomField && resetCategory ? { [categoryCustomField.id]: resetCategory } : {}
+      );
+      setIsCustomCategory(false);
+      setIsCustomSize(false);
     }
   };
 
@@ -401,7 +486,7 @@ export const RequirementsPanel = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                {/* Shop auto-select or select dropdown */}
+                {/* 1. Shop auto-select or select dropdown */}
                 {p?.shop_id ? (
                   <div className="space-y-2">
                     <Label>{t('common.shop')}</Label>
@@ -427,19 +512,86 @@ export const RequirementsPanel = () => {
                   </div>
                 )}
 
-                {/* Quantity */}
+                {/* 2. Category (Wired to Admin Custom Field or Categories Table) */}
                 <div className="space-y-2">
-                  <Label>{t('req.quantity')} *</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={form.quantity}
-                    onChange={e => setForm({ ...form, quantity: Math.max(1, Number(e.target.value)) })}
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label>
+                      {categoryCustomField?.name || 'Category'}
+                      {categoryCustomField?.is_mandatory ? (
+                        <span className="text-destructive ml-1">*</span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>
+                      )}
+                    </Label>
+                    {isCustomCategory ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs text-primary hover:text-primary/80 px-1"
+                        onClick={() => setIsCustomCategory(false)}
+                      >
+                        Choose from list
+                      </Button>
+                    ) : availableCategories.length > 0 ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs text-muted-foreground hover:text-foreground px-1"
+                        onClick={() => setIsCustomCategory(true)}
+                      >
+                        + Type custom
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  {isCustomCategory || availableCategories.length === 0 ? (
+                    <Input
+                      value={form.category}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setForm(f => ({ ...f, category: val }));
+                        if (categoryCustomField) {
+                          setCustomFormValues(prev => ({ ...prev, [categoryCustomField.id]: val }));
+                        }
+                      }}
+                      placeholder="e.g. Shirt, Pant, T-Shirt, Saree"
+                    />
+                  ) : (
+                    <Select
+                      value={form.category}
+                      onValueChange={v => {
+                        if (v === '__custom__') {
+                          setIsCustomCategory(true);
+                          setForm(f => ({ ...f, category: '' }));
+                        } else {
+                          setForm(f => ({ ...f, category: v }));
+                          if (categoryCustomField) {
+                            setCustomFormValues(prev => ({ ...prev, [categoryCustomField.id]: v }));
+                          }
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCategories.map(cat => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__custom__" className="text-primary font-medium">
+                          + Other / Type custom category...
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
-                {/* Size dropdown with quick chips and custom input option */}
-                <div className="space-y-2 sm:col-span-2">
+                {/* 3. Size dropdown with quick chips and custom input option */}
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>{t('common.size')} *</Label>
                     {isCustomSize ? (
@@ -519,12 +671,36 @@ export const RequirementsPanel = () => {
                     ))}
                   </div>
                 </div>
+
+                {/* 4. Quantity & Urgency */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>{t('req.quantity')} *</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={form.quantity}
+                      onChange={e => setForm({ ...form, quantity: Math.max(1, Number(e.target.value)) })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Urgency</Label>
+                    <Select value={form.urgency} onValueChange={v => setForm({ ...form, urgency: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="normal">Normal Priority</SelectItem>
+                        <SelectItem value="urgent" className="text-red-600 font-medium">🚨 Urgent / Fast-Track</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
 
-              {/* Dynamic Requirement Custom Fields */}
-              {reqCustomFields.length > 0 && (
+              {/* Dynamic Requirement Custom Fields (Other fields created in Admin -> Custom Fields) */}
+              {otherCustomFields.length > 0 && (
                 <div className="grid gap-4 sm:grid-cols-2 pt-3 border-t">
-                  {reqCustomFields.map((cf) => {
+                  {otherCustomFields.map((cf) => {
                     const opts = reqCustomOptions[cf.id] || [];
                     const val = customFormValues[cf.id] || '';
                     return (
@@ -542,6 +718,23 @@ export const RequirementsPanel = () => {
                               ))}
                             </SelectContent>
                           </Select>
+                        ) : cf.field_type === 'radio' ? (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {opts.map((o) => (
+                              <button
+                                key={o.id}
+                                type="button"
+                                onClick={() => setCustomFormValues({ ...customFormValues, [cf.id]: o.value })}
+                                className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${
+                                  val === o.value
+                                    ? 'bg-primary text-primary-foreground border-primary'
+                                    : 'bg-muted/40 hover:bg-muted text-foreground border-border/80'
+                                }`}
+                              >
+                                {o.value}
+                              </button>
+                            ))}
+                          </div>
                         ) : cf.field_type === 'number' ? (
                           <Input
                             type="number"

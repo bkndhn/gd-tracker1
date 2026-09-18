@@ -4,7 +4,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
-type TableName = 'goods_damaged_entries' | 'profiles' | 'shops' | 'categories' | 'sizes' | 'customer_types' | 'gd_entry_images' | 'app_settings' | 'stock_requirements';
+type TableName =
+  | 'goods_damaged_entries'
+  | 'profiles'
+  | 'shops'
+  | 'categories'
+  | 'sizes'
+  | 'customer_types'
+  | 'gd_entry_images'
+  | 'app_settings'
+  | 'stock_requirements'
+  | 'custom_fields'
+  | 'custom_field_options';
 
 interface UseRealtimeSyncOptions {
   tables: TableName[];
@@ -32,6 +43,11 @@ export const useRealtimeSync = ({
       case 'stock_requirements':
         queryClient.invalidateQueries({ queryKey: ['stock-requirements'] });
         window.dispatchEvent(new CustomEvent('gd:requirement_updated', { detail: { realtime: true } }));
+        break;
+      case 'custom_fields':
+      case 'custom_field_options':
+        queryClient.invalidateQueries({ queryKey: ['custom-fields'] });
+        window.dispatchEvent(new CustomEvent('gd:custom_fields_updated'));
         break;
       case 'profiles':
         queryClient.invalidateQueries({ queryKey: ['profiles'] });

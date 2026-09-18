@@ -151,20 +151,33 @@ export async function retryItem(id: string) {
   void syncOutbox();
 }
 
+const SUPABASE_FALLBACK_URL = "https://jlmkvvhmtpuplnpunbhc.supabase.co";
+const SUPABASE_FALLBACK_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsbWt2dmhtdHB1cGxucHVuYmhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzI4MzYsImV4cCI6MjA5NTQ0ODgzNn0.Se-a_ZydTdV6EIt5X6IUumJhJBS7wr3fcCVrVqUdqbs";
+
 export async function checkOnlineHeartbeat(): Promise<boolean> {
-  if (!navigator.onLine) return false;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
   try {
+    const url = import.meta.env.VITE_SUPABASE_URL || SUPABASE_FALLBACK_URL;
+    const key =
+      import.meta.env.VITE_SUPABASE_ANON_KEY ||
+      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+      SUPABASE_FALLBACK_KEY;
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 3500);
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
-      method: 'HEAD',
-      headers: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || '' },
+    const tid = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(`${url}/rest/v1/`, {
+      method: 'GET',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+      },
       signal: ctrl.signal,
     });
     clearTimeout(tid);
     return res.status < 500;
   } catch {
-    return false;
+    // If the browser reports online, do not falsely declare offline on single ping jitter
+    return typeof navigator !== 'undefined' ? navigator.onLine : true;
   }
 }
 

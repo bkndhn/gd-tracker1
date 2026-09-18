@@ -213,6 +213,9 @@ export const CustomFieldManagement = () => {
       } else {
         setOptions({});
       }
+      try {
+        window.dispatchEvent(new CustomEvent('gd:custom_fields_updated'));
+      } catch {}
     } catch (error: any) {
       if (import.meta.env.DEV) console.error('Error fetching custom fields:', error);
       toast.error('Failed to load custom fields');
