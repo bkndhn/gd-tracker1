@@ -70,12 +70,18 @@ async function fetchValues(entryIds: string[], fieldIds: string[]) {
  * Builds the single source of truth for entry field values: everything is read
  * from `gd_entry_custom_values` (no legacy category/size/customer_type joins).
  */
-export async function fetchCustomValueIndex(entryIds: string[]): Promise<CustomValueIndex> {
-  const fieldsRes = await (supabase.from('custom_fields') as any)
+export async function fetchCustomValueIndex(entryIds: string[], adminId?: string | null): Promise<CustomValueIndex> {
+  let fieldsQuery = (supabase.from('custom_fields') as any)
     .select('id, name, is_visible, is_mandatory, display_order, field_type, is_standard, standard_key')
     .or('scope.eq.visit,scope.is.null')
     .is('deleted_at', null)
     .order('display_order');
+
+  if (adminId) {
+    fieldsQuery = fieldsQuery.eq('admin_id', adminId);
+  }
+
+  const fieldsRes = await fieldsQuery;
 
   if (fieldsRes.error) throw fieldsRes.error;
   const fields: CustomFieldDef[] = fieldsRes.data || [];
@@ -145,22 +151,23 @@ export function stdOptions(index: CustomValueIndex | undefined, key: StandardKey
   return (index.optionsByField[field.id] || []).map(o => o.value);
 }
 
-export function useCustomValueIndex(entryIds: string[], enabled = true) {
-  const key = entryIds.length ? `${entryIds.length}:${entryIds[0]}:${entryIds[entryIds.length - 1]}` : 'none';
+export function useCustomValueIndex(entryIds: string[], enabled = true, adminId?: string | null) {
+  const key = entryIds.length ? `${entryIds.length}:${entryIds[0]}:${entryIds[entryIds.length - 1]}:${adminId || 'all'}` : `none:${adminId || 'all'}`;
+  const cacheKey = `${CV_INDEX_CACHE_KEY}_${adminId || 'all'}`;
   return useQuery({
     queryKey: ['custom-value-index', key],
     queryFn: async () => {
       // Offline / failed fetch: fall back to the last good index so labels still render
       if (!navigator.onLine) {
-        const cached = await cacheGet<CustomValueIndex>(CV_INDEX_CACHE_KEY);
+        const cached = await cacheGet<CustomValueIndex>(cacheKey);
         if (cached) return cached.value;
       }
       try {
-        const index = await fetchCustomValueIndex(entryIds);
-        void cacheSet(CV_INDEX_CACHE_KEY, index);
+        const index = await fetchCustomValueIndex(entryIds, adminId);
+        void cacheSet(cacheKey, index);
         return index;
       } catch (err) {
-        const cached = await cacheGet<CustomValueIndex>(CV_INDEX_CACHE_KEY);
+        const cached = await cacheGet<CustomValueIndex>(cacheKey);
         if (cached) return cached.value;
         throw err;
       }

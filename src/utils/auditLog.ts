@@ -6,6 +6,7 @@ export type AuditAction =
   | 'signup'
   | 'password_reset'
   | 'user_created'
+  | 'create_tenant'
   | 'user_deleted'
   | 'user_paused'
   | 'user_activated'

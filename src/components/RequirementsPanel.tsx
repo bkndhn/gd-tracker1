@@ -50,9 +50,10 @@ const STATUS_TONE: Record<string, string> = {
 
 export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => {
   const { t } = useTranslation();
-  const { profile, user } = useAuth();
+  const { profile, user, adminId } = useAuth();
   const { notifyNewRequirement, notifyDispatched, notifyReceived } = usePushNotifications();
   const p = profile as any;
+  const effectiveAdminId = adminId || p?.admin_id || profile?.id;
   const role = p?.role as string | undefined;
   const isWarehouse = role === 'warehouse';
   const isAdmin = role === 'admin' || role === 'super_admin';
@@ -110,12 +111,18 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
 
   const fetchMeta = useCallback(async () => {
     try {
+      let cfQuery = (supabase.from('custom_fields') as any)
+        .select('*')
+        .eq('scope', 'requirement')
+        .is('deleted_at', null)
+        .order('display_order');
+
+      if (effectiveAdminId) {
+        cfQuery = cfQuery.eq('admin_id', effectiveAdminId);
+      }
+
       const [cfRes, cvRes] = await Promise.all([
-        (supabase.from('custom_fields') as any)
-          .select('*')
-          .eq('scope', 'requirement')
-          .is('deleted_at', null)
-          .order('display_order'),
+        cfQuery,
         (supabase.from('gd_entry_custom_values') as any)
           .select('*')
           .not('requirement_id', 'is', null),

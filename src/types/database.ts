@@ -162,6 +162,15 @@ export interface Database {
           requirements_enabled?: boolean;
           max_requirements_monthly?: number | null;
           max_warehouse_users?: number | null;
+          must_change_password?: boolean | null;
+          is_temp_password?: boolean | null;
+          max_entries?: number | null;
+          max_images_per_entry?: number | null;
+          max_images_total?: number | null;
+          ai_enabled?: boolean;
+          ai_daily_limit?: number | null;
+          ai_monthly_limit?: number | null;
+          ai_lifetime_limit?: number | null;
         };
         Insert: {
           id: string;
@@ -189,6 +198,15 @@ export interface Database {
           requirements_enabled?: boolean;
           max_requirements_monthly?: number | null;
           max_warehouse_users?: number | null;
+          must_change_password?: boolean | null;
+          is_temp_password?: boolean | null;
+          max_entries?: number | null;
+          max_images_per_entry?: number | null;
+          max_images_total?: number | null;
+          ai_enabled?: boolean;
+          ai_daily_limit?: number | null;
+          ai_monthly_limit?: number | null;
+          ai_lifetime_limit?: number | null;
         };
         Update: {
           id?: string;
@@ -216,6 +234,15 @@ export interface Database {
           requirements_enabled?: boolean;
           max_requirements_monthly?: number | null;
           max_warehouse_users?: number | null;
+          must_change_password?: boolean | null;
+          is_temp_password?: boolean | null;
+          max_entries?: number | null;
+          max_images_per_entry?: number | null;
+          max_images_total?: number | null;
+          ai_enabled?: boolean;
+          ai_daily_limit?: number | null;
+          ai_monthly_limit?: number | null;
+          ai_lifetime_limit?: number | null;
         };
       };
       goods_damaged_entries: {

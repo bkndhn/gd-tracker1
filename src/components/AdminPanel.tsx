@@ -19,7 +19,6 @@ import { RetentionSettings } from '@/components/admin/RetentionSettings';
 import { CustomerDataPrivacy } from '@/components/admin/CustomerDataPrivacy';
 import { SessionsPanel } from '@/components/admin/SessionsPanel';
 import { UsageMetering } from '@/components/admin/UsageMetering';
-import { OpsHealthPanel } from '@/components/admin/OpsHealthPanel';
 import { ThemeSettings } from '@/components/admin/ThemeSettings';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
 import { Button } from '@/components/ui/button';
@@ -29,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/i18n';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Wand2,
   Search,
@@ -58,6 +58,8 @@ interface SettingSection {
 
 export const AdminPanel = () => {
   const { t } = useTranslation();
+  const { adminId, isSuperAdmin, profile } = useAuth();
+  const effectiveAdminId = adminId || (profile as any)?.admin_id || profile?.id;
   const [shops, setShops] = useState<Shop[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,16 +69,24 @@ export const AdminPanel = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [effectiveAdminId]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       localStorage.removeItem('gd_app_data');
 
+      let shopsQuery = supabase.from('shops').select('*').is('deleted_at', null).order('name');
+      let profilesQuery = supabase.from('profiles').select('*').is('deleted_at', null).order('name');
+
+      if (!isSuperAdmin && effectiveAdminId) {
+        shopsQuery = shopsQuery.eq('admin_id', effectiveAdminId);
+        profilesQuery = profilesQuery.or(`id.eq.${effectiveAdminId},admin_id.eq.${effectiveAdminId}`);
+      }
+
       const [shopsRes, profilesRes] = await Promise.all([
-        supabase.from('shops').select('*').is('deleted_at', null).order('name'),
-        supabase.from('profiles').select('*').is('deleted_at', null).order('name'),
+        shopsQuery,
+        profilesQuery,
       ]);
 
       if (shopsRes.error) throw shopsRes.error;
@@ -247,15 +257,6 @@ export const AdminPanel = () => {
         description: 'Customize your organization brand theme color and sync with the mobile status/notification bar',
         keywords: ['theme', 'color', 'brand', 'notification bar', 'status bar', 'palette', 'purple', 'blue', 'emerald', 'rose', 'appearance', 'branding'],
         render: () => <ThemeSettings key="theme-settings" />,
-      },
-      {
-        id: 'ops-health',
-        tab: 'security',
-        tabLabel: 'Privacy & System',
-        title: 'Operational Health & Background Services',
-        description: 'System operational status, Supabase connectivity, edge functions, and service diagnostics',
-        keywords: ['health', 'ops', 'services', 'uptime', 'database', 'status', 'diagnostics', 'system health'],
-        render: () => <OpsHealthPanel key="ops-health" />,
       },
     ],
     [shops, profiles]
@@ -506,9 +507,6 @@ export const AdminPanel = () => {
 
             {/* 3. Active Sessions */}
             <SessionsPanel />
-
-            {/* 4. Operational Health */}
-            <OpsHealthPanel />
           </TabsContent>
         </Tabs>
       )}

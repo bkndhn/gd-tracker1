@@ -241,19 +241,35 @@ export const applyThemeToDom = (themeId: string) => {
   const themeHex = palette.hex;
 
   // 1. Android & Modern Chrome/Safari/Edge theme-color meta tags
-  // setAttribute('content', themeHex) is required by Chromium to fire native status bar recolor
-  const existingMetas = document.querySelectorAll('meta[name="theme-color"]');
-  if (existingMetas.length === 0) {
-    const metaTheme = document.createElement('meta');
-    metaTheme.name = 'theme-color';
-    metaTheme.setAttribute('content', themeHex);
-    document.head.appendChild(metaTheme);
-  } else {
-    existingMetas.forEach(meta => {
-      meta.setAttribute('content', themeHex);
-      (meta as HTMLMetaElement).content = themeHex;
-    });
+  // Chromium requires media="(prefers-color-scheme: dark)" to recolor status bar when dark mode is active
+  const mediaConfigs = [
+    { name: 'theme-color', media: '' },
+    { name: 'theme-color', media: '(prefers-color-scheme: light)' },
+    { name: 'theme-color', media: '(prefers-color-scheme: dark)' },
+  ];
+
+  mediaConfigs.forEach(({ name, media }) => {
+    const selector = media ? `meta[name="${name}"][media="${media}"]` : `meta[name="${name}"]:not([media])`;
+    let meta = document.querySelector(selector) as HTMLMetaElement | null;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = name;
+      if (media) meta.media = media;
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', themeHex);
+    meta.content = themeHex;
+  });
+
+  // Ensure color-scheme is declared
+  let metaScheme = document.querySelector('meta[name="color-scheme"]') as HTMLMetaElement | null;
+  if (!metaScheme) {
+    metaScheme = document.createElement('meta');
+    metaScheme.name = 'color-scheme';
+    document.head.appendChild(metaScheme);
   }
+  metaScheme.setAttribute('content', 'light dark');
+  metaScheme.content = 'light dark';
 
   // 2. Apple iOS Safari Status Bar Style
   // 'default' = white status bar text on theme-color background

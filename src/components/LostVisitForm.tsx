@@ -130,12 +130,18 @@ export const LostVisitForm = () => {
 
   useEffect(() => {
     const fetchFormData = async () => {
-      const cfRes = await (supabase.from('custom_fields') as any)
+      let cfQuery = (supabase.from('custom_fields') as any)
         .select('*')
         .or('scope.eq.visit,scope.is.null')
         .is('deleted_at', null)
         .eq('is_visible', true)
         .order('display_order');
+
+      if (adminId) {
+        cfQuery = cfQuery.eq('admin_id', adminId);
+      }
+
+      const cfRes = await cfQuery;
       if (cfRes.data && cfRes.data.length > 0) {
         setCustomFields(cfRes.data);
         const fieldIds = cfRes.data.map((f: CustomField) => f.id);

@@ -20,6 +20,7 @@ import { useRequirementsAccess } from '@/hooks/useRequirementsAccess';
 import { ClipboardList } from 'lucide-react';
 import { PageSkeleton } from '@/components/PageSkeleton';
 import { useTranslation } from '@/i18n';
+import { MandatoryPasswordChangeModal } from '@/components/MandatoryPasswordChangeModal';
 
 // Lazy load heavy components with prefetch helpers for instant nav
 const importDashboard = () => import('@/components/Dashboard').then(m => ({ default: m.Dashboard }));
@@ -316,6 +317,8 @@ export const MainApp = () => {
           showRequirements={requirementsEnabled}
           isWarehouse={isWarehouse}
         />
+
+        <MandatoryPasswordChangeModal />
       </Layout>
     </>
   );

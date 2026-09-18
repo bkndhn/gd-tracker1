@@ -33,7 +33,8 @@ interface UserManagementProps {
 }
 
 export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRefresh: propOnRefresh }: UserManagementProps = {}) => {
-  const { user, profile: currentProfile, refreshProfile } = useAuth();
+  const { user, profile: currentProfile, refreshProfile, adminId, isSuperAdmin } = useAuth();
+  const effectiveAdminId = adminId || (currentProfile as any)?.admin_id || currentProfile?.id;
   const [profiles, setProfiles] = useState<Profile[]>(propProfiles || []);
   const [shops, setShops] = useState<Shop[]>(propShops || []);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -60,23 +61,6 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
     warehouse_shop_ids: [] as string[],
   });
 
-  useEffect(() => {
-    if (!propProfiles || !propShops) {
-      fetchData();
-    } else {
-      fetchCategoriesAndSizes();
-    }
-  }, [propProfiles, propShops]);
-
-  // Keep internal state reactive to parent changes without needing full page refresh
-  useEffect(() => {
-    if (propProfiles) setProfiles(propProfiles);
-  }, [propProfiles]);
-
-  useEffect(() => {
-    if (propShops) setShops(propShops);
-  }, [propShops]);
-
   const fetchCategoriesAndSizes = useCallback(async () => {
     try {
       const [categoriesRes, sizesRes] = await Promise.all([
@@ -95,22 +79,32 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const { data: profilesData, error: profilesError } = await supabase
+      let profilesQuery = supabase
         .from('profiles')
         .select('*')
+        .is('deleted_at', null)
         .order('name');
-      if (profilesError) throw profilesError;
 
-      const [shopsRes, categoriesRes, sizesRes] = await Promise.all([
-        supabase.from('shops').select('*').order('name'),
+      let shopsQuery = supabase.from('shops').select('*').is('deleted_at', null).order('name');
+
+      if (!isSuperAdmin && effectiveAdminId) {
+        profilesQuery = profilesQuery.or(`id.eq.${effectiveAdminId},admin_id.eq.${effectiveAdminId}`);
+        shopsQuery = shopsQuery.eq('admin_id', effectiveAdminId);
+      }
+
+      const [profilesRes, shopsRes, categoriesRes, sizesRes] = await Promise.all([
+        profilesQuery,
+        shopsQuery,
         supabase.from('categories').select('*').order('name'),
         supabase.from('sizes').select('*').order('size'),
       ]);
+
+      if (profilesRes.error) throw profilesRes.error;
       if (shopsRes.error) throw shopsRes.error;
       if (categoriesRes.error) throw categoriesRes.error;
       if (sizesRes.error) throw sizesRes.error;
 
-      setProfiles(profilesData as Profile[]);
+      setProfiles(profilesRes.data as Profile[]);
       setShops(shopsRes.data);
       setCategories(categoriesRes.data);
       setSizes(sizesRes.data);
@@ -120,7 +114,24 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [effectiveAdminId, isSuperAdmin]);
+
+  useEffect(() => {
+    if (!propProfiles || !propShops) {
+      fetchData();
+    } else {
+      fetchCategoriesAndSizes();
+    }
+  }, [propProfiles, propShops, fetchData, fetchCategoriesAndSizes]);
+
+  // Keep internal state reactive to parent changes without needing full page refresh
+  useEffect(() => {
+    if (propProfiles) setProfiles(propProfiles);
+  }, [propProfiles]);
+
+  useEffect(() => {
+    if (propShops) setShops(propShops);
+  }, [propShops]);
 
   const handleCreateSubUser = useCallback(async () => {
     if (!newUser.name || !newUser.email || !newUser.password) {

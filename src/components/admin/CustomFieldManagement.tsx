@@ -185,10 +185,16 @@ export const CustomFieldManagement = () => {
         }
       }
 
-      const { data, error } = await (supabase.from('custom_fields') as any)
+      let fieldsQuery = (supabase.from('custom_fields') as any)
         .select('*')
         .is('deleted_at', null)
         .order('display_order');
+
+      if (adminId) {
+        fieldsQuery = fieldsQuery.eq('admin_id', adminId);
+      }
+
+      const { data, error } = await fieldsQuery;
 
       if (error) throw error;
       setFields(data || []);

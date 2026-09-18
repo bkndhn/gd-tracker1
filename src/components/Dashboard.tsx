@@ -61,7 +61,8 @@ interface GDEntry {
 
 
 export const Dashboard = () => {
-  const { profile, isAdmin, isManager, userShopId } = useAuth();
+  const { profile, isAdmin, isManager, isSuperAdmin, adminId, userShopId } = useAuth();
+  const effectiveAdminId = adminId || (profile as any)?.admin_id || profile?.id;
   const { isOnline, pendingCount } = useOfflineSync();
   const { labels } = useFieldLabels();
   const { rows: followUpRows } = useFollowUps(90);
@@ -98,19 +99,24 @@ export const Dashboard = () => {
 
   // Shops still live in their own table (branch-level RLS depends on shop_id)
   const { data: masterData } = useQuery({
-    queryKey: ['dashboard-master-data'],
+    queryKey: ['dashboard-master-data', effectiveAdminId],
     queryFn: async () => {
+      const cacheKey = `${DASHBOARD_SHOPS_CACHE_KEY}_${effectiveAdminId || 'all'}`;
       if (!navigator.onLine) {
-        const cached = await cacheGet<any[]>(DASHBOARD_SHOPS_CACHE_KEY);
+        const cached = await cacheGet<any[]>(cacheKey);
         if (cached) return { shops: cached.value };
       }
-      const shopsRes = await supabase.from('shops').select('*').is('deleted_at', null).order('name');
+      let shopsQuery = supabase.from('shops').select('*').is('deleted_at', null).order('name');
+      if (!isSuperAdmin && effectiveAdminId) {
+        shopsQuery = shopsQuery.eq('admin_id', effectiveAdminId);
+      }
+      const shopsRes = await shopsQuery;
       if (shopsRes.error) {
-        const cached = await cacheGet<any[]>(DASHBOARD_SHOPS_CACHE_KEY);
+        const cached = await cacheGet<any[]>(cacheKey);
         if (cached) return { shops: cached.value };
         throw shopsRes.error;
       }
-      void cacheSet(DASHBOARD_SHOPS_CACHE_KEY, shopsRes.data || []);
+      void cacheSet(cacheKey, shopsRes.data || []);
       return { shops: shopsRes.data || [] };
     },
     staleTime: 1000 * 60 * 5,
@@ -118,22 +124,29 @@ export const Dashboard = () => {
 
   // Fetch all visits (no legacy lookup joins)
   const { data: rawEntries, isLoading, refetch } = useQuery<any[]>({
-    queryKey: ['dashboard-entries', userShopId],
+    queryKey: ['dashboard-entries', userShopId, effectiveAdminId],
     queryFn: async () => {
+      const cacheKey = `${DASHBOARD_CACHE_KEY}_${effectiveAdminId || 'all'}`;
       // Offline: serve the last successful snapshot straight from IndexedDB
       if (!navigator.onLine) {
-        const cached = await cacheGet<any[]>(DASHBOARD_CACHE_KEY);
+        const cached = await cacheGet<any[]>(cacheKey);
         if (cached) return cached.value;
       }
 
-      const { data: entriesData, error: entriesError } = await supabase
+      let entriesQuery = supabase
         .from('goods_damaged_entries')
         .select('id, created_at, shop_id, notes, voice_note_url, employee_name')
         .order('created_at', { ascending: false });
 
+      if (!isSuperAdmin && effectiveAdminId) {
+        entriesQuery = entriesQuery.eq('admin_id', effectiveAdminId);
+      }
+
+      const { data: entriesData, error: entriesError } = await entriesQuery;
+
       if (entriesError) {
         if (import.meta.env.DEV) console.error('Dashboard fetch error:', entriesError);
-        const cached = await cacheGet<any[]>(DASHBOARD_CACHE_KEY);
+        const cached = await cacheGet<any[]>(cacheKey);
         if (cached) return cached.value;
         throw entriesError;
       }
@@ -159,7 +172,7 @@ export const Dashboard = () => {
         ...entry,
         gd_entry_images: imagesData.filter(img => img.gd_entry_id === entry.id),
       }));
-      void cacheSet(DASHBOARD_CACHE_KEY, merged);
+      void cacheSet(cacheKey, merged);
       return merged;
     },
     enabled: !!profile && (isAdmin || isManager),
@@ -168,7 +181,7 @@ export const Dashboard = () => {
   });
 
   const entryIds = useMemo(() => (rawEntries || []).map(e => e.id), [rawEntries]);
-  const { data: cvIndex } = useCustomValueIndex(entryIds, !!rawEntries);
+  const { data: cvIndex } = useCustomValueIndex(entryIds, !!rawEntries, effectiveAdminId);
 
   // Resolve every display field from gd_entry_custom_values
   const allEntries = useMemo<GDEntry[] | undefined>(() => {

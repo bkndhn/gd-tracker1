@@ -18,6 +18,7 @@ import { Play, Pause, Trash2, Settings, Users, Building, Shield, Search, Chevron
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
+import { CreateTenantDialog } from './admin/CreateTenantDialog';
 import { GoogleDriveBackupPanel } from './admin/GoogleDriveBackupPanel';
 import { AuditLogViewer } from './AuditLogViewer';
 import { formatISTDate, formatISTDateTime } from '@/lib/dateUtils';
@@ -61,6 +62,7 @@ export const SuperAdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAdmin, setSelectedAdmin] = useState<AdminProfile | null>(null);
   const [limitsDialogOpen, setLimitsDialogOpen] = useState(false);
+  const [createTenantOpen, setCreateTenantOpen] = useState(false);
   const [deleteAdmin, setDeleteAdmin] = useState<AdminProfile | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [maxShops, setMaxShops] = useState(5);
@@ -565,9 +567,17 @@ export const SuperAdminDashboard = () => {
 
       {/* Tenant Admin Table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" /> Tenant Admin Management</CardTitle>
-          <CardDescription>{admins.length} registered admin(s). Click to expand and see sub-users.</CardDescription>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5 text-primary" /> Tenant Admin Management</CardTitle>
+            <CardDescription>{admins.length} registered admin(s). Click to expand and see sub-users.</CardDescription>
+          </div>
+          <Button
+            onClick={() => setCreateTenantOpen(true)}
+            className="gap-2 self-start sm:self-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-sm shadow-indigo-500/25 shrink-0"
+          >
+            <UserPlus className="h-4 w-4" /> Add New Tenant
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -769,6 +779,13 @@ export const SuperAdminDashboard = () => {
         </DialogContent>
 
       </Dialog>
+      
+      {/* Create New Tenant Dialog */}
+      <CreateTenantDialog
+        open={createTenantOpen}
+        onOpenChange={setCreateTenantOpen}
+        onSuccess={fetchData}
+      />
 
       {/* Delete Confirmation */}
       <DeleteConfirmationDialog open={!!deleteAdmin} onOpenChange={open => !open && setDeleteAdmin(null)}

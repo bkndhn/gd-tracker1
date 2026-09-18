@@ -10,7 +10,10 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self';" />
     <title>GD Tracker & Requirement Request App — Lost Sale Insights & Warehouse Fulfillment</title>
     <link rel="manifest" href="/manifest.json">
+    <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#7c3aed" id="meta-theme-color">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#7c3aed" id="meta-theme-color-light">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#7c3aed" id="meta-theme-color-dark">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -39,11 +42,11 @@
             }
           }
           if (!hex) hex = '#7c3aed';
-          var m = document.getElementById('meta-theme-color') || document.querySelector('meta[name="theme-color"]');
-          if (m) {
+          var metas = document.querySelectorAll('meta[name="theme-color"]');
+          metas.forEach(function(m) {
             m.setAttribute('content', hex);
             m.content = hex;
-          }
+          });
           var mNav = document.querySelector('meta[name="msapplication-navbutton-color"]');
           if (mNav) {
             mNav.setAttribute('content', hex);

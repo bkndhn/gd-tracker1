@@ -106,8 +106,8 @@ export const useFollowUps = (days = 180) => {
     setLoading(true);
     const since = new Date(Date.now() - days * 86400000).toISOString();
     const [fu, tg] = await Promise.all([
-      table().select('*').gte('sent_at', since).order('sent_at', { ascending: false }).limit(1000),
-      (supabase.from('shop_targets') as any).select('*'),
+      table().select('*').eq('admin_id', adminId).gte('sent_at', since).order('sent_at', { ascending: false }).limit(1000),
+      (supabase.from('shop_targets') as any).select('*').eq('admin_id', adminId),
     ]);
     setRows(((fu.data as FollowUpRow[]) || []).map(r => ({ ...r, recovered_amount: Number(r.recovered_amount || 0) })));
     setTargets((tg.data as ShopTarget[]) || []);

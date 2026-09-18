@@ -71,7 +71,7 @@ export const useRequirements = () => {
           .eq('admin_id', tenantId)
           .order('created_at', { ascending: false })
           .limit(1000),
-        supabase.from('shops').select('id, name').is('deleted_at', null).order('name'),
+        supabase.from('shops').select('id, name').eq('admin_id', tenantId).is('deleted_at', null).order('name'),
       ]);
       if (reqRes.error) throw reqRes.error;
       const rawData = (reqRes.data || []) as StockRequirement[];

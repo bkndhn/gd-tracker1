@@ -65,7 +65,8 @@ const StatCard = ({ icon: Icon, label, value, sub }: any) => (
 
 /** Follow-up outcome tracking, recovered revenue, reminders, timelines and leaderboards. */
 export const FollowUpPanel = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, adminId, isSuperAdmin, profile } = useAuth();
+  const effectiveAdminId = adminId || (profile as any)?.admin_id || profile?.id;
   const {
     rows, loading, reload, updateOutcome, snoozeReminder, saveTarget,
     stats, dueReminders, timelineFor, targets, monthKey,
@@ -81,10 +82,14 @@ export const FollowUpPanel = () => {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('shops').select('id,name').is('deleted_at', null).order('name');
+      let shopsQuery = supabase.from('shops').select('id,name').is('deleted_at', null).order('name');
+      if (!isSuperAdmin && effectiveAdminId) {
+        shopsQuery = shopsQuery.eq('admin_id', effectiveAdminId);
+      }
+      const { data } = await shopsQuery;
       setShops((data as any) || []);
     })();
-  }, []);
+  }, [effectiveAdminId, isSuperAdmin]);
 
   // Leaderboard reset rule (per tenant) + the window it produces.
   const { value: resetRule, save: saveReset, canEdit: canEditReset } =

@@ -81,7 +81,8 @@ interface ReportsPanelProps {
 }
 
 export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
-  const { profile, isAdmin, isManager, userShopId } = useAuth();
+  const { profile, isAdmin, isManager, isSuperAdmin, adminId, userShopId } = useAuth();
+  const effectiveAdminId = adminId || (profile as any)?.admin_id || profile?.id;
   const isWarehouse = (profile as any)?.role === 'warehouse';
   const initialTab = defaultTab || (isWarehouse ? 'requirements' : 'visits');
   const { isOnline, pendingCount } = useOfflineSync();
@@ -182,6 +183,10 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (!isSuperAdmin && effectiveAdminId) {
+        query = query.eq('admin_id', effectiveAdminId);
+      }
+
       if (isManager && userShopId) {
         if (import.meta.env.DEV) console.log('Filtering by manager shop:', userShopId);
         query = query.eq('shop_id', userShopId);
@@ -219,9 +224,14 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
       if (import.meta.env.DEV) console.log('Fetched images for entries:', imagesData);
 
       // Shops table remains (branch RLS); everything else comes from custom fields
+      let shopsQuery = supabase.from('shops').select('*').is('deleted_at', null).order('name');
+      if (!isSuperAdmin && effectiveAdminId) {
+        shopsQuery = shopsQuery.eq('admin_id', effectiveAdminId);
+      }
+
       const [shopsRes, cvIndex] = await Promise.all([
-        supabase.from('shops').select('*').order('name'),
-        fetchCustomValueIndex(entryIds),
+        shopsQuery,
+        fetchCustomValueIndex(entryIds, effectiveAdminId),
       ]);
 
       if (shopsRes.error) {

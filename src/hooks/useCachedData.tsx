@@ -1,9 +1,8 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { cacheGet, cacheSet } from '@/lib/offlineDb';
-
-const IDB_KEY = 'reference:lookups';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CachedData {
   categories: any[];
@@ -13,19 +12,19 @@ interface CachedData {
 }
 
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
-const CACHE_KEY = 'gd_app_data';
 
 export const useCachedData = () => {
+  const { adminId, isSuperAdmin, profile } = useAuth();
+  const effectiveAdminId = adminId || (profile as any)?.admin_id || profile?.id;
   const [categories, setCategories] = useState<any[]>([]);
   const [sizes, setSizes] = useState<any[]>([]);
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const CACHE_KEY = `gd_app_data_${effectiveAdminId || 'all'}`;
+  const IDB_KEY = `reference:lookups:${effectiveAdminId || 'all'}`;
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       // Check cache first
       const cachedDataStr = localStorage.getItem(CACHE_KEY);
@@ -54,11 +53,16 @@ export const useCachedData = () => {
         }
       }
 
+      let shopsQuery = supabase.from('shops').select('*').is('deleted_at', null).order('name');
+      if (!isSuperAdmin && effectiveAdminId) {
+        shopsQuery = shopsQuery.eq('admin_id', effectiveAdminId);
+      }
+
       // Fetch from Supabase if cache is expired or doesn't exist
       const [categoriesRes, sizesRes, shopsRes] = await Promise.all([
         supabase.from('categories').select('*').order('name'),
         supabase.from('sizes').select('*').order('size'),
-        supabase.from('shops').select('*').order('name'),
+        shopsQuery,
       ]);
 
       if (categoriesRes.error) throw categoriesRes.error;
@@ -90,7 +94,11 @@ export const useCachedData = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [CACHE_KEY, IDB_KEY, effectiveAdminId, isSuperAdmin]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const refreshCache = () => {
     localStorage.removeItem(CACHE_KEY);
