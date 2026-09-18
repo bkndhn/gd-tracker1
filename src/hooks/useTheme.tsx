@@ -20,6 +20,7 @@ export const useTheme = () => {
       root.classList.remove('dark');
     }
     localStorage.setItem(THEME_KEY, theme);
+    window.dispatchEvent(new CustomEvent('gd:theme_mode_changed', { detail: { theme } }));
   }, [theme]);
 
   const toggleTheme = useCallback(() => {

@@ -8,7 +8,55 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self';" />
     <title>GD Tracker & Requirement Request App — Lost Sale Insights & Warehouse Fulfillment</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#7c3aed" id="meta-theme-color">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="msapplication-navbutton-color" content="#7c3aed">
+    <script>
+      (function() {
+        try {
+          var THEMES = {
+            purple: '#7c3aed',
+            blue: '#2563eb',
+            emerald: '#059669',
+            rose: '#e11d48',
+            amber: '#d97706',
+            indigo: '#4f46e5',
+            teal: '#0d9488',
+            slate: '#475569'
+          };
+          var hex = localStorage.getItem('gd_applied_theme_hex');
+          if (!hex) {
+            for (var i = 0; i < localStorage.length; i++) {
+              var k = localStorage.key(i);
+              if (k && k.indexOf('gd_client_theme_') === 0) {
+                var val = localStorage.getItem(k);
+                if (val && THEMES[val]) { hex = THEMES[val]; break; }
+              }
+            }
+          }
+          if (!hex) hex = '#7c3aed';
+          var m = document.getElementById('meta-theme-color') || document.querySelector('meta[name="theme-color"]');
+          if (m) {
+            m.setAttribute('content', hex);
+            m.content = hex;
+          }
+          var mNav = document.querySelector('meta[name="msapplication-navbutton-color"]');
+          if (mNav) {
+            mNav.setAttribute('content', hex);
+            mNav.content = hex;
+          }
+          var gdTheme = localStorage.getItem('gd_theme');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (gdTheme === 'dark' || (!gdTheme && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          } else if (gdTheme === 'light') {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch(e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://jlmkvvhmtpuplnpunbhc.supabase.co" crossorigin>
     <link rel="dns-prefetch" href="https://jlmkvvhmtpuplnpunbhc.supabase.co">
     <link rel="preconnect" href="https://fonts.googleapis.com">

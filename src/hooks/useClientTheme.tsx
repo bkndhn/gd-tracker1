@@ -169,6 +169,50 @@ export const THEME_PALETTES: Record<string, ThemePalette> = {
   },
 };
 
+export const updateDynamicManifest = (themeHex: string) => {
+  try {
+    const manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
+    if (!manifestLink) return;
+    const isDark = document.documentElement.classList.contains('dark');
+    const manifestData = {
+      name: "Lost Sale Insights",
+      short_name: "LSI",
+      description: "Track non-purchase visitors and why sales are lost",
+      start_url: "/",
+      display: "standalone",
+      background_color: isDark ? "#0c0817" : "#ffffff",
+      theme_color: themeHex,
+      orientation: "portrait-primary",
+      icons: [
+        {
+          src: "/lovable-uploads/d9731f6e-4026-4be4-aaf0-1a401d8ba7be.png",
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "maskable any"
+        },
+        {
+          src: "/lovable-uploads/d9731f6e-4026-4be4-aaf0-1a401d8ba7be.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "maskable any"
+        }
+      ],
+      categories: ["business", "productivity"],
+      lang: "en",
+      dir: "ltr"
+    };
+    const blob = new Blob([JSON.stringify(manifestData, null, 2)], { type: 'application/manifest+json' });
+    if ((window as any).__pwaManifestBlob) {
+      URL.revokeObjectURL((window as any).__pwaManifestBlob);
+    }
+    const blobUrl = URL.createObjectURL(blob);
+    (window as any).__pwaManifestBlob = blobUrl;
+    manifestLink.setAttribute('href', blobUrl);
+  } catch (e) {
+    // safe fallback
+  }
+};
+
 export const applyThemeToDom = (themeId: string) => {
   const palette = THEME_PALETTES[themeId] || THEME_PALETTES.purple;
   const isDark = document.documentElement.classList.contains('dark');
@@ -181,30 +225,67 @@ export const applyThemeToDom = (themeId: string) => {
   root.style.setProperty('--sidebar-primary', vals.primary);
   root.style.setProperty('--gradient-primary', vals.gradient);
 
-  // Update browser address/notification/status bar meta tags dynamically
-  let metaTheme = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
-  if (!metaTheme) {
-    metaTheme = document.createElement('meta');
-    metaTheme.name = 'theme-color';
-    document.head.appendChild(metaTheme);
-  }
-  metaTheme.content = palette.hex;
+  const themeHex = palette.hex;
 
+  // 1. Android & Modern Chrome/Safari/Edge theme-color meta tags
+  // setAttribute('content', themeHex) is required by Chromium to fire native status bar recolor
+  const existingMetas = document.querySelectorAll('meta[name="theme-color"]');
+  if (existingMetas.length === 0) {
+    const metaTheme = document.createElement('meta');
+    metaTheme.name = 'theme-color';
+    metaTheme.setAttribute('content', themeHex);
+    document.head.appendChild(metaTheme);
+  } else {
+    existingMetas.forEach(meta => {
+      meta.setAttribute('content', themeHex);
+      (meta as HTMLMetaElement).content = themeHex;
+    });
+  }
+
+  // 2. Apple iOS Safari Status Bar Style
   let metaApple = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement | null;
   if (!metaApple) {
     metaApple = document.createElement('meta');
     metaApple.name = 'apple-mobile-web-app-status-bar-style';
     document.head.appendChild(metaApple);
   }
+  metaApple.setAttribute('content', isDark ? 'black-translucent' : 'default');
   metaApple.content = isDark ? 'black-translucent' : 'default';
 
+  // 3. Mobile web app capable tags for native Android & iOS PWA feel
+  let metaAppleCapable = document.querySelector('meta[name="apple-mobile-web-app-capable"]') as HTMLMetaElement | null;
+  if (!metaAppleCapable) {
+    metaAppleCapable = document.createElement('meta');
+    metaAppleCapable.name = 'apple-mobile-web-app-capable';
+    metaAppleCapable.setAttribute('content', 'yes');
+    document.head.appendChild(metaAppleCapable);
+  }
+
+  let metaMobileCapable = document.querySelector('meta[name="mobile-web-app-capable"]') as HTMLMetaElement | null;
+  if (!metaMobileCapable) {
+    metaMobileCapable = document.createElement('meta');
+    metaMobileCapable.name = 'mobile-web-app-capable';
+    metaMobileCapable.setAttribute('content', 'yes');
+    document.head.appendChild(metaMobileCapable);
+  }
+
+  // 4. Windows Phone / older Edge status bar
   let metaNav = document.querySelector('meta[name="msapplication-navbutton-color"]') as HTMLMetaElement | null;
   if (!metaNav) {
     metaNav = document.createElement('meta');
     metaNav.name = 'msapplication-navbutton-color';
     document.head.appendChild(metaNav);
   }
-  metaNav.content = palette.hex;
+  metaNav.setAttribute('content', themeHex);
+  metaNav.content = themeHex;
+
+  // 5. Store for synchronous 0ms paint on next cold reload
+  try {
+    localStorage.setItem('gd_applied_theme_hex', themeHex);
+  } catch {}
+
+  // 6. Dynamically update manifest so installed PWA honors active theme
+  updateDynamicManifest(themeHex);
 };
 
 export interface RoleThemes {
@@ -275,7 +356,16 @@ export const useClientTheme = () => {
       attributes: true,
       attributeFilter: ['class'],
     });
-    return () => observer.disconnect();
+
+    const handleModeChange = () => {
+      applyThemeToDom(effectiveTheme);
+    };
+    window.addEventListener('gd:theme_mode_changed', handleModeChange);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('gd:theme_mode_changed', handleModeChange);
+    };
   }, [effectiveTheme]);
 
   // Update overall client theme
@@ -372,3 +462,14 @@ export const useClientTheme = () => {
     saving,
   };
 };
+
+/**
+ * Global component mounted at root level (App.tsx) to ensure
+ * the tenant's brand theme and mobile status bar are continuously
+ * synced across all pages (even on loading, login, 404 screens).
+ */
+export const ClientThemeSync: React.FC = () => {
+  useClientTheme();
+  return null;
+};
+

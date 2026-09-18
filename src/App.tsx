@@ -8,6 +8,7 @@ import { ExportJobsProvider } from "@/hooks/useExportJobs";
 import { ExportJobsPanel } from "@/components/ExportJobsPanel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { I18nProvider } from "@/i18n";
+import { ClientThemeSync } from "@/hooks/useClientTheme";
 import Index from "./pages/Index";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -31,6 +32,7 @@ const App: React.FC = () => {
       <QueryClientProvider client={queryClient}>
         <I18nProvider>
         <TooltipProvider>
+          <ClientThemeSync />
           <ExportJobsProvider>
             <Toaster />
             <Sonner />
