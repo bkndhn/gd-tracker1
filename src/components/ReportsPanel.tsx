@@ -1259,17 +1259,19 @@ export const ReportsPanel = ({ defaultTab }: ReportsPanelProps = {}) => {
           <TabsList className="grid w-full sm:w-auto grid-cols-2 p-1.5 bg-muted/60 border rounded-xl gap-1.5 h-auto">
             <TabsTrigger
               value="visits"
-              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+              className="group flex items-center justify-center gap-2 py-2 px-2.5 sm:px-3 text-xs sm:text-sm font-medium whitespace-nowrap shrink-0 rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
             >
-              <FileText className="h-4 w-4 text-indigo-500 group-data-[state=active]:text-white transition-colors" />
-              <span className="font-semibold">Lost Visit Reports</span>
+              <FileText className="h-4 w-4 text-indigo-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+              <span className="font-semibold hidden sm:inline whitespace-nowrap">Lost Visit Reports</span>
+              <span className="font-semibold sm:hidden whitespace-nowrap">Lost Visits</span>
             </TabsTrigger>
             <TabsTrigger
               value="requirements"
-              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+              className="group flex items-center justify-center gap-2 py-2 px-2.5 sm:px-3 text-xs sm:text-sm font-medium whitespace-nowrap shrink-0 rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
             >
-              <ClipboardList className="h-4 w-4 text-emerald-500 group-data-[state=active]:text-white transition-colors" />
-              <span className="font-semibold">Requirements Report</span>
+              <ClipboardList className="h-4 w-4 text-emerald-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+              <span className="font-semibold hidden sm:inline whitespace-nowrap">Requirements Report</span>
+              <span className="font-semibold sm:hidden whitespace-nowrap">Requirements</span>
             </TabsTrigger>
           </TabsList>
         </div>

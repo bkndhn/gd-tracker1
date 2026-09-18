@@ -457,37 +457,39 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0 overscroll-contain">
               <Tabs defaultValue="basics" className="w-full">
                 {/* Colorful, Proper Responsive Tabs */}
-                <TabsList className="w-full flex items-center gap-1.5 p-1.5 bg-muted/50 border border-border/60 rounded-2xl overflow-x-auto no-scrollbar mb-5 shrink-0">
+                <TabsList className="w-full grid grid-cols-4 gap-1 sm:gap-1.5 p-1 sm:p-1.5 bg-muted/50 border border-border/60 rounded-2xl mb-5 shrink-0">
                   <TabsTrigger
                     value="basics"
-                    className="group flex-1 min-w-[110px] sm:min-w-0 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/25"
+                    className="group min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/25"
                   >
                     <KeyRound className="h-3.5 w-3.5 text-indigo-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
-                    <span className="truncate">Account & Auth</span>
+                    <span className="hidden sm:inline whitespace-nowrap">Account & Auth</span>
+                    <span className="sm:hidden whitespace-nowrap">Account</span>
                   </TabsTrigger>
 
                   <TabsTrigger
                     value="limits"
-                    className="group flex-1 min-w-[110px] sm:min-w-0 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/25"
+                    className="group min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/25"
                   >
                     <Sliders className="h-3.5 w-3.5 text-violet-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
-                    <span className="truncate">Limits</span>
+                    <span className="whitespace-nowrap">Limits</span>
                   </TabsTrigger>
 
                   <TabsTrigger
                     value="features"
-                    className="group flex-1 min-w-[110px] sm:min-w-0 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/25"
+                    className="group min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/25"
                   >
                     <Sparkles className="h-3.5 w-3.5 text-emerald-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
-                    <span className="truncate">Features</span>
+                    <span className="whitespace-nowrap">Features</span>
                   </TabsTrigger>
 
                   <TabsTrigger
                     value="billing"
-                    className="group flex-1 min-w-[110px] sm:min-w-0 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/25"
+                    className="group min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/25"
                   >
                     <CreditCard className="h-3.5 w-3.5 text-amber-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
-                    <span className="truncate">Plan & Billing</span>
+                    <span className="hidden sm:inline whitespace-nowrap">Plan & Billing</span>
+                    <span className="sm:hidden whitespace-nowrap">Billing</span>
                   </TabsTrigger>
                 </TabsList>
 

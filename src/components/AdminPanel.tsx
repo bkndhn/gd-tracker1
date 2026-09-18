@@ -290,6 +290,7 @@ export const AdminPanel = () => {
     {
       id: 'team',
       label: 'Team & Shops',
+      shortLabel: 'Team',
       icon: Users,
       count: 3,
       activeClass: 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20',
@@ -298,6 +299,7 @@ export const AdminPanel = () => {
     {
       id: 'fields',
       label: 'Forms & Fields',
+      shortLabel: 'Fields',
       icon: SlidersHorizontal,
       count: 2,
       activeClass: 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-cyan-500/20',
@@ -306,6 +308,7 @@ export const AdminPanel = () => {
     {
       id: 'whatsapp',
       label: 'WhatsApp',
+      shortLabel: 'WhatsApp',
       icon: MessageSquare,
       count: 4,
       activeClass: 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20',
@@ -314,6 +317,7 @@ export const AdminPanel = () => {
     {
       id: 'scoring',
       label: 'Scoring & Reports',
+      shortLabel: 'Scoring',
       icon: BarChart3,
       count: 4,
       activeClass: 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20',
@@ -322,6 +326,7 @@ export const AdminPanel = () => {
     {
       id: 'security',
       label: 'Privacy & System',
+      shortLabel: 'Privacy',
       icon: ShieldCheck,
       count: 5,
       activeClass: 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-rose-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20',
@@ -435,17 +440,18 @@ export const AdminPanel = () => {
         /* Organized Tabs View */
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminTab)} className="space-y-6">
           {/* Scrollable responsive tabs list */}
-          <div className="overflow-x-auto no-scrollbar pb-1">
-            <TabsList className="w-full inline-flex sm:grid sm:grid-cols-5 h-auto p-1.5 gap-1.5 bg-muted/60 border rounded-xl min-w-max sm:min-w-0">
-              {tabDefs.map(({ id, label, icon: Icon, count, activeClass, iconClass }) => (
+          <div className="overflow-x-auto no-scrollbar pb-1 scroll-px-2">
+            <TabsList className="w-full inline-flex lg:grid lg:grid-cols-5 h-auto p-1.5 gap-1.5 bg-muted/60 border rounded-xl min-w-max lg:min-w-0">
+              {tabDefs.map(({ id, label, shortLabel, icon: Icon, count, activeClass, iconClass }) => (
                 <TabsTrigger
                   key={id}
                   value={id}
-                  className={`group flex items-center justify-center gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-200 ${activeClass} data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50`}
+                  className={`group flex items-center justify-center gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap shrink-0 transition-all duration-200 ${activeClass} data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50`}
                 >
                   <Icon className={`h-4 w-4 shrink-0 transition-colors ${iconClass}`} />
-                  <span className="font-medium tracking-tight">{label}</span>
-                  <span className="ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-muted-foreground/15 group-data-[state=active]:bg-white/25 group-data-[state=active]:text-white font-bold transition-all">
+                  <span className="font-medium tracking-tight hidden sm:inline">{label}</span>
+                  <span className="font-medium tracking-tight sm:hidden">{shortLabel}</span>
+                  <span className="ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-muted-foreground/15 group-data-[state=active]:bg-white/25 group-data-[state=active]:text-white font-bold transition-all shrink-0">
                     {count}
                   </span>
                 </TabsTrigger>

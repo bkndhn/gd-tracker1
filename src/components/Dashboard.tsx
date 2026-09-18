@@ -738,8 +738,8 @@ export const Dashboard = () => {
     <div className="space-y-6 pb-6">
       <Tabs defaultValue="visits" className="w-full space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b">
-          <div className="w-full sm:w-auto overflow-x-auto no-scrollbar pb-0.5">
-            <TabsList className="flex w-full sm:w-auto items-center p-1 bg-muted/60 border rounded-xl gap-1 h-auto no-scrollbar">
+          <div className="w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 scroll-px-2">
+            <TabsList className="inline-flex sm:flex w-full sm:w-auto items-center p-1.5 bg-muted/60 border rounded-xl gap-1 sm:gap-1.5 h-auto no-scrollbar min-w-max sm:min-w-0">
               <TabsTrigger
                 value="visits"
                 className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"

@@ -507,34 +507,34 @@ export const SuperAdminDashboard = () => {
           </div>
         </div>
 
-        <TabsList className="w-full flex sm:grid sm:grid-cols-4 gap-1.5 overflow-x-auto no-scrollbar justify-start p-1 bg-muted/60 border rounded-xl">
+        <TabsList className="w-full grid grid-cols-4 gap-1 sm:gap-1.5 p-1 bg-muted/60 border rounded-xl">
           <TabsTrigger
             value="tenants"
-            className="group flex items-center justify-center gap-1.5 shrink-0 rounded-lg py-2 px-3 text-xs sm:text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20"
+            className="group flex items-center justify-center gap-1 sm:gap-1.5 rounded-lg py-2 px-1 sm:px-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20"
           >
-            <Shield className="h-4 w-4 text-indigo-500 group-data-[state=active]:text-white transition-colors shrink-0" />
-            <span>Tenants</span>
+            <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-indigo-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+            <span className="whitespace-nowrap">Tenants</span>
           </TabsTrigger>
           <TabsTrigger
             value="settings"
-            className="group flex items-center justify-center gap-1.5 shrink-0 rounded-lg py-2 px-3 text-xs sm:text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20"
+            className="group flex items-center justify-center gap-1 sm:gap-1.5 rounded-lg py-2 px-1 sm:px-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20"
           >
-            <Settings className="h-4 w-4 text-purple-500 group-data-[state=active]:text-white transition-colors shrink-0" />
-            <span>Settings</span>
+            <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+            <span className="whitespace-nowrap">Settings</span>
           </TabsTrigger>
           <TabsTrigger
             value="audit"
-            className="group flex items-center justify-center gap-1.5 shrink-0 rounded-lg py-2 px-3 text-xs sm:text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20"
+            className="group flex items-center justify-center gap-1 sm:gap-1.5 rounded-lg py-2 px-1 sm:px-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20"
           >
-            <Activity className="h-4 w-4 text-amber-500 group-data-[state=active]:text-white transition-colors shrink-0" />
-            <span>Audit</span>
+            <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+            <span className="whitespace-nowrap">Audit</span>
           </TabsTrigger>
           <TabsTrigger
             value="health"
-            className="group flex items-center justify-center gap-1.5 shrink-0 rounded-lg py-2 px-3 text-xs sm:text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20"
+            className="group flex items-center justify-center gap-1 sm:gap-1.5 rounded-lg py-2 px-1 sm:px-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20"
           >
-            <HeartPulse className="h-4 w-4 text-emerald-500 group-data-[state=active]:text-white transition-colors shrink-0" />
-            <span>Health</span>
+            <HeartPulse className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+            <span className="whitespace-nowrap">Health</span>
           </TabsTrigger>
         </TabsList>
       </div>
@@ -571,7 +571,7 @@ export const SuperAdminDashboard = () => {
           <button
             type="button"
             onClick={() => setStatusFilter('all')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-all ${
               statusFilter === 'all'
                 ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm shadow-indigo-500/25 font-semibold'
                 : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
@@ -585,13 +585,13 @@ export const SuperAdminDashboard = () => {
           <button
             type="button"
             onClick={() => setStatusFilter('active')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-all ${
               statusFilter === 'active'
                 ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-sm shadow-emerald-500/25 font-semibold'
                 : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
             }`}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
             <span>Active</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${statusFilter === 'active' ? 'bg-white/20 text-white font-bold' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'}`}>
               {activeAdmins.length}
@@ -600,13 +600,13 @@ export const SuperAdminDashboard = () => {
           <button
             type="button"
             onClick={() => setStatusFilter('paused')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-all ${
               statusFilter === 'paused'
                 ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm shadow-amber-500/25 font-semibold'
                 : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
             }`}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
             <span>Paused</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${statusFilter === 'paused' ? 'bg-white/20 text-white font-bold' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'}`}>
               {pausedAdmins.length}

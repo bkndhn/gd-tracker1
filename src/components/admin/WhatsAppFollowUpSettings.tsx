@@ -65,7 +65,7 @@ export const WhatsAppFollowUpSettings = () => {
         ) : (
           <>
             <Tabs value={draft.locale} onValueChange={(v) => setDraft(d => ({ ...d, locale: v as TemplateLocale }))}>
-              <TabsList>
+              <TabsList className="grid grid-cols-3 w-full sm:w-auto">
                 {LOCALES.map(l => <TabsTrigger key={l} value={l}>{TEMPLATE_LOCALE_LABELS[l]}</TabsTrigger>)}
               </TabsList>
               {LOCALES.map(locale => (

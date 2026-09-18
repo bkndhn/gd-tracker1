@@ -404,25 +404,25 @@ export const RecoveryAttributionPanel = ({
 
       <Tabs defaultValue="staff">
 
-        <div className="overflow-x-auto no-scrollbar pb-1">
-          <TabsList className="inline-flex sm:grid sm:grid-cols-3 h-auto p-1.5 gap-1.5 bg-muted/60 border rounded-xl min-w-max sm:min-w-0">
+        <div className="overflow-x-auto no-scrollbar pb-1 scroll-px-2">
+          <TabsList className="w-full inline-flex sm:grid sm:grid-cols-3 h-auto p-1.5 gap-1.5 bg-muted/60 border rounded-xl min-w-max sm:min-w-0">
             <TabsTrigger
               value="staff"
-              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-cyan-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium whitespace-nowrap shrink-0 rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-cyan-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
             >
               <Users className="h-4 w-4 text-cyan-500 group-data-[state=active]:text-white transition-colors shrink-0" />
               <span>By staff</span>
             </TabsTrigger>
             <TabsTrigger
               value="shop"
-              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium whitespace-nowrap shrink-0 rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
             >
               <Store className="h-4 w-4 text-emerald-500 group-data-[state=active]:text-white transition-colors shrink-0" />
               <span>By shop</span>
             </TabsTrigger>
             <TabsTrigger
               value="template"
-              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium whitespace-nowrap shrink-0 rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
             >
               <MessageSquare className="h-4 w-4 text-amber-500 group-data-[state=active]:text-white transition-colors shrink-0" />
               <span>By template</span>

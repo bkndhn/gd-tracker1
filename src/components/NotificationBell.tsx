@@ -195,8 +195,8 @@ export const NotificationBell = () => {
 
           <Tabs defaultValue="activity">
             <TabsList className="grid grid-cols-2 w-full rounded-none bg-transparent border-b h-9">
-              <TabsTrigger value="activity" className="text-xs">Activity</TabsTrigger>
-              <TabsTrigger value="alerts" className="text-xs">
+              <TabsTrigger value="activity" className="text-xs whitespace-nowrap shrink-0 font-medium">Activity</TabsTrigger>
+              <TabsTrigger value="alerts" className="text-xs whitespace-nowrap shrink-0 font-medium">
                 Alerts{visibleAlerts.length > 0 ? ` (${visibleAlerts.length})` : ''}
               </TabsTrigger>
             </TabsList>
