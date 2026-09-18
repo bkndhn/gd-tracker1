@@ -296,17 +296,43 @@ export const CustomFieldManagement = () => {
     const sourceField = fields.find(f => f.id === selectedReuseFieldId);
     if (!sourceField) return;
 
-    // Check duplicate name in requirements
-    const exists = requirementFields.some(
+    const existingReqField = requirementFields.find(
       f => f.name.trim().toLowerCase() === sourceField.name.trim().toLowerCase()
     );
-    if (exists) {
-      toast.error(`A requirement field named "${sourceField.name}" already exists`);
-      return;
-    }
 
     try {
       setReusing(true);
+      const sourceOptions = options[sourceField.id] || [];
+
+      if (existingReqField) {
+        // Sync new options into existing requirement field
+        const existingOpts = (options[existingReqField.id] || []).map(o => o.value.trim().toLowerCase());
+        const newOptsToCopy = sourceOptions.filter(o => !existingOpts.includes(o.value.trim().toLowerCase()));
+
+        if (newOptsToCopy.length === 0) {
+          toast.info(`"${sourceField.name}" is already in requirements with all options synced.`);
+          setIsReuseDialogOpen(false);
+          setSelectedReuseFieldId('');
+          return;
+        }
+
+        const startIdx = (options[existingReqField.id] || []).length;
+        const toInsert = newOptsToCopy.map((opt, idx) => ({
+          custom_field_id: existingReqField.id,
+          value: opt.value,
+          display_order: startIdx + idx,
+        }));
+        const { error: optError } = await (supabase.from('custom_field_options') as any).insert(toInsert);
+        if (optError) throw optError;
+
+        toast.success(`Synced ${newOptsToCopy.length} option(s) to "${existingReqField.name}" in requirements`);
+        setIsReuseDialogOpen(false);
+        setSelectedReuseFieldId('');
+        fetchFields();
+        return;
+      }
+
+      // Create new requirement field
       const { data: newField, error: fieldError } = await (supabase.from('custom_fields') as any)
         .insert({
           name: sourceField.name,
@@ -323,15 +349,13 @@ export const CustomFieldManagement = () => {
       if (fieldError) throw fieldError;
 
       // Copy options if any
-      const sourceOptions = options[sourceField.id] || [];
       if (sourceOptions.length > 0 && newField?.id) {
         const toInsert = sourceOptions.map((opt, idx) => ({
           custom_field_id: newField.id,
           value: opt.value,
           display_order: idx,
         }));
-        const { error: optError } = await (supabase.from('custom_field_options') as any)
-          .insert(toInsert);
+        const { error: optError } = await (supabase.from('custom_field_options') as any).insert(toInsert);
         if (optError) throw optError;
       }
 
@@ -801,33 +825,46 @@ export const CustomFieldManagement = () => {
                       );
                       const optCount = (options[f.id] || []).length;
                       return (
-                        <SelectItem key={f.id} value={f.id} disabled={alreadyCopied}>
+                        <SelectItem key={f.id} value={f.id}>
                           {f.name} ({f.field_type || 'dropdown'}{optCount > 0 ? `, ${optCount} options` : ''})
-                          {alreadyCopied ? ' (already in requirements)' : ''}
+                          {alreadyCopied ? ' · in requirements (sync)' : ''}
                         </SelectItem>
                       );
                     })}
                   </SelectContent>
                 </Select>
-                {selectedReuseFieldId && (
-                  <div className="mt-3 p-3 bg-muted/40 rounded-lg text-sm space-y-1">
-                    <p className="font-medium">
-                      Field: {visitFields.find(f => f.id === selectedReuseFieldId)?.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Type: {visitFields.find(f => f.id === selectedReuseFieldId)?.field_type || 'dropdown'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Options to copy: {(options[selectedReuseFieldId] || []).length} items
-                    </p>
-                  </div>
-                )}
+                {selectedReuseFieldId && (() => {
+                  const src = visitFields.find(f => f.id === selectedReuseFieldId);
+                  const isExisting = requirementFields.some(rf => rf.name.trim().toLowerCase() === src?.name.trim().toLowerCase());
+                  return (
+                    <div className="mt-3 p-3 bg-muted/40 rounded-lg text-sm space-y-1 border">
+                      <p className="font-medium">
+                        Field: {src?.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Type: {src?.field_type || 'dropdown'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Available options: {(options[selectedReuseFieldId] || []).length} items
+                      </p>
+                      {isExisting && (
+                        <p className="text-xs text-primary font-medium pt-1">
+                          ✓ This field exists in requirements. Clicking below will sync any new/missing options to it!
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setIsReuseDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleReuseField} disabled={!selectedReuseFieldId || reusing}>
-                {reusing ? 'Copying...' : 'Copy to Requirements'}
+                {reusing ? 'Processing...' : (() => {
+                  const src = visitFields.find(f => f.id === selectedReuseFieldId);
+                  const isExisting = requirementFields.some(rf => rf.name.trim().toLowerCase() === src?.name.trim().toLowerCase());
+                  return isExisting ? 'Sync Options to Requirements' : 'Copy to Requirements';
+                })()}
               </Button>
             </div>
           </div>

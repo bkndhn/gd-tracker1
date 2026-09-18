@@ -22,10 +22,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   PackagePlus, Filter, Search, Truck, PackageCheck, CheckCircle2, XCircle,
   ClipboardList, Warehouse, Printer, Download, FileText, FileSpreadsheet, User, RotateCcw,
-  Sparkles,
+  Sparkles, Settings2, Plus,
 } from 'lucide-react';
 import { formatISTDateTime, formatISTShort } from '@/lib/dateUtils';
 import {
@@ -61,25 +62,19 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
   const [undoTarget, setUndoTarget] = useState<StockRequirement | null>(null);
   const [undoReason, setUndoReason] = useState('');
 
-  const [sizes, setSizes] = useState<{ id: string; size: string }[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [reqCustomFields, setReqCustomFields] = useState<any[]>([]);
   const [reqCustomOptions, setReqCustomOptions] = useState<Record<string, any[]>>({});
   const [customFormValues, setCustomFormValues] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [customInputToggles, setCustomInputToggles] = useState<Record<string, boolean>>({});
+  const [seedingStandardFields, setSeedingStandardFields] = useState(false);
   const [requirementCustomValues, setRequirementCustomValues] = useState<Record<string, Record<string, string>>>({});
 
-  // form
+  // Standard fixed fields: Shop & Note (all other fields are purely dynamic from custom fields)
   const [form, setForm] = useState({
     shop_id: p?.shop_id || '',
-    size: '',
-    category: '',
-    quantity: 1,
-    urgency: 'normal',
     note: '',
   });
-
-  const [isCustomSize, setIsCustomSize] = useState(false);
-  const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   // User's assigned shop (matches LostVisitForm pattern)
   const userShop = useMemo(() => {
@@ -95,12 +90,6 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
       setForm(f => ({ ...f, shop_id: visibleShops[0].id }));
     }
   }, [p?.shop_id, visibleShops]);
-
-  // Quick-select sizes
-  const quickSizes = useMemo(() => {
-    if (sizes.length > 0) return sizes.map(s => s.size);
-    return ['36', '38', '40', '42', '44', 'S', 'M', 'L', 'XL', 'XXL'];
-  }, [sizes]);
 
   // filters
   const [showFilters, setShowFilters] = useState(false);
@@ -120,9 +109,7 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
 
   const fetchMeta = useCallback(async () => {
     try {
-      const [sizeRes, catRes, cfRes, cvRes] = await Promise.all([
-        supabase.from('sizes').select('id, size').is('deleted_at', null).order('size'),
-        supabase.from('categories').select('id, name').is('deleted_at', null).order('name'),
+      const [cfRes, cvRes] = await Promise.all([
         (supabase.from('custom_fields') as any)
           .select('*')
           .eq('scope', 'requirement')
@@ -132,13 +119,11 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
           .select('*')
           .not('requirement_id', 'is', null),
       ]);
-      if (!sizeRes.error) setSizes((sizeRes.data || []) as any);
-      if (!catRes.error) setCategories((catRes.data || []) as any);
 
       if (cfRes?.data) {
-        // Exclude native fixed fields (shop, quantity, size) from the generic custom field list
+        // Only exclude fixed top-level native fields (shop, note) - all other fields come dynamically from custom fields
         const NATIVE_FIXED_FIELDS = new Set([
-          'shop', 'shops', 'store', 'stores', 'branch', 'branches', 'shop name', 'quantity', 'size',
+          'shop', 'shops', 'store', 'stores', 'branch', 'branches', 'shop name', 'note', 'notes',
         ]);
         const validFields = cfRes.data.filter(
           (f: any) => !NATIVE_FIXED_FIELDS.has(f.name.trim().toLowerCase())
@@ -195,57 +180,133 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
     }
   }, [isActive, fetchMeta]);
 
-  // Identify Category custom field if defined in Admin -> Custom Fields (Requirement / Stock Fields)
-  const categoryCustomField = useMemo(() => {
-    return reqCustomFields.find(f => {
-      const name = f.name.trim().toLowerCase();
-      return name === 'category' || name === 'categories' || name === 'item' || name === 'item type';
-    }) || null;
+  // Dynamic requirement fields strictly filtered by is_visible !== false and ordered by display_order
+  const visibleRequirementFields = useMemo(() => {
+    return reqCustomFields
+      .filter(f => f.is_visible !== false)
+      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
   }, [reqCustomFields]);
 
-  // Is Category visible in the requirement form?
-  // If an admin has configured Category in Requirement Custom Fields:
-  // strictly respect its is_visible toggle ("Show" switch in Admin).
-  // If no requirement custom field exists, only show if database categories exist.
-  const isCategoryVisible = useMemo(() => {
-    if (categoryCustomField) {
-      return categoryCustomField.is_visible !== false;
-    }
-    return categories.length > 0;
-  }, [categoryCustomField, categories.length]);
-
-  // Combined available categories: Custom field options (e.g. Shirt) + categories table
-  const availableCategories = useMemo(() => {
-    if (!isCategoryVisible) return [];
-    const list: string[] = [];
-    if (categoryCustomField && reqCustomOptions[categoryCustomField.id]) {
-      reqCustomOptions[categoryCustomField.id].forEach((opt: any) => {
-        if (opt.value && !list.includes(opt.value)) list.push(opt.value);
-      });
-    }
-    categories.forEach(c => {
-      if (c.name && !list.includes(c.name)) list.push(c.name);
-    });
-    return list;
-  }, [isCategoryVisible, categoryCustomField, reqCustomOptions, categories]);
-
-  // Other custom fields to render below (excluding category and any field where Show is turned OFF)
-  const otherCustomFields = useMemo(() => {
-    return reqCustomFields.filter(
-      f => f.id !== categoryCustomField?.id && f.is_visible !== false
-    );
-  }, [reqCustomFields, categoryCustomField]);
-
-  // If only 1 category exists and Category is visible, auto-select it
+  // Set intelligent initial defaults for quantity / urgency custom fields
   useEffect(() => {
-    if (isCategoryVisible && availableCategories.length === 1 && !form.category) {
-      const single = availableCategories[0];
-      setForm(f => ({ ...f, category: single }));
-      if (categoryCustomField) {
-        setCustomFormValues(prev => ({ ...prev, [categoryCustomField.id]: single }));
+    if (visibleRequirementFields.length === 0) return;
+    setCustomFormValues(prev => {
+      let changed = false;
+      const next = { ...prev };
+      visibleRequirementFields.forEach(f => {
+        const name = f.name.trim().toLowerCase();
+        if (next[f.id] === undefined || next[f.id] === '') {
+          if (name.includes('quantity') || name === 'qty') {
+            next[f.id] = '1';
+            changed = true;
+          } else if (name.includes('urgency') || name.includes('priority')) {
+            const opts = reqCustomOptions[f.id] || [];
+            const normalOpt = opts.find((o: any) => o.value.toLowerCase().includes('normal'));
+            if (normalOpt) {
+              next[f.id] = normalOpt.value;
+              changed = true;
+            }
+          }
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [visibleRequirementFields, reqCustomOptions]);
+
+  // 1-click seeding of standard fields for convenience if a tenant hasn't configured any yet
+  const initializeStandardRequirementFields = async () => {
+    try {
+      setSeedingStandardFields(true);
+      const adminId = (p as any)?.admin_id || p?.id;
+      if (!adminId) {
+        toast.error('No admin context available');
+        return;
       }
+
+      // 1. Category (Dropdown)
+      const { data: catField } = await (supabase.from('custom_fields') as any).insert({
+        admin_id: adminId,
+        name: 'Category',
+        field_type: 'dropdown',
+        is_mandatory: false,
+        is_visible: true,
+        display_order: 0,
+        scope: 'requirement',
+      }).select().single();
+
+      if (catField?.id) {
+        await (supabase.from('custom_field_options') as any).insert([
+          { custom_field_id: catField.id, value: 'Shirt', display_order: 0 },
+          { custom_field_id: catField.id, value: 'T-Shirt', display_order: 1 },
+          { custom_field_id: catField.id, value: 'Jeans', display_order: 2 },
+          { custom_field_id: catField.id, value: 'Trousers', display_order: 3 },
+          { custom_field_id: catField.id, value: 'Kurti', display_order: 4 },
+        ]);
+      }
+
+      // 2. Size (Dropdown with quick-selection)
+      const { data: sizeField } = await (supabase.from('custom_fields') as any).insert({
+        admin_id: adminId,
+        name: 'Size',
+        field_type: 'dropdown',
+        is_mandatory: true,
+        is_visible: true,
+        display_order: 1,
+        scope: 'requirement',
+      }).select().single();
+
+      if (sizeField?.id) {
+        await (supabase.from('custom_field_options') as any).insert([
+          { custom_field_id: sizeField.id, value: 'S', display_order: 0 },
+          { custom_field_id: sizeField.id, value: 'M', display_order: 1 },
+          { custom_field_id: sizeField.id, value: 'L', display_order: 2 },
+          { custom_field_id: sizeField.id, value: 'XL', display_order: 3 },
+          { custom_field_id: sizeField.id, value: 'XXL', display_order: 4 },
+          { custom_field_id: sizeField.id, value: '36', display_order: 5 },
+          { custom_field_id: sizeField.id, value: '38', display_order: 6 },
+          { custom_field_id: sizeField.id, value: '40', display_order: 7 },
+          { custom_field_id: sizeField.id, value: '42', display_order: 8 },
+          { custom_field_id: sizeField.id, value: '44', display_order: 9 },
+        ]);
+      }
+
+      // 3. Quantity (Number)
+      await (supabase.from('custom_fields') as any).insert({
+        admin_id: adminId,
+        name: 'Quantity',
+        field_type: 'number',
+        is_mandatory: true,
+        is_visible: true,
+        display_order: 2,
+        scope: 'requirement',
+      });
+
+      // 4. Urgency (Dropdown)
+      const { data: urgField } = await (supabase.from('custom_fields') as any).insert({
+        admin_id: adminId,
+        name: 'Urgency',
+        field_type: 'dropdown',
+        is_mandatory: false,
+        is_visible: true,
+        display_order: 3,
+        scope: 'requirement',
+      }).select().single();
+
+      if (urgField?.id) {
+        await (supabase.from('custom_field_options') as any).insert([
+          { custom_field_id: urgField.id, value: 'Normal', display_order: 0 },
+          { custom_field_id: urgField.id, value: 'Urgent', display_order: 1 },
+        ]);
+      }
+
+      toast.success('Initialized standard requirement fields!');
+      await fetchMeta();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to initialize requirement fields');
+    } finally {
+      setSeedingStandardFields(false);
     }
-  }, [isCategoryVisible, availableCategories, categoryCustomField, form.category]);
+  };
 
   const uniqueRequesters = useMemo(() => {
     const names = new Set<string>();
@@ -372,60 +433,109 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
 
   const submit = async () => {
     if (!form.shop_id) return toast.error('Choose a shop');
-    if (!form.size.trim()) return toast.error('Enter the size you need');
-    if (!form.quantity || form.quantity < 1) return toast.error('Enter a quantity');
 
-    const effectiveCategory = isCategoryVisible
-      ? (form.category.trim() ||
-         (categoryCustomField ? customFormValues[categoryCustomField.id] || '' : '') ||
-         '')
-      : '';
-
-    if (isCategoryVisible && categoryCustomField?.is_mandatory && !effectiveCategory) {
-      return toast.error(`Please provide ${categoryCustomField.name || 'Category'}`);
+    // Validate mandatory custom fields
+    const errors: Record<string, string> = {};
+    for (const field of visibleRequirementFields) {
+      const val = customFormValues[field.id];
+      if (field.is_mandatory && (!val || !String(val).trim())) {
+        errors[field.id] = `${field.name} is required`;
+      }
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      const firstMsg = Object.values(errors)[0];
+      return toast.error(firstMsg);
     }
 
-    for (const cf of otherCustomFields) {
-      if (cf.is_mandatory && !customFormValues[cf.id]?.trim()) {
-        return toast.error(`Please provide ${cf.name}`);
+    // Resolve Size from custom fields
+    let resolvedSize = 'Standard';
+    const sizeField = visibleRequirementFields.find(f => {
+      const n = f.name.trim().toLowerCase();
+      return n === 'size' || n.includes('size');
+    });
+    if (sizeField && customFormValues[sizeField.id]) {
+      const rawVal = customFormValues[sizeField.id];
+      const opt = (reqCustomOptions[sizeField.id] || []).find((o: any) => o.id === rawVal || o.value === rawVal);
+      resolvedSize = opt ? opt.value : String(rawVal).trim();
+    }
+
+    // Resolve Quantity from custom fields
+    let resolvedQuantity = 1;
+    const qtyField = visibleRequirementFields.find(f => {
+      const n = f.name.trim().toLowerCase();
+      return n === 'quantity' || n === 'qty' || n.includes('quantity') || n.includes('qty');
+    });
+    if (qtyField && customFormValues[qtyField.id]) {
+      const num = Number(customFormValues[qtyField.id]);
+      if (!isNaN(num) && num > 0) resolvedQuantity = num;
+    }
+
+    // Resolve Urgency from custom fields
+    let resolvedUrgency: 'normal' | 'urgent' = 'normal';
+    const urgencyField = visibleRequirementFields.find(f => {
+      const n = f.name.trim().toLowerCase();
+      return n === 'urgency' || n === 'priority' || n.includes('urgency') || n.includes('priority');
+    });
+    if (urgencyField && customFormValues[urgencyField.id]) {
+      const rawVal = customFormValues[urgencyField.id];
+      const opt = (reqCustomOptions[urgencyField.id] || []).find((o: any) => o.id === rawVal || o.value === rawVal);
+      const str = (opt ? opt.value : String(rawVal)).toLowerCase();
+      if (str.includes('urgent') || str.includes('high') || str.includes('rush') || str.includes('critical')) {
+        resolvedUrgency = 'urgent';
       }
     }
 
-    const finalCustomValues: Record<string, string> = { ...customFormValues };
-    if (isCategoryVisible && categoryCustomField && effectiveCategory) {
-      finalCustomValues[categoryCustomField.id] = effectiveCategory;
+    // Resolve Category from custom fields
+    let resolvedCategory: string | null = null;
+    const catField = visibleRequirementFields.find(f => {
+      const n = f.name.trim().toLowerCase();
+      return n === 'category' || n === 'item' || n.includes('category') || n.includes('item type');
+    });
+    if (catField && customFormValues[catField.id]) {
+      const rawVal = customFormValues[catField.id];
+      const opt = (reqCustomOptions[catField.id] || []).find((o: any) => o.id === rawVal || o.value === rawVal);
+      resolvedCategory = opt ? opt.value : String(rawVal).trim();
     }
+
+    // Prepare human-readable values for custom_values mapping
+    const finalCustomValues: Record<string, string> = {};
+    Object.entries(customFormValues).forEach(([fId, val]) => {
+      if (!val || !String(val).trim()) return;
+      const f = reqCustomFields.find(field => field.id === fId);
+      const type = f?.field_type || 'dropdown';
+      if (type === 'dropdown' || type === 'radio') {
+        const opt = (reqCustomOptions[fId] || []).find((o: any) => o.id === val || o.value === val);
+        finalCustomValues[fId] = opt ? opt.value : String(val);
+      } else {
+        finalCustomValues[fId] = String(val);
+      }
+    });
 
     const ok = await createRequirement({
       shop_id: form.shop_id,
-      size: form.size.trim(),
-      category: effectiveCategory || null,
-      quantity: Number(form.quantity),
-      urgency: form.urgency,
+      size: resolvedSize,
+      category: resolvedCategory,
+      quantity: resolvedQuantity,
+      urgency: resolvedUrgency,
       note: form.note.trim() || null,
       custom_values: finalCustomValues,
     });
+
     if (ok) {
       notifyNewRequirement({
-        size: form.size.trim(),
-        quantity: Number(form.quantity),
+        size: resolvedSize,
+        quantity: resolvedQuantity,
         shop_name: visibleShops.find(s => s.id === form.shop_id)?.name,
-        urgency: form.urgency,
+        urgency: resolvedUrgency,
       });
-      const resetCategory = availableCategories.length === 1 ? availableCategories[0] : '';
       setForm(f => ({
         ...f,
-        size: '',
-        category: resetCategory,
-        quantity: 1,
-        urgency: 'normal',
         note: '',
       }));
-      setCustomFormValues(
-        categoryCustomField && resetCategory ? { [categoryCustomField.id]: resetCategory } : {}
-      );
-      setIsCustomCategory(false);
-      setIsCustomSize(false);
+      setCustomFormValues({});
+      setFieldErrors({});
+      setCustomInputToggles({});
     }
   };
 
@@ -526,260 +636,239 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
                     </Select>
                   </div>
                 )}
-
-                {/* 2. Category (Wired to Admin Custom Field or Categories Table - strictly respects Show / Hide toggle) */}
-                {isCategoryVisible && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>
-                        {categoryCustomField?.name || 'Category'}
-                        {categoryCustomField?.is_mandatory ? (
-                          <span className="text-destructive ml-1">*</span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>
-                        )}
-                      </Label>
-                      {isCustomCategory ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-xs text-primary hover:text-primary/80 px-1"
-                          onClick={() => setIsCustomCategory(false)}
-                        >
-                          Choose from list
-                        </Button>
-                      ) : availableCategories.length > 0 ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-xs text-muted-foreground hover:text-foreground px-1"
-                          onClick={() => setIsCustomCategory(true)}
-                        >
-                          + Type custom
-                        </Button>
-                      ) : null}
-                    </div>
-
-                    {isCustomCategory || availableCategories.length === 0 ? (
-                      <Input
-                        value={form.category}
-                        onChange={e => {
-                          const val = e.target.value;
-                          setForm(f => ({ ...f, category: val }));
-                          if (categoryCustomField) {
-                            setCustomFormValues(prev => ({ ...prev, [categoryCustomField.id]: val }));
-                          }
-                        }}
-                        placeholder="e.g. Shirt, Pant, T-Shirt, Saree"
-                      />
-                    ) : (
-                      <Select
-                        value={form.category}
-                        onValueChange={v => {
-                          if (v === '__custom__') {
-                            setIsCustomCategory(true);
-                            setForm(f => ({ ...f, category: '' }));
-                          } else {
-                            setForm(f => ({ ...f, category: v }));
-                            if (categoryCustomField) {
-                              setCustomFormValues(prev => ({ ...prev, [categoryCustomField.id]: v }));
-                            }
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableCategories.map(cat => (
-                            <SelectItem key={cat} value={cat}>
-                              {cat}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="__custom__" className="text-primary font-medium">
-                            + Other / Type custom category...
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                )}
-
-                {/* 3. Size dropdown with quick chips and custom input option */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>{t('common.size')} *</Label>
-                    {isCustomSize ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-xs text-primary hover:text-primary/80 px-1"
-                        onClick={() => setIsCustomSize(false)}
-                      >
-                        Choose from list
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-xs text-muted-foreground hover:text-foreground px-1"
-                        onClick={() => setIsCustomSize(true)}
-                      >
-                        + Type custom size
-                      </Button>
-                    )}
-                  </div>
-
-                  {isCustomSize ? (
-                    <Input
-                      value={form.size}
-                      onChange={e => setForm({ ...form, size: e.target.value })}
-                      placeholder="Type custom size (e.g. 42 / Large)"
-                      autoFocus
-                    />
-                  ) : (
-                    <Select
-                      value={form.size}
-                      onValueChange={v => {
-                        if (v === '__custom__') {
-                          setIsCustomSize(true);
-                          setForm({ ...form, size: '' });
-                        } else {
-                          setForm({ ...form, size: v });
-                        }
-                      }}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Select size from list" /></SelectTrigger>
-                      <SelectContent>
-                        {sizes.map(s => (
-                          <SelectItem key={s.id} value={s.size}>
-                            Size {s.size}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="__custom__" className="text-primary font-medium">
-                          + Other / Enter custom size...
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-
-                  {/* Quick-select size chips for ultra-fast selection */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {quickSizes.slice(0, 10).map(sz => (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => {
-                          setIsCustomSize(false);
-                          setForm(f => ({ ...f, size: sz }));
-                        }}
-                        className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-all ${
-                          form.size === sz
-                            ? 'bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary'
-                            : 'bg-muted/40 hover:bg-muted text-foreground border-border/80 hover:border-primary/40'
-                        }`}
-                      >
-                        {sz}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 4. Quantity & Urgency */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>{t('req.quantity')} *</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={form.quantity}
-                      onChange={e => setForm({ ...form, quantity: Math.max(1, Number(e.target.value)) })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Urgency</Label>
-                    <Select value={form.urgency} onValueChange={v => setForm({ ...form, urgency: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="normal">Normal Priority</SelectItem>
-                        <SelectItem value="urgent" className="text-red-600 font-medium">🚨 Urgent / Fast-Track</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
               </div>
 
-              {/* Dynamic Requirement Custom Fields (Other fields created in Admin -> Custom Fields) */}
-              {otherCustomFields.length > 0 && (
-                <div className="grid gap-4 sm:grid-cols-2 pt-3 border-t">
-                  {otherCustomFields.map((cf) => {
-                    const opts = reqCustomOptions[cf.id] || [];
-                    const val = customFormValues[cf.id] || '';
+              {/* 2. Dynamic Requirement Custom Fields (Configured in Admin -> Custom Fields -> Requirement / Stock Fields) */}
+              {visibleRequirementFields.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 pt-1">
+                  {visibleRequirementFields.map((field) => {
+                    const type = field.field_type || 'dropdown';
+                    const fieldOptions = reqCustomOptions[field.id] || [];
+                    const value = customFormValues[field.id] || '';
+                    const error = fieldErrors[field.id];
+                    const isCustomMode = customInputToggles[field.id] || false;
+
+                    const setValue = (v: string) => {
+                      setCustomFormValues(prev => ({ ...prev, [field.id]: v }));
+                      if (fieldErrors[field.id]) {
+                        setFieldErrors(prev => {
+                          const next = { ...prev };
+                          delete next[field.id];
+                          return next;
+                        });
+                      }
+                    };
+
+                    const toggleCustomMode = (custom: boolean) => {
+                      setCustomInputToggles(prev => ({ ...prev, [field.id]: custom }));
+                      if (custom) {
+                        setCustomFormValues(prev => ({ ...prev, [field.id]: '' }));
+                      }
+                    };
+
                     return (
-                      <div key={cf.id} className="space-y-2">
-                        <Label>
-                          {cf.name}
-                          {cf.is_mandatory && <span className="text-destructive ml-1">*</span>}
-                        </Label>
-                        {cf.field_type === 'dropdown' ? (
-                          <Select value={val} onValueChange={(v) => setCustomFormValues({ ...customFormValues, [cf.id]: v })}>
-                            <SelectTrigger><SelectValue placeholder={`Select ${cf.name}`} /></SelectTrigger>
-                            <SelectContent>
-                              {opts.map((o) => (
-                                <SelectItem key={o.id} value={o.value}>{o.value}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : cf.field_type === 'radio' ? (
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            {opts.map((o) => (
-                              <button
-                                key={o.id}
+                      <div key={field.id} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className={error ? 'text-destructive' : undefined}>
+                            {field.name} {field.is_mandatory && <span className="text-destructive">*</span>}
+                            {!field.is_mandatory && <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>}
+                          </Label>
+
+                          {type === 'dropdown' && fieldOptions.length > 0 && (
+                            isCustomMode ? (
+                              <Button
                                 type="button"
-                                onClick={() => setCustomFormValues({ ...customFormValues, [cf.id]: o.value })}
-                                className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${
-                                  val === o.value
-                                    ? 'bg-primary text-primary-foreground border-primary'
-                                    : 'bg-muted/40 hover:bg-muted text-foreground border-border/80'
-                                }`}
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-xs text-primary hover:text-primary/80 px-1"
+                                onClick={() => toggleCustomMode(false)}
                               >
-                                {o.value}
-                              </button>
+                                Choose from list
+                              </Button>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-xs text-muted-foreground hover:text-foreground px-1"
+                                onClick={() => toggleCustomMode(true)}
+                              >
+                                + Type custom
+                              </Button>
+                            )
+                          )}
+                        </div>
+
+                        {/* Dropdown with fast chips */}
+                        {type === 'dropdown' && (
+                          isCustomMode || fieldOptions.length === 0 ? (
+                            <Input
+                              value={value}
+                              onChange={e => setValue(e.target.value)}
+                              placeholder={`Enter custom ${field.name.toLowerCase()}`}
+                              className={error ? 'border-destructive' : ''}
+                            />
+                          ) : (
+                            <div className="space-y-2">
+                              <Select
+                                value={value}
+                                onValueChange={v => {
+                                  if (v === '__custom__') {
+                                    toggleCustomMode(true);
+                                  } else {
+                                    setValue(v);
+                                  }
+                                }}
+                              >
+                                <SelectTrigger className={error ? 'border-destructive' : ''}>
+                                  <SelectValue placeholder={`Select ${field.name.toLowerCase()}`} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {fieldOptions.map((opt) => (
+                                    <SelectItem key={opt.id} value={opt.value}>
+                                      {opt.value}
+                                    </SelectItem>
+                                  ))}
+                                  <SelectItem value="__custom__" className="text-primary font-medium">
+                                    + Other / Type custom...
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+
+                              {/* Quick-select chips if options <= 12 */}
+                              {fieldOptions.length > 0 && fieldOptions.length <= 12 && (
+                                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                  {fieldOptions.map((opt) => (
+                                    <button
+                                      key={opt.id}
+                                      type="button"
+                                      onClick={() => {
+                                        toggleCustomMode(false);
+                                        setValue(opt.value);
+                                      }}
+                                      className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-all ${
+                                        value === opt.value
+                                          ? 'bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary'
+                                          : 'bg-muted/40 hover:bg-muted text-foreground border-border/80 hover:border-primary/40'
+                                      }`}
+                                    >
+                                      {opt.value}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        )}
+
+                        {/* Radio buttons */}
+                        {type === 'radio' && (
+                          <RadioGroup value={value} onValueChange={setValue} className="flex flex-wrap gap-2 pt-1">
+                            {fieldOptions.map((opt) => (
+                              <div key={opt.id} className={`flex items-center space-x-2 border rounded-md px-3 py-2 hover:bg-accent ${error ? 'border-destructive' : ''}`}>
+                                <RadioGroupItem value={opt.value} id={`cf-${field.id}-${opt.id}`} />
+                                <Label htmlFor={`cf-${field.id}-${opt.id}`} className="font-normal cursor-pointer text-xs sm:text-sm">{opt.value}</Label>
+                              </div>
                             ))}
-                          </div>
-                        ) : cf.field_type === 'number' ? (
+                          </RadioGroup>
+                        )}
+
+                        {/* Number input */}
+                        {type === 'number' && (
                           <Input
                             type="number"
-                            value={val}
-                            onChange={(e) => setCustomFormValues({ ...customFormValues, [cf.id]: e.target.value })}
-                            placeholder={`Enter ${cf.name}`}
-                          />
-                        ) : cf.field_type === 'textarea' ? (
-                          <Textarea
-                            rows={2}
-                            value={val}
-                            onChange={(e) => setCustomFormValues({ ...customFormValues, [cf.id]: e.target.value })}
-                            placeholder={`Enter ${cf.name}`}
-                          />
-                        ) : (
-                          <Input
-                            type={cf.field_type === 'date' ? 'date' : 'text'}
-                            value={val}
-                            onChange={(e) => setCustomFormValues({ ...customFormValues, [cf.id]: e.target.value })}
-                            placeholder={`Enter ${cf.name}`}
+                            min={1}
+                            value={value}
+                            onChange={e => setValue(e.target.value)}
+                            placeholder={`Enter ${field.name.toLowerCase()}`}
+                            className={error ? 'border-destructive' : ''}
                           />
                         )}
+
+                        {/* Textarea */}
+                        {type === 'textarea' && (
+                          <Textarea
+                            rows={2}
+                            value={value}
+                            onChange={e => setValue(e.target.value)}
+                            placeholder={`Enter ${field.name.toLowerCase()}`}
+                            className={error ? 'border-destructive' : ''}
+                          />
+                        )}
+
+                        {/* Date */}
+                        {type === 'date' && (
+                          <Input
+                            type="date"
+                            value={value}
+                            onChange={e => setValue(e.target.value)}
+                            className={error ? 'border-destructive' : ''}
+                          />
+                        )}
+
+                        {/* Phone */}
+                        {type === 'phone' && (
+                          <Input
+                            type="tel"
+                            value={value}
+                            onChange={e => setValue(e.target.value)}
+                            placeholder="10-digit mobile number"
+                            className={error ? 'border-destructive' : ''}
+                          />
+                        )}
+
+                        {/* Email */}
+                        {type === 'email' && (
+                          <Input
+                            type="email"
+                            value={value}
+                            onChange={e => setValue(e.target.value)}
+                            placeholder="name@example.com"
+                            className={error ? 'border-destructive' : ''}
+                          />
+                        )}
+
+                        {/* Standard text input */}
+                        {type !== 'dropdown' && type !== 'radio' && type !== 'number' && type !== 'textarea' && type !== 'date' && type !== 'phone' && type !== 'email' && (
+                          <Input
+                            type="text"
+                            value={value}
+                            onChange={e => setValue(e.target.value)}
+                            placeholder={`Enter ${field.name.toLowerCase()}`}
+                            className={error ? 'border-destructive' : ''}
+                          />
+                        )}
+
+                        {error && <p className="text-xs text-destructive">{error}</p>}
                       </div>
                     );
                   })}
                 </div>
+              ) : (
+                <div className="p-6 rounded-xl border border-dashed text-center bg-muted/20 space-y-3">
+                  <PackagePlus className="h-10 w-10 mx-auto text-muted-foreground/60" />
+                  <div className="space-y-1">
+                    <h4 className="font-semibold text-sm text-foreground">No Stock Fields Configured Yet</h4>
+                    <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                      All stock request fields are dynamically customizable. Configure your fields in <strong>Admin → Custom Fields → Requirement / Stock Fields</strong>, or click below to populate standard fields.
+                    </p>
+                  </div>
+                  {isAdmin && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={initializeStandardRequirementFields}
+                      disabled={seedingStandardFields}
+                      className="gap-1.5 text-xs font-semibold shadow-xs"
+                    >
+                      <Sparkles className="h-4 w-4 text-violet-500" />
+                      {seedingStandardFields ? 'Initializing…' : 'Initialize Standard Stock Fields'}
+                    </Button>
+                  )}
+                </div>
               )}
 
+              {/* 3. Note (Fixed Standard Field at Bottom) */}
               <div className="space-y-2">
                 <Label>Note (Optional)</Label>
                 <Textarea
@@ -990,7 +1079,9 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
                             onCheckedChange={v => toggleOne(r.id, !!v)}
                           />
                           <span className="font-bold text-sm sm:text-base text-foreground whitespace-nowrap">
-                            Size {r.size} × {r.quantity}
+                            {r.size && r.size !== 'Standard' && r.size !== '—'
+                              ? `Size ${r.size} × ${r.quantity}`
+                              : `${r.quantity} Unit(s)`}
                           </span>
                           <Badge className={STATUS_TONE[r.status]} variant="secondary">
                             {r.status}
@@ -1006,8 +1097,12 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
                       <div className="w-full text-xs space-y-1 pt-0.5">
                         <p className="text-muted-foreground leading-relaxed">
                           <strong className="text-foreground font-semibold">{r.shop_name || 'Unassigned Shop'}</strong>
-                          {' · '}
-                          <span className="text-foreground font-medium">{r.category || 'General'}</span>
+                          {r.category && r.category !== '—' && (
+                            <>
+                              {' · '}
+                              <span className="text-foreground font-medium">{r.category}</span>
+                            </>
+                          )}
                           {' · '}
                           <span>Asked on {formatISTDateTime(r.created_at)}</span>
                         </p>
