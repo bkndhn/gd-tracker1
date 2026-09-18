@@ -74,7 +74,16 @@ export const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background w-full overflow-x-hidden">
-      <nav className="sticky top-0 z-40 border-b border-border/60 border-t-2 border-primary/80 bg-card/80 backdrop-blur-md supports-[backdrop-filter]:bg-card/70 w-full shadow-[0_1px_0_0_hsl(var(--border))] pt-[env(safe-area-inset-top,0px)]">
+      {/* Status bar background fill — paints the safe-area-inset-top zone with primary color on standalone PWA */}
+      <div
+        className="fixed top-0 left-0 right-0 z-50 bg-primary"
+        style={{ height: 'env(safe-area-inset-top, 0px)' }}
+        aria-hidden="true"
+      />
+      <nav
+        className="sticky top-0 z-40 border-b border-border/60 bg-card/80 backdrop-blur-md supports-[backdrop-filter]:bg-card/70 w-full shadow-[0_1px_0_0_hsl(var(--border))]"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16 min-w-0">
             <div className="flex items-center min-w-0 flex-shrink-0">

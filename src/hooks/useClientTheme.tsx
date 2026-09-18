@@ -243,14 +243,16 @@ export const applyThemeToDom = (themeId: string) => {
   }
 
   // 2. Apple iOS Safari Status Bar Style
+  // 'default' = white status bar text on theme-color background
+  // 'black-translucent' = FORCES black semi-transparent overlay — avoid this
   let metaApple = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement | null;
   if (!metaApple) {
     metaApple = document.createElement('meta');
     metaApple.name = 'apple-mobile-web-app-status-bar-style';
     document.head.appendChild(metaApple);
   }
-  metaApple.setAttribute('content', isDark ? 'black-translucent' : 'default');
-  metaApple.content = isDark ? 'black-translucent' : 'default';
+  metaApple.setAttribute('content', 'default');
+  metaApple.content = 'default';
 
   // 3. Mobile web app capable tags for native Android & iOS PWA feel
   let metaAppleCapable = document.querySelector('meta[name="apple-mobile-web-app-capable"]') as HTMLMetaElement | null;

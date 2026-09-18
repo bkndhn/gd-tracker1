@@ -144,6 +144,12 @@ All colors MUST be HSL.
     overflow-x: hidden;
     width: 100%;
     -webkit-tap-highlight-color: transparent;
+    /* On Android standalone PWA, the status bar is transparent and shows
+       whatever is painted at the very top of the viewport. Setting the html
+       background to the primary brand color ensures the status bar area
+       always matches the app theme. The body gradient overlays this fully
+       below the status bar inset so it's invisible on the main content. */
+    background-color: hsl(var(--primary));
   }
 
   body {
