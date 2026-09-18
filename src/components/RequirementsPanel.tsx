@@ -203,8 +203,20 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
     }) || null;
   }, [reqCustomFields]);
 
+  // Is Category visible in the requirement form?
+  // If an admin has configured Category in Requirement Custom Fields:
+  // strictly respect its is_visible toggle ("Show" switch in Admin).
+  // If no requirement custom field exists, only show if database categories exist.
+  const isCategoryVisible = useMemo(() => {
+    if (categoryCustomField) {
+      return categoryCustomField.is_visible !== false;
+    }
+    return categories.length > 0;
+  }, [categoryCustomField, categories.length]);
+
   // Combined available categories: Custom field options (e.g. Shirt) + categories table
   const availableCategories = useMemo(() => {
+    if (!isCategoryVisible) return [];
     const list: string[] = [];
     if (categoryCustomField && reqCustomOptions[categoryCustomField.id]) {
       reqCustomOptions[categoryCustomField.id].forEach((opt: any) => {
@@ -215,23 +227,25 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
       if (c.name && !list.includes(c.name)) list.push(c.name);
     });
     return list;
-  }, [categoryCustomField, reqCustomOptions, categories]);
+  }, [isCategoryVisible, categoryCustomField, reqCustomOptions, categories]);
 
-  // Other custom fields to render below (excluding category since it's prominent in the main form)
+  // Other custom fields to render below (excluding category and any field where Show is turned OFF)
   const otherCustomFields = useMemo(() => {
-    return reqCustomFields.filter(f => f.id !== categoryCustomField?.id);
+    return reqCustomFields.filter(
+      f => f.id !== categoryCustomField?.id && f.is_visible !== false
+    );
   }, [reqCustomFields, categoryCustomField]);
 
-  // If only 1 category exists, auto-select it
+  // If only 1 category exists and Category is visible, auto-select it
   useEffect(() => {
-    if (availableCategories.length === 1 && !form.category) {
+    if (isCategoryVisible && availableCategories.length === 1 && !form.category) {
       const single = availableCategories[0];
       setForm(f => ({ ...f, category: single }));
       if (categoryCustomField) {
         setCustomFormValues(prev => ({ ...prev, [categoryCustomField.id]: single }));
       }
     }
-  }, [availableCategories, categoryCustomField, form.category]);
+  }, [isCategoryVisible, availableCategories, categoryCustomField, form.category]);
 
   const uniqueRequesters = useMemo(() => {
     const names = new Set<string>();
@@ -361,12 +375,13 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
     if (!form.size.trim()) return toast.error('Enter the size you need');
     if (!form.quantity || form.quantity < 1) return toast.error('Enter a quantity');
 
-    const effectiveCategory =
-      form.category.trim() ||
-      (categoryCustomField ? customFormValues[categoryCustomField.id] || '' : '') ||
-      '';
+    const effectiveCategory = isCategoryVisible
+      ? (form.category.trim() ||
+         (categoryCustomField ? customFormValues[categoryCustomField.id] || '' : '') ||
+         '')
+      : '';
 
-    if (categoryCustomField?.is_mandatory && !effectiveCategory) {
+    if (isCategoryVisible && categoryCustomField?.is_mandatory && !effectiveCategory) {
       return toast.error(`Please provide ${categoryCustomField.name || 'Category'}`);
     }
 
@@ -377,7 +392,7 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
     }
 
     const finalCustomValues: Record<string, string> = { ...customFormValues };
-    if (categoryCustomField && effectiveCategory) {
+    if (isCategoryVisible && categoryCustomField && effectiveCategory) {
       finalCustomValues[categoryCustomField.id] = effectiveCategory;
     }
 
@@ -512,83 +527,85 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
                   </div>
                 )}
 
-                {/* 2. Category (Wired to Admin Custom Field or Categories Table) */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>
-                      {categoryCustomField?.name || 'Category'}
-                      {categoryCustomField?.is_mandatory ? (
-                        <span className="text-destructive ml-1">*</span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>
-                      )}
-                    </Label>
-                    {isCustomCategory ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-xs text-primary hover:text-primary/80 px-1"
-                        onClick={() => setIsCustomCategory(false)}
-                      >
-                        Choose from list
-                      </Button>
-                    ) : availableCategories.length > 0 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-xs text-muted-foreground hover:text-foreground px-1"
-                        onClick={() => setIsCustomCategory(true)}
-                      >
-                        + Type custom
-                      </Button>
-                    ) : null}
-                  </div>
+                {/* 2. Category (Wired to Admin Custom Field or Categories Table - strictly respects Show / Hide toggle) */}
+                {isCategoryVisible && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>
+                        {categoryCustomField?.name || 'Category'}
+                        {categoryCustomField?.is_mandatory ? (
+                          <span className="text-destructive ml-1">*</span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>
+                        )}
+                      </Label>
+                      {isCustomCategory ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-primary hover:text-primary/80 px-1"
+                          onClick={() => setIsCustomCategory(false)}
+                        >
+                          Choose from list
+                        </Button>
+                      ) : availableCategories.length > 0 ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-muted-foreground hover:text-foreground px-1"
+                          onClick={() => setIsCustomCategory(true)}
+                        >
+                          + Type custom
+                        </Button>
+                      ) : null}
+                    </div>
 
-                  {isCustomCategory || availableCategories.length === 0 ? (
-                    <Input
-                      value={form.category}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setForm(f => ({ ...f, category: val }));
-                        if (categoryCustomField) {
-                          setCustomFormValues(prev => ({ ...prev, [categoryCustomField.id]: val }));
-                        }
-                      }}
-                      placeholder="e.g. Shirt, Pant, T-Shirt, Saree"
-                    />
-                  ) : (
-                    <Select
-                      value={form.category}
-                      onValueChange={v => {
-                        if (v === '__custom__') {
-                          setIsCustomCategory(true);
-                          setForm(f => ({ ...f, category: '' }));
-                        } else {
-                          setForm(f => ({ ...f, category: v }));
+                    {isCustomCategory || availableCategories.length === 0 ? (
+                      <Input
+                        value={form.category}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setForm(f => ({ ...f, category: val }));
                           if (categoryCustomField) {
-                            setCustomFormValues(prev => ({ ...prev, [categoryCustomField.id]: v }));
+                            setCustomFormValues(prev => ({ ...prev, [categoryCustomField.id]: val }));
                           }
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableCategories.map(cat => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
+                        }}
+                        placeholder="e.g. Shirt, Pant, T-Shirt, Saree"
+                      />
+                    ) : (
+                      <Select
+                        value={form.category}
+                        onValueChange={v => {
+                          if (v === '__custom__') {
+                            setIsCustomCategory(true);
+                            setForm(f => ({ ...f, category: '' }));
+                          } else {
+                            setForm(f => ({ ...f, category: v }));
+                            if (categoryCustomField) {
+                              setCustomFormValues(prev => ({ ...prev, [categoryCustomField.id]: v }));
+                            }
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableCategories.map(cat => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="__custom__" className="text-primary font-medium">
+                            + Other / Type custom category...
                           </SelectItem>
-                        ))}
-                        <SelectItem value="__custom__" className="text-primary font-medium">
-                          + Other / Type custom category...
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                )}
 
                 {/* 3. Size dropdown with quick chips and custom input option */}
                 <div className="space-y-2">
