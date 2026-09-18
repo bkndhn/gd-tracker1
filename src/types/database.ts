@@ -171,6 +171,14 @@ export interface Database {
           ai_daily_limit?: number | null;
           ai_monthly_limit?: number | null;
           ai_lifetime_limit?: number | null;
+          phone?: string | null;
+          subscription_amount?: number | null;
+          billing_cycle?: 'monthly' | 'quarterly' | 'yearly' | 'one_time' | string | null;
+          show_plan_to_client?: boolean | null;
+          payment_enabled?: boolean | null;
+          payment_status?: 'unpaid' | 'paid' | 'pending_verification' | string | null;
+          last_payment_date?: string | null;
+          last_payment_ref?: string | null;
         };
         Insert: {
           id: string;
@@ -207,6 +215,14 @@ export interface Database {
           ai_daily_limit?: number | null;
           ai_monthly_limit?: number | null;
           ai_lifetime_limit?: number | null;
+          phone?: string | null;
+          subscription_amount?: number | null;
+          billing_cycle?: 'monthly' | 'quarterly' | 'yearly' | 'one_time' | string | null;
+          show_plan_to_client?: boolean | null;
+          payment_enabled?: boolean | null;
+          payment_status?: 'unpaid' | 'paid' | 'pending_verification' | string | null;
+          last_payment_date?: string | null;
+          last_payment_ref?: string | null;
         };
         Update: {
           id?: string;
@@ -243,6 +259,14 @@ export interface Database {
           ai_daily_limit?: number | null;
           ai_monthly_limit?: number | null;
           ai_lifetime_limit?: number | null;
+          phone?: string | null;
+          subscription_amount?: number | null;
+          billing_cycle?: 'monthly' | 'quarterly' | 'yearly' | 'one_time' | string | null;
+          show_plan_to_client?: boolean | null;
+          payment_enabled?: boolean | null;
+          payment_status?: 'unpaid' | 'paid' | 'pending_verification' | string | null;
+          last_payment_date?: string | null;
+          last_payment_ref?: string | null;
         };
       };
       goods_damaged_entries: {

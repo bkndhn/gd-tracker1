@@ -27,7 +27,10 @@ export type AuditAction =
   | 'data_export'
   | 'pii_unmask'
   | 'screen_lock'
-  | 'screen_unlock';
+  | 'screen_unlock'
+  | 'update_payment_settings'
+  | 'verify_tenant_payment'
+  | 'tenant_submit_payment_ref';
 
 interface AuditLogParams {
   action: AuditAction;

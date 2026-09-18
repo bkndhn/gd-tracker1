@@ -13,16 +13,23 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReleaseHealthPanel } from '@/components/admin/ReleaseHealthPanel';
 import { toast } from 'sonner';
-import { HeartPulse, Play, Pause, Trash2, Settings, Users, Building, Shield, Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity, UserPlus, Sparkles, RefreshCw, MoreHorizontal, ArrowUpDown, ClipboardList, Layers } from 'lucide-react';
+import {
+  HeartPulse, Play, Pause, Trash2, Settings, Users, Building, Shield,
+  Search, ChevronDown, ChevronRight, Image, CheckCircle, XCircle, Activity,
+  UserPlus, Sparkles, RefreshCw, MoreHorizontal, ArrowUpDown, ClipboardList,
+  Layers, Phone, MessageSquare, CreditCard, IndianRupee, Eye, EyeOff, Check, ExternalLink, Mail
+} from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { CreateTenantDialog } from './admin/CreateTenantDialog';
 import { GoogleDriveBackupPanel } from './admin/GoogleDriveBackupPanel';
+import { PlatformPaymentSettings } from './admin/PlatformPaymentSettings';
 import { AuditLogViewer } from './AuditLogViewer';
 import { formatISTDate, formatISTDateTime } from '@/lib/dateUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { logAudit } from '@/utils/auditLog';
+import { getContactDeepLinks } from '@/utils/upiPayment';
 
 interface AdminProfile {
   id: string;
@@ -50,6 +57,14 @@ interface AdminProfile {
   max_custom_fields?: number | null;
   max_options_per_field?: number | null;
   theme_color?: string | null;
+  phone?: string | null;
+  subscription_amount?: number | null;
+  billing_cycle?: string | null;
+  show_plan_to_client?: boolean | null;
+  payment_enabled?: boolean | null;
+  payment_status?: string | null;
+  last_payment_date?: string | null;
+  last_payment_ref?: string | null;
 }
 
 export const SuperAdminDashboard = () => {
@@ -79,6 +94,15 @@ export const SuperAdminDashboard = () => {
   const [customFieldsEnabled, setCustomFieldsEnabled] = useState<boolean>(true);
   const [maxCustomFields, setMaxCustomFields] = useState<number | ''>(5);
   const [maxOptionsPerField, setMaxOptionsPerField] = useState<number | ''>(20);
+  // Contact & Billing state
+  const [tenantPhone, setTenantPhone] = useState('');
+  const [subscriptionAmount, setSubscriptionAmount] = useState<number | ''>('');
+  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [showPlanToClient, setShowPlanToClient] = useState(true);
+  const [paymentEnabled, setPaymentEnabled] = useState(true);
+  const [paymentStatus, setPaymentStatus] = useState('unpaid');
+  const [lastPaymentRef, setLastPaymentRef] = useState('');
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused'>('all');
   const [sortKey, setSortKey] = useState<'name' | 'created_at' | 'last_login_at' | 'entries'>('name');
@@ -361,6 +385,13 @@ export const SuperAdminDashboard = () => {
     if (!selectedAdmin) return;
     try {
       const { error } = await (supabase.from('profiles') as any).update({
+        phone: tenantPhone.trim() || null,
+        subscription_amount: subscriptionAmount === '' ? null : Number(subscriptionAmount),
+        billing_cycle: billingCycle,
+        show_plan_to_client: showPlanToClient,
+        payment_enabled: paymentEnabled,
+        payment_status: paymentStatus,
+        last_payment_ref: lastPaymentRef.trim() || null,
         max_shops: maxShops,
         max_users: maxUsers,
         max_entries: maxEntries === '' ? null : maxEntries,
@@ -378,13 +409,42 @@ export const SuperAdminDashboard = () => {
         max_options_per_field: maxOptionsPerField === '' ? null : maxOptionsPerField,
       }).eq('id', selectedAdmin.id);
       if (error) throw error;
-      toast.success('Limits updated successfully');
+      toast.success('Tenant settings & limits updated successfully');
       setLimitsDialogOpen(false);
+      fetchData();
     } catch (error: any) { toast.error(error.message || 'Failed to update limits'); }
-  }, [selectedAdmin, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled, aiDaily, aiMonthly, aiLifetime, reqEnabled, maxReqMonthly, maxWarehouseUsers, customFieldsEnabled, maxCustomFields, maxOptionsPerField]);
+  }, [selectedAdmin, tenantPhone, subscriptionAmount, billingCycle, showPlanToClient, paymentEnabled, paymentStatus, lastPaymentRef, maxShops, maxUsers, maxEntries, maxImagesPerEntry, maxImagesTotal, aiEnabled, aiDaily, aiMonthly, aiLifetime, reqEnabled, maxReqMonthly, maxWarehouseUsers, customFieldsEnabled, maxCustomFields, maxOptionsPerField, fetchData]);
+
+  const handleVerifyPayment = useCallback(async (admin: AdminProfile) => {
+    try {
+      const now = new Date().toISOString();
+      const { error } = await (supabase.from('profiles') as any).update({
+        payment_status: 'paid',
+        last_payment_date: now,
+      }).eq('id', admin.id);
+      if (error) throw error;
+      await logAudit({
+        action: 'verify_tenant_payment',
+        targetType: 'profile',
+        targetId: admin.id,
+        details: { name: admin.name, utr: admin.last_payment_ref, amount: admin.subscription_amount },
+      });
+      toast.success(`Payment verified and marked as Paid for ${admin.name}!`);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to verify payment');
+    }
+  }, [fetchData]);
 
   const openLimitsDialog = useCallback((admin: AdminProfile) => {
     setSelectedAdmin(admin);
+    setTenantPhone(admin.phone || '');
+    setSubscriptionAmount(admin.subscription_amount ?? '');
+    setBillingCycle(admin.billing_cycle || 'monthly');
+    setShowPlanToClient(admin.show_plan_to_client !== false);
+    setPaymentEnabled(admin.payment_enabled !== false);
+    setPaymentStatus(admin.payment_status || 'unpaid');
+    setLastPaymentRef(admin.last_payment_ref || '');
     setMaxShops(admin.max_shops || 5);
     setMaxUsers(admin.max_users || 10);
     setMaxEntries(admin.max_entries ?? '');
@@ -586,10 +646,10 @@ export const SuperAdminDashboard = () => {
                   <TableHead className="w-8"></TableHead>
                   <TableHead>
                     <button type="button" onClick={() => toggleSort('name')} className="inline-flex items-center gap-1 hover:text-foreground">
-                      Name <ArrowUpDown className="h-3 w-3 opacity-60" />
+                      Tenant / Contact <ArrowUpDown className="h-3 w-3 opacity-60" />
                     </button>
                   </TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead>Plan & Pay</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>
                     <button type="button" onClick={() => toggleSort('created_at')} className="inline-flex items-center gap-1 hover:text-foreground">
@@ -625,12 +685,13 @@ export const SuperAdminDashboard = () => {
                       isExpanded={isExpanded} entryCount={entryCount} imageCount={imageCount}
                       currentUserId={user?.id} onToggleExpand={toggleExpand}
                       onActivate={(a) => setActivateTarget(a)} onPause={(a) => setPauseTarget(a)}
-                      onDelete={setDeleteAdmin} onLimits={openLimitsDialog} onRoleChange={handleRoleChange} />
+                      onDelete={setDeleteAdmin} onLimits={openLimitsDialog} onRoleChange={handleRoleChange}
+                      onVerifyPayment={handleVerifyPayment} />
                   );
                 })}
                 {filteredAdmins.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-10">
+                    <TableCell colSpan={12} className="text-center py-10">
                       <Shield className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
                       <p className="text-sm font-medium">No tenants match your filters</p>
                       <p className="text-xs text-muted-foreground">Try clearing the search or status filter.</p>
@@ -669,10 +730,112 @@ export const SuperAdminDashboard = () => {
       <Dialog open={limitsDialogOpen} onOpenChange={setLimitsDialogOpen}>
         <DialogContent className="w-[96vw] max-w-lg max-h-[88dvh] flex flex-col p-0 gap-0 rounded-2xl sm:rounded-3xl border border-border/80 shadow-2xl overflow-hidden bg-card">
           <DialogHeader className="p-4 sm:p-5 border-b border-border/60 bg-muted/30 shrink-0 text-left">
-            <DialogTitle className="text-base sm:text-lg font-bold truncate">Set Limits for {selectedAdmin?.name}</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">Configure resource limits for this admin tenant.</DialogDescription>
+            <DialogTitle className="text-base sm:text-lg font-bold truncate">Manage Tenant: {selectedAdmin?.name}</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">Configure contact details, subscription fee, UPI payment, plan visibility and limits.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 overflow-y-auto p-4 sm:p-5 flex-1 min-h-0 overscroll-contain">
+
+            {/* Contact & Subscription Section */}
+            <div className="p-3.5 sm:p-4 rounded-2xl border bg-muted/20 space-y-3.5">
+              <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                <CreditCard className="h-4 w-4 text-indigo-500" />
+                Contact, Subscription Plan & Payment Controls
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Contact Phone</Label>
+                  <Input
+                    type="tel"
+                    placeholder="e.g. +91 98765 43210"
+                    value={tenantPhone}
+                    onChange={e => setTenantPhone(e.target.value)}
+                    className="h-9 text-sm font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Subscription Fee (₹)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="e.g. 2999"
+                    value={subscriptionAmount}
+                    onChange={e => setSubscriptionAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="h-9 text-sm font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Billing Cycle</Label>
+                  <Select value={billingCycle} onValueChange={setBillingCycle}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Billing cycle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Monthly (Recurring)</SelectItem>
+                      <SelectItem value="quarterly">Quarterly (3 Months)</SelectItem>
+                      <SelectItem value="yearly">Yearly (Annual)</SelectItem>
+                      <SelectItem value="one_time">One-Time / Lifetime</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Payment Status</Label>
+                  <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Payment status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="paid">Paid (Active)</SelectItem>
+                      <SelectItem value="unpaid">Due / Unpaid</SelectItem>
+                      <SelectItem value="pending_verification">Pending Verification</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {lastPaymentRef && (
+                <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between gap-2 text-xs">
+                  <div className="min-w-0">
+                    <span className="text-muted-foreground block text-[10px]">Client UTR / Ref ID:</span>
+                    <span className="font-mono font-bold text-foreground text-sm truncate block">{lastPaymentRef}</span>
+                  </div>
+                  {paymentStatus !== 'paid' && (
+                    <Button
+                      size="sm"
+                      type="button"
+                      onClick={() => {
+                        setPaymentStatus('paid');
+                        toast.info('Status set to Paid. Click Save to persist.');
+                      }}
+                      className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+                    >
+                      <Check className="h-3 w-3 mr-1" /> Mark Paid
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
+                <div className="flex items-center justify-between p-2.5 rounded-xl border bg-background/50">
+                  <div className="space-y-0.5 pr-2">
+                    <Label className="text-xs font-semibold">Show Plan to Client</Label>
+                    <p className="text-[10px] text-muted-foreground">Show plan & quota meters to client</p>
+                  </div>
+                  <Switch checked={showPlanToClient} onCheckedChange={setShowPlanToClient} className="shrink-0" />
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 rounded-xl border bg-background/50">
+                  <div className="space-y-0.5 pr-2">
+                    <Label className="text-xs font-semibold">Enable UPI Payment</Label>
+                    <p className="text-[10px] text-muted-foreground">Enable 1-click mobile UPI pay</p>
+                  </div>
+                  <Switch checked={paymentEnabled} onCheckedChange={setPaymentEnabled} className="shrink-0" />
+                </div>
+              </div>
+            </div>
 
             <div className="space-y-2">
               <Label>Maximum Shops</Label>
@@ -839,6 +1002,7 @@ export const SuperAdminDashboard = () => {
               </div>
             </CardContent>
           </Card>
+          <PlatformPaymentSettings />
           <GoogleDriveBackupPanel />
         </div>
       </TabsContent>
@@ -869,76 +1033,177 @@ interface AdminRowProps {
   onDelete: (admin: AdminProfile) => void;
   onLimits: (admin: AdminProfile) => void;
   onRoleChange: (profile: AdminProfile, role: string) => void;
+  onVerifyPayment: (admin: AdminProfile) => void;
 }
 
 const AdminRow = ({
   admin, stats, subUsers, isExpanded, entryCount, imageCount,
-  currentUserId, onToggleExpand, onActivate, onPause, onDelete, onLimits, onRoleChange
-}: AdminRowProps) => (
-  <>
-    <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => onToggleExpand(admin.id)}>
-      <TableCell>
-        {subUsers.length > 0 ? (isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />) : null}
-      </TableCell>
-      <TableCell className="font-medium">{admin.name}</TableCell>
-      <TableCell className="text-sm text-muted-foreground">{admin.email || '-'}</TableCell>
-      <TableCell><Badge variant={admin.status === 'active' ? 'default' : 'destructive'}>{admin.status}</Badge></TableCell>
-      <TableCell className="text-sm">{formatISTDate(admin.created_at)}</TableCell>
-      <TableCell className="text-sm">{admin.last_login_at ? formatISTDateTime(admin.last_login_at) : 'Never'}</TableCell>
-      <TableCell><span className="flex items-center gap-1 text-sm"><Building className="h-3 w-3" /> {stats.shopCount}/{admin.max_shops ?? '∞'}</span></TableCell>
-      <TableCell><span className="flex items-center gap-1 text-sm"><Users className="h-3 w-3" /> {stats.userCount}/{admin.max_users ?? '∞'}</span></TableCell>
-      <TableCell><span className="text-sm">{entryCount}/{admin.max_entries ?? '∞'}</span></TableCell>
-      <TableCell><span className="flex items-center gap-1 text-sm"><Image className="h-3 w-3" /> {imageCount}/{admin.max_images_total ?? '∞'}</span></TableCell>
-      <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label={`Actions for ${admin.name}`}>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            {admin.status === 'paused' ? (
-              <DropdownMenuItem onClick={() => onActivate(admin)}><Play className="h-3.5 w-3.5 mr-2" /> Activate</DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onClick={() => onPause(admin)}><Pause className="h-3.5 w-3.5 mr-2" /> Pause</DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={() => onLimits(admin)}><Settings className="h-3.5 w-3.5 mr-2" /> Set limits</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(admin)}>
-              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete tenant
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
+  currentUserId, onToggleExpand, onActivate, onPause, onDelete, onLimits, onRoleChange, onVerifyPayment
+}: AdminRowProps) => {
+  const links = getContactDeepLinks(admin.phone, admin.email, admin.name);
 
-    </TableRow>
-    {isExpanded && subUsers.map(sub => (
-      <TableRow key={sub.id} className="bg-muted/20">
-        <TableCell></TableCell>
-        <TableCell className="pl-8 text-sm">↳ {sub.name}</TableCell>
-        <TableCell className="text-sm text-muted-foreground">{sub.email || '-'}</TableCell>
-        <TableCell><Badge variant={sub.status === 'active' ? 'default' : 'destructive'} className="text-xs">{sub.status}</Badge></TableCell>
-        <TableCell className="text-sm">{formatISTDate(sub.created_at)}</TableCell>
-        <TableCell className="text-sm">{sub.last_login_at ? formatISTDateTime(sub.last_login_at) : 'Never'}</TableCell>
-        <TableCell colSpan={3}><Badge variant="outline" className="text-xs">{sub.role}</Badge></TableCell>
-        <TableCell></TableCell>
+  return (
+    <>
+      <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => onToggleExpand(admin.id)}>
         <TableCell>
-          {sub.id !== currentUserId && (
-            <Select value={sub.role} onValueChange={(val) => onRoleChange(sub, val)}>
-              <SelectTrigger className="w-[110px] h-7 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="user">Staff</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
+          {subUsers.length > 0 ? (isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />) : null}
         </TableCell>
+        <TableCell className="font-medium">
+          <div className="space-y-1">
+            <div className="font-semibold text-foreground flex items-center gap-1.5 flex-wrap">
+              <span>{admin.name}</span>
+              {admin.show_plan_to_client === false && (
+                <Badge variant="outline" className="text-[9px] py-0 px-1 border-muted text-muted-foreground gap-0.5" title="Plan hidden from client">
+                  <EyeOff className="h-2.5 w-2.5" /> Plan Hidden
+                </Badge>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+              {admin.email || '-'}
+            </div>
+            {/* Quick-action Deep Links */}
+            <div className="flex items-center gap-1.5 pt-0.5" onClick={(e) => e.stopPropagation()}>
+              {links.telLink && (
+                <a
+                  href={links.telLink}
+                  title={`Call ${admin.phone}`}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-mono transition-colors"
+                >
+                  <Phone className="h-3 w-3 shrink-0" />
+                  <span>{admin.phone}</span>
+                </a>
+              )}
+              {links.waLink && (
+                <a
+                  href={links.waLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`WhatsApp chat with ${admin.name}`}
+                  className="p-1 rounded-md bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 transition-colors"
+                >
+                  <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                </a>
+              )}
+              {links.mailLink && (
+                <a
+                  href={links.mailLink}
+                  title={`Send email to ${admin.email}`}
+                  className="p-1 rounded-md bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 transition-colors"
+                >
+                  <Mail className="h-3.5 w-3.5 shrink-0" />
+                </a>
+              )}
+            </div>
+          </div>
+        </TableCell>
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <div className="space-y-1 text-xs">
+            <div className="font-semibold text-foreground flex items-center gap-1">
+              <IndianRupee className="h-3 w-3 text-emerald-500" />
+              <span>{admin.subscription_amount ? Number(admin.subscription_amount).toLocaleString('en-IN') : '0'}</span>
+              <span className="text-[10px] text-muted-foreground font-normal">/{admin.billing_cycle || 'mo'}</span>
+            </div>
+            <div className="flex items-center gap-1 flex-wrap">
+              {admin.payment_status === 'paid' ? (
+                <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold">
+                  Paid
+                </Badge>
+              ) : admin.payment_status === 'pending_verification' ? (
+                <div className="flex items-center gap-1">
+                  <Badge variant="outline" className="text-[10px] py-0 px-1 border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold">
+                    UTR Due
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onVerifyPayment(admin)}
+                    className="h-5 px-1.5 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-none"
+                    title={admin.last_payment_ref ? `Verify UTR: ${admin.last_payment_ref}` : 'Verify Payment'}
+                  >
+                    Approve
+                  </Button>
+                </div>
+              ) : (
+                <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold">
+                  Due
+                </Badge>
+              )}
+              {admin.payment_enabled === false && (
+                <Badge variant="outline" className="text-[9px] py-0 px-1 border-muted text-muted-foreground">
+                  UPI Off
+                </Badge>
+              )}
+            </div>
+            {admin.last_payment_ref && admin.payment_status === 'pending_verification' && (
+              <div className="font-mono text-[10px] text-blue-600 dark:text-blue-400 font-semibold truncate max-w-[130px]" title={admin.last_payment_ref}>
+                Ref: {admin.last_payment_ref}
+              </div>
+            )}
+          </div>
+        </TableCell>
+        <TableCell><Badge variant={admin.status === 'active' ? 'default' : 'destructive'}>{admin.status}</Badge></TableCell>
+        <TableCell className="text-sm">{formatISTDate(admin.created_at)}</TableCell>
+        <TableCell className="text-sm">{admin.last_login_at ? formatISTDateTime(admin.last_login_at) : 'Never'}</TableCell>
+        <TableCell><span className="flex items-center gap-1 text-sm"><Building className="h-3 w-3" /> {stats.shopCount}/{admin.max_shops ?? '∞'}</span></TableCell>
+        <TableCell><span className="flex items-center gap-1 text-sm"><Users className="h-3 w-3" /> {stats.userCount}/{admin.max_users ?? '∞'}</span></TableCell>
+        <TableCell><span className="text-sm">{entryCount}/{admin.max_entries ?? '∞'}</span></TableCell>
+        <TableCell><span className="flex items-center gap-1 text-sm"><Image className="h-3 w-3" /> {imageCount}/{admin.max_images_total ?? '∞'}</span></TableCell>
+        <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label={`Actions for ${admin.name}`}>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {admin.payment_status === 'pending_verification' && (
+                <DropdownMenuItem onClick={() => onVerifyPayment(admin)} className="text-emerald-600 focus:text-emerald-600">
+                  <Check className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Verify Payment (Paid)
+                </DropdownMenuItem>
+              )}
+              {admin.status === 'paused' ? (
+                <DropdownMenuItem onClick={() => onActivate(admin)}><Play className="h-3.5 w-3.5 mr-2" /> Activate</DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => onPause(admin)}><Pause className="h-3.5 w-3.5 mr-2" /> Pause</DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => onLimits(admin)}><Settings className="h-3.5 w-3.5 mr-2" /> Manage Billing & Limits</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(admin)}>
+                <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete tenant
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+
       </TableRow>
-    ))}
-    {isExpanded && subUsers.length === 0 && (
-      <TableRow className="bg-muted/20">
-        <TableCell></TableCell>
-        <TableCell colSpan={10} className="text-sm text-muted-foreground italic">No sub-users for this admin</TableCell>
-      </TableRow>
-    )}
-  </>
-);
+      {isExpanded && subUsers.map(sub => (
+        <TableRow key={sub.id} className="bg-muted/20">
+          <TableCell></TableCell>
+          <TableCell className="pl-8 text-sm">↳ {sub.name}</TableCell>
+          <TableCell className="text-sm text-muted-foreground">{sub.email || '-'}</TableCell>
+          <TableCell><Badge variant={sub.status === 'active' ? 'default' : 'destructive'} className="text-xs">{sub.status}</Badge></TableCell>
+          <TableCell className="text-sm">{formatISTDate(sub.created_at)}</TableCell>
+          <TableCell className="text-sm">{sub.last_login_at ? formatISTDateTime(sub.last_login_at) : 'Never'}</TableCell>
+          <TableCell colSpan={4}><Badge variant="outline" className="text-xs">{sub.role}</Badge></TableCell>
+          <TableCell></TableCell>
+          <TableCell>
+            {sub.id !== currentUserId && (
+              <Select value={sub.role} onValueChange={(val) => onRoleChange(sub, val)}>
+                <SelectTrigger className="w-[110px] h-7 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="user">Staff</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </TableCell>
+        </TableRow>
+      ))}
+      {isExpanded && subUsers.length === 0 && (
+        <TableRow className="bg-muted/20">
+          <TableCell></TableCell>
+          <TableCell colSpan={11} className="text-sm text-muted-foreground italic">No sub-users for this admin</TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+};

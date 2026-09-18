@@ -104,25 +104,34 @@ export const AdminPanel = () => {
 
   // Section catalog for instant search and categorization
   const sections: SettingSection[] = useMemo(
-    () => [
-      {
-        id: 'usage-metering',
-        tab: 'team',
-        tabLabel: 'Team & Shops',
-        title: 'Plan & Resource Quotas',
-        description: 'Resource usage metering, plan limits, shops quota, custom fields quota, and users',
-        keywords: ['usage', 'metering', 'limits', 'quota', 'plan', 'tier', 'shops limit', 'custom fields', 'entries', 'users', 'billing'],
-        render: () => <UsageMetering key="usage" />,
-      },
-      {
-        id: 'shop-management',
-        tab: 'team',
-        tabLabel: 'Team & Shops',
-        title: 'Shops & Outlets Management',
-        description: 'Manage authorized physical shops, track max shops quota, and view assigned staff count',
-        keywords: ['shops', 'stores', 'branches', 'locations', 'outlets', 'branch', 'store quota', 'max shops', 'shop limit'],
-        render: () => <ShopManagement key="shops" onRefresh={fetchData} />,
-      },
+    () => {
+      const adminProf = profiles.find(p => p.id === effectiveAdminId) || profile;
+      const canViewPlan = isSuperAdmin || (adminProf as any)?.show_plan_to_client !== false;
+
+      const list: SettingSection[] = [];
+
+      if (canViewPlan) {
+        list.push({
+          id: 'usage-metering',
+          tab: 'team',
+          tabLabel: 'Team & Shops',
+          title: 'Plan & Resource Quotas',
+          description: 'Resource usage metering, plan limits, shops quota, custom fields quota, and users',
+          keywords: ['usage', 'metering', 'limits', 'quota', 'plan', 'tier', 'shops limit', 'custom fields', 'entries', 'users', 'billing', 'upi', 'subscription'],
+          render: () => <UsageMetering key="usage" />,
+        });
+      }
+
+      list.push(
+        {
+          id: 'shop-management',
+          tab: 'team',
+          tabLabel: 'Team & Shops',
+          title: 'Shops & Outlets Management',
+          description: 'Manage authorized physical shops, track max shops quota, and view assigned staff count',
+          keywords: ['shops', 'stores', 'branches', 'locations', 'outlets', 'branch', 'store quota', 'max shops', 'shop limit'],
+          render: () => <ShopManagement key="shops" onRefresh={fetchData} />,
+        },
       {
         id: 'user-management',
         tab: 'team',
@@ -257,9 +266,10 @@ export const AdminPanel = () => {
         description: 'Customize your organization brand theme color and sync with the mobile status/notification bar',
         keywords: ['theme', 'color', 'brand', 'notification bar', 'status bar', 'palette', 'purple', 'blue', 'emerald', 'rose', 'appearance', 'branding'],
         render: () => <ThemeSettings key="theme-settings" />,
-      },
-    ],
-    [shops, profiles]
+      });
+      return list;
+    },
+    [shops, profiles, effectiveAdminId, isSuperAdmin, profile]
   );
 
   // Filtered sections when searching

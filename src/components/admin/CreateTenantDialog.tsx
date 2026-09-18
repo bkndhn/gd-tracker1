@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { logAudit } from '@/utils/auditLog';
 import { THEME_PALETTES } from '@/hooks/useClientTheme';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Shield,
   KeyRound,
@@ -29,7 +30,12 @@ import {
   Palette,
   CheckCircle2,
   Lock,
-  UserPlus
+  UserPlus,
+  Phone,
+  CreditCard,
+  IndianRupee,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const SUPABASE_URL =
@@ -75,6 +81,11 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
     email: string;
     tempPassword: string;
     tenantId: string;
+    phone?: string | null;
+    subscriptionAmount?: number | null;
+    billingCycle?: string;
+    showPlanToClient?: boolean;
+    paymentEnabled?: boolean;
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [pwdCopied, setPwdCopied] = useState(false);
@@ -82,8 +93,15 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
   // Form states
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [tempPassword, setTempPassword] = useState(() => generateRandomPassword());
   const [mustChangePassword, setMustChangePassword] = useState(true);
+
+  // Subscription & Billing
+  const [subscriptionAmount, setSubscriptionAmount] = useState<number | ''>('');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'yearly' | 'one_time'>('monthly');
+  const [showPlanToClient, setShowPlanToClient] = useState(true);
+  const [paymentEnabled, setPaymentEnabled] = useState(true);
 
   // Limits
   const [maxShops, setMaxShops] = useState(5);
@@ -124,8 +142,13 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
   const resetForm = () => {
     setName('');
     setEmail('');
+    setPhone('');
     setTempPassword(generateRandomPassword());
     setMustChangePassword(true);
+    setSubscriptionAmount('');
+    setBillingCycle('monthly');
+    setShowPlanToClient(true);
+    setPaymentEnabled(true);
     setMaxShops(5);
     setMaxUsers(10);
     setMaxWarehouseUsers(3);
@@ -153,7 +176,11 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
 
   const handleCopyCredentials = async () => {
     if (!createdCredentials) return;
-    const text = `Tenant Workspace Credentials\n---------------------------\nWorkspace: ${createdCredentials.name}\nLogin URL: ${window.location.origin}\nEmail: ${createdCredentials.email}\nTemporary Password: ${createdCredentials.tempPassword}\n\nNote: You will be prompted to set your permanent password upon first login.`;
+    const phoneLine = createdCredentials.phone ? `\nContact Phone: ${createdCredentials.phone}` : '';
+    const billingLine = createdCredentials.subscriptionAmount
+      ? `\nSubscription Plan: ₹${createdCredentials.subscriptionAmount.toLocaleString('en-IN')} (${createdCredentials.billingCycle})`
+      : '';
+    const text = `Tenant Workspace Credentials\n---------------------------\nWorkspace: ${createdCredentials.name}\nLogin URL: ${window.location.origin}\nEmail: ${createdCredentials.email}${phoneLine}${billingLine}\nTemporary Password: ${createdCredentials.tempPassword}\n\nNote: You will be prompted to set your permanent password upon first login.`;
     await navigator.clipboard.writeText(text);
     setCopied(true);
     toast.success('Credentials copied to clipboard!');
@@ -220,6 +247,12 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
         role: 'admin',
         admin_id: newUserId, // Root tenant self-reference
         status: 'active',
+        phone: phone.trim() || null,
+        subscription_amount: subscriptionAmount === '' ? null : Number(subscriptionAmount),
+        billing_cycle: billingCycle,
+        show_plan_to_client: showPlanToClient,
+        payment_enabled: paymentEnabled,
+        payment_status: 'unpaid',
         max_shops: maxShops ? Number(maxShops) : 5,
         max_users: maxUsers ? Number(maxUsers) : 10,
         max_warehouse_users: maxWarehouseUsers === '' ? null : Number(maxWarehouseUsers),
@@ -276,6 +309,11 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
         details: {
           tenant_name: trimmedName,
           email: trimmedEmail,
+          phone: phone.trim() || null,
+          subscription_amount: subscriptionAmount === '' ? null : Number(subscriptionAmount),
+          billing_cycle: billingCycle,
+          show_plan_to_client: showPlanToClient,
+          payment_enabled: paymentEnabled,
           new_tenant_id: newUserId,
           max_shops: maxShops,
           max_users: maxUsers,
@@ -288,6 +326,11 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
       setCreatedCredentials({
         name: trimmedName,
         email: trimmedEmail,
+        phone: phone.trim() || null,
+        subscriptionAmount: subscriptionAmount === '' ? null : Number(subscriptionAmount),
+        billingCycle,
+        showPlanToClient,
+        paymentEnabled,
         tempPassword,
         tenantId: newUserId,
       });
@@ -342,6 +385,29 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                   <span className="text-muted-foreground block text-[11px]">Administrator Email</span>
                   <span className="font-semibold text-foreground text-sm font-mono break-all">{createdCredentials.email}</span>
                 </div>
+
+                {createdCredentials.phone && (
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Contact Phone</span>
+                    <span className="font-semibold text-foreground text-sm font-mono flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5 text-emerald-500" />
+                      {createdCredentials.phone}
+                    </span>
+                  </div>
+                )}
+
+                {createdCredentials.subscriptionAmount ? (
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Subscription Fee</span>
+                    <span className="font-semibold text-foreground text-sm flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                      ₹{createdCredentials.subscriptionAmount.toLocaleString('en-IN')} / {createdCredentials.billingCycle}
+                      {createdCredentials.paymentEnabled && (
+                        <Badge variant="outline" className="ml-1 text-[9px] py-0 px-1 border-emerald-500/40 text-emerald-500">UPI Pay Active</Badge>
+                      )}
+                    </span>
+                  </div>
+                ) : null}
+
                 <div className="sm:col-span-2 pt-2 border-t border-border/60">
                   <span className="text-muted-foreground block text-[11px] mb-1">Temporary Password</span>
                   <div className="flex items-center justify-between gap-2 p-2.5 bg-muted/60 rounded-lg font-mono text-sm font-bold tracking-wide border">
@@ -394,7 +460,7 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                 <TabsList className="w-full flex items-center gap-1.5 p-1.5 bg-muted/50 border border-border/60 rounded-2xl overflow-x-auto no-scrollbar mb-5 shrink-0">
                   <TabsTrigger
                     value="basics"
-                    className="group flex-1 min-w-[125px] sm:min-w-0 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/25"
+                    className="group flex-1 min-w-[110px] sm:min-w-0 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/25"
                   >
                     <KeyRound className="h-3.5 w-3.5 text-indigo-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
                     <span className="truncate">Account & Auth</span>
@@ -402,18 +468,26 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
 
                   <TabsTrigger
                     value="limits"
-                    className="group flex-1 min-w-[125px] sm:min-w-0 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/25"
+                    className="group flex-1 min-w-[110px] sm:min-w-0 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/25"
                   >
                     <Sliders className="h-3.5 w-3.5 text-violet-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
-                    <span className="truncate">Resource Limits</span>
+                    <span className="truncate">Limits</span>
                   </TabsTrigger>
 
                   <TabsTrigger
                     value="features"
-                    className="group flex-1 min-w-[125px] sm:min-w-0 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/25"
+                    className="group flex-1 min-w-[110px] sm:min-w-0 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/25"
                   >
                     <Sparkles className="h-3.5 w-3.5 text-emerald-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
-                    <span className="truncate">Features & Theme</span>
+                    <span className="truncate">Features</span>
+                  </TabsTrigger>
+
+                  <TabsTrigger
+                    value="billing"
+                    className="group flex-1 min-w-[110px] sm:min-w-0 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/25"
+                  >
+                    <CreditCard className="h-3.5 w-3.5 text-amber-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
+                    <span className="truncate">Plan & Billing</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -448,6 +522,24 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                     className="h-10 text-sm font-mono"
                     required
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="tenant-phone" className="text-xs font-semibold flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5 text-primary" />
+                    Client Contact Phone Number <span className="text-[11px] text-muted-foreground font-normal">(for 1-click WhatsApp & Calls)</span>
+                  </Label>
+                  <Input
+                    id="tenant-phone"
+                    type="tel"
+                    placeholder="e.g. +91 98765 43210"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="h-10 text-sm font-mono"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Direct phone number for the tenant contact. Super Admin gets 1-click Call, WhatsApp, and Email deep links.
+                  </p>
                 </div>
 
                 <div className="space-y-1.5 pt-1">
@@ -757,6 +849,87 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
                     ))}
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* Tab 4: Plan & Billing */}
+              <TabsContent value="billing" className="space-y-4 focus-visible:outline-none">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
+                    <Label htmlFor="subscription-amount" className="text-xs font-semibold flex items-center gap-1.5">
+                      <IndianRupee className="h-3.5 w-3.5 text-emerald-500" /> Subscription Fee (₹)
+                    </Label>
+                    <Input
+                      id="subscription-amount"
+                      type="number"
+                      min={0}
+                      placeholder="e.g. 2999"
+                      value={subscriptionAmount}
+                      onChange={(e) => setSubscriptionAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="h-9 text-sm font-mono"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Periodic subscription charge for this tenant workspace.</p>
+                  </div>
+
+                  <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
+                    <Label htmlFor="billing-cycle" className="text-xs font-semibold flex items-center gap-1.5">
+                      <CreditCard className="h-3.5 w-3.5 text-indigo-500" /> Billing Cycle
+                    </Label>
+                    <Select value={billingCycle} onValueChange={(val: any) => setBillingCycle(val)}>
+                      <SelectTrigger id="billing-cycle" className="h-9 text-sm">
+                        <SelectValue placeholder="Select billing cycle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monthly">Monthly (Recurring)</SelectItem>
+                        <SelectItem value="quarterly">Quarterly (3 Months)</SelectItem>
+                        <SelectItem value="yearly">Yearly (Annual)</SelectItem>
+                        <SelectItem value="one_time">One-Time / Lifetime</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">Frequency of billing and renewal cycle.</p>
+                  </div>
+                </div>
+
+                <Card className="border-border/60 bg-muted/30 rounded-2xl overflow-hidden">
+                  <CardContent className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-foreground">Show Plan & Limits to Client</span>
+                        <Badge variant="outline" className={`text-[9px] py-0 px-1.5 ${showPlanToClient ? 'border-emerald-500/40 text-emerald-600' : 'border-rose-500/40 text-rose-500'}`}>
+                          {showPlanToClient ? 'Visible to Client' : 'Hidden from Client'}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        When disabled, plan limits, quota meters, and pricing are hidden from the client dashboard, keeping subscription terms private.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={showPlanToClient}
+                      onCheckedChange={setShowPlanToClient}
+                      className="shrink-0"
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/60 bg-muted/30 rounded-2xl overflow-hidden">
+                  <CardContent className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-foreground">Enable UPI & Bank Direct Payments</span>
+                        <Badge variant="outline" className={`text-[9px] py-0 px-1.5 ${paymentEnabled ? 'border-indigo-500/40 text-indigo-600' : 'border-muted text-muted-foreground'}`}>
+                          {paymentEnabled ? '1-Click Pay Active' : 'Payment Disabled'}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Enables 1-click mobile UPI intent pay button (GPay, PhonePe, Paytm, BHIM), dynamic QR, and Super Admin bank details for this tenant.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={paymentEnabled}
+                      onCheckedChange={setPaymentEnabled}
+                      className="shrink-0"
+                    />
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </div>
