@@ -7,30 +7,31 @@
 const SW_URL = '/sw.js';
 
 function isBlockedContext(): boolean {
-  if (!import.meta.env.PROD) return true;
+  // Only block if inside an embedded iframe (e.g. editor preview sandboxes)
   try {
     if (window.self !== window.top) return true;
   } catch {
     return true;
   }
-  const host = window.location.hostname;
-  if (host.startsWith('id-preview--') || host.startsWith('preview--')) return true;
-  if (host === 'lovableproject.com' || host.endsWith('.lovableproject.com')) return true;
-  if (host === 'lovableproject-dev.com' || host.endsWith('.lovableproject-dev.com')) return true;
-  if (host === 'beta.lovable.dev' || host.endsWith('.beta.lovable.dev')) return true;
-  if (new URLSearchParams(window.location.search).has('sw')
-      && new URLSearchParams(window.location.search).get('sw') === 'off') return true;
+
+  // Explicit escape hatch for debugging
+  try {
+    if (new URLSearchParams(window.location.search).get('sw') === 'off') return true;
+  } catch {}
+
   return false;
 }
 
 async function unregisterAppWorkers() {
   if (!('serviceWorker' in navigator)) return;
-  const regs = await navigator.serviceWorker.getRegistrations();
-  await Promise.all(
-    regs
-      .filter((r) => (r.active?.scriptURL || r.installing?.scriptURL || '').endsWith(SW_URL))
-      .map((r) => r.unregister()),
-  );
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(
+      regs
+        .filter((r) => (r.active?.scriptURL || r.installing?.scriptURL || '').endsWith(SW_URL))
+        .map((r) => r.unregister()),
+    );
+  } catch {}
 }
 
 export function registerServiceWorker() {
@@ -41,7 +42,7 @@ export function registerServiceWorker() {
     return;
   }
 
-  window.addEventListener('load', () => {
+  const doRegister = () => {
     navigator.serviceWorker
       .register(SW_URL, { scope: '/' })
       .then((reg) => {
@@ -59,8 +60,18 @@ export function registerServiceWorker() {
           }
         });
       })
-      .catch(() => {
-        /* offline support is best-effort */
+      .catch((err) => {
+        if (import.meta.env.DEV) {
+          console.warn('Service worker registration failed:', err);
+        }
       });
-  });
+  };
+
+  // If the window has already finished loading (e.g. called via whenIdle/requestIdleCallback),
+  // register immediately. Otherwise wait for window load.
+  if (document.readyState === 'complete') {
+    doRegister();
+  } else {
+    window.addEventListener('load', doRegister);
+  }
 }

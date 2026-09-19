@@ -170,62 +170,6 @@ export const THEME_PALETTES: Record<string, ThemePalette> = {
   },
 };
 
-export const updateDynamicManifest = (themeHex: string) => {
-  try {
-    const manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
-    if (!manifestLink) return;
-    const isDark = document.documentElement.classList.contains('dark');
-    const manifestData = {
-      name: "Lost Sale Insights",
-      short_name: "LSI",
-      description: "Track non-purchase visitors and why sales are lost",
-      start_url: "/",
-      display: "standalone",
-      background_color: isDark ? "#0c0817" : "#ffffff",
-      theme_color: themeHex,
-      orientation: "portrait-primary",
-      icons: [
-        {
-          src: "/icon-192.png",
-          sizes: "192x192",
-          type: "image/png",
-          purpose: "maskable any"
-        },
-        {
-          src: "/icon-512.png",
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "maskable any"
-        },
-        {
-          src: "/favicon.svg",
-          sizes: "any",
-          type: "image/svg+xml",
-          purpose: "any"
-        },
-        {
-          src: "/lovable-uploads/d9731f6e-4026-4be4-aaf0-1a401d8ba7be.png",
-          sizes: "192x192",
-          type: "image/png",
-          purpose: "maskable any"
-        }
-      ],
-      categories: ["business", "productivity"],
-      lang: "en",
-      dir: "ltr"
-    };
-    const blob = new Blob([JSON.stringify(manifestData, null, 2)], { type: 'application/manifest+json' });
-    if ((window as any).__pwaManifestBlob) {
-      URL.revokeObjectURL((window as any).__pwaManifestBlob);
-    }
-    const blobUrl = URL.createObjectURL(blob);
-    (window as any).__pwaManifestBlob = blobUrl;
-    manifestLink.setAttribute('href', blobUrl);
-  } catch (e) {
-    // safe fallback
-  }
-};
-
 export const applyThemeToDom = (themeId: string) => {
   const palette = THEME_PALETTES[themeId] || THEME_PALETTES.purple;
   const isDark = document.documentElement.classList.contains('dark');
@@ -240,50 +184,43 @@ export const applyThemeToDom = (themeId: string) => {
 
   const themeHex = palette.hex;
 
-  // 1. Android & Modern Chrome/Safari/Edge theme-color meta tags
-  // Chromium requires media="(prefers-color-scheme: dark)" to recolor status bar when dark mode is active
-  const mediaConfigs = [
-    { name: 'theme-color', media: '' },
-    { name: 'theme-color', media: '(prefers-color-scheme: light)' },
-    { name: 'theme-color', media: '(prefers-color-scheme: dark)' },
-  ];
-
-  mediaConfigs.forEach(({ name, media }) => {
-    const selector = media ? `meta[name="${name}"][media="${media}"]` : `meta[name="${name}"]:not([media])`;
-    let meta = document.querySelector(selector) as HTMLMetaElement | null;
-    if (!meta) {
-      meta = document.createElement('meta');
-      meta.name = name;
-      if (media) meta.media = media;
-      document.head.appendChild(meta);
+  // 1. Clean up any leftover blob manifest so PWA installation is always valid
+  try {
+    const manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
+    if (manifestLink && (manifestLink.getAttribute('href')?.startsWith('blob:') || manifestLink.href.startsWith('blob:'))) {
+      manifestLink.setAttribute('href', '/manifest.json');
     }
-    meta.setAttribute('content', themeHex);
-    meta.content = themeHex;
-  });
+  } catch {}
 
-  // Ensure color-scheme is declared
-  let metaScheme = document.querySelector('meta[name="color-scheme"]') as HTMLMetaElement | null;
-  if (!metaScheme) {
-    metaScheme = document.createElement('meta');
-    metaScheme.name = 'color-scheme';
-    document.head.appendChild(metaScheme);
+  // 2. Android & Mobile Chrome/Safari/Edge status bar theme-color
+  // Remove conflicting media-specific tags that cause Android to lock the status bar to black in dark mode
+  try {
+    document.querySelectorAll('meta[name="theme-color"][media]').forEach((el) => el.remove());
+    // Also remove meta[name="color-scheme"] which triggers Chromium's forced black status bar override
+    document.querySelectorAll('meta[name="color-scheme"]').forEach((el) => el.remove());
+  } catch {}
+
+  let metaTheme = document.querySelector('meta[name="theme-color"]:not([media])') as HTMLMetaElement | null;
+  if (!metaTheme) {
+    metaTheme = document.createElement('meta');
+    metaTheme.name = 'theme-color';
+    document.head.appendChild(metaTheme);
   }
-  metaScheme.setAttribute('content', 'light dark');
-  metaScheme.content = 'light dark';
+  metaTheme.setAttribute('content', themeHex);
+  metaTheme.content = themeHex;
 
-  // 2. Apple iOS Safari Status Bar Style
-  // 'default' = white status bar text on theme-color background
-  // 'black-translucent' = FORCES black semi-transparent overlay — avoid this
+  // 3. Apple iOS Safari Status Bar Style
+  // 'black-translucent' enables the web app to paint through the status bar seamlessly with the theme color
   let metaApple = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement | null;
   if (!metaApple) {
     metaApple = document.createElement('meta');
     metaApple.name = 'apple-mobile-web-app-status-bar-style';
     document.head.appendChild(metaApple);
   }
-  metaApple.setAttribute('content', 'default');
-  metaApple.content = 'default';
+  metaApple.setAttribute('content', 'black-translucent');
+  metaApple.content = 'black-translucent';
 
-  // 3. Mobile web app capable tags for native Android & iOS PWA feel
+  // 4. Mobile web app capable tags for native Android & iOS PWA feel
   let metaAppleCapable = document.querySelector('meta[name="apple-mobile-web-app-capable"]') as HTMLMetaElement | null;
   if (!metaAppleCapable) {
     metaAppleCapable = document.createElement('meta');
@@ -300,7 +237,7 @@ export const applyThemeToDom = (themeId: string) => {
     document.head.appendChild(metaMobileCapable);
   }
 
-  // 4. Windows Phone / older Edge status bar
+  // 5. Windows Phone / older Edge status bar
   let metaNav = document.querySelector('meta[name="msapplication-navbutton-color"]') as HTMLMetaElement | null;
   if (!metaNav) {
     metaNav = document.createElement('meta');
@@ -310,13 +247,10 @@ export const applyThemeToDom = (themeId: string) => {
   metaNav.setAttribute('content', themeHex);
   metaNav.content = themeHex;
 
-  // 5. Store for synchronous 0ms paint on next cold reload
+  // 6. Store for synchronous 0ms paint on next cold reload
   try {
     localStorage.setItem('gd_applied_theme_hex', themeHex);
   } catch {}
-
-  // 6. Dynamically update manifest so installed PWA honors active theme
-  updateDynamicManifest(themeHex);
 
   // 7. Dynamically update browser tab favicon with theme-adaptive SVG logo
   updateDynamicFavicon(palette);

@@ -50,13 +50,22 @@ export const markPWADismissed = () => {
   }
 };
 
+export const isDeviceAndroid = () =>
+  typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
+
+export const isMobileDevice = () =>
+  typeof navigator !== 'undefined' &&
+  /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+
 export const usePWAInstall = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(globalDeferredPrompt);
   const [isInstalled, setIsInstalled] = useState<boolean>(isPWAStandalone());
-  const [iosModalOpen, setIosModalOpen] = useState(false);
+  const [installModalOpen, setInstallModalOpen] = useState(false);
   const [initialPromptVisible, setInitialPromptVisible] = useState(false);
 
   const isIOS = isDeviceIOS();
+  const isAndroid = isDeviceAndroid();
+  const isMobile = isMobileDevice();
 
   useEffect(() => {
     setIsInstalled(isPWAStandalone());
@@ -70,17 +79,17 @@ export const usePWAInstall = () => {
 
     promptListeners.add(updatePrompt);
 
-    // Initial check on mount
+    // Show install banner on mobile or when prompt is available
     if (!isPWAStandalone() && !wasPWADismissedRecently()) {
       if (globalDeferredPrompt) {
         setInitialPromptVisible(true);
-      } else if (isIOS) {
-        // Show iOS subtle banner after delay on first visits
+      } else {
+        // Show banner after brief delay on mobile devices even before native event
         const t = setTimeout(() => {
           if (!isPWAStandalone() && !wasPWADismissedRecently()) {
             setInitialPromptVisible(true);
           }
-        }, 3500);
+        }, isMobile ? 2500 : 5000);
         return () => {
           clearTimeout(t);
           promptListeners.delete(updatePrompt);
@@ -91,31 +100,33 @@ export const usePWAInstall = () => {
     return () => {
       promptListeners.delete(updatePrompt);
     };
-  }, [isIOS]);
+  }, [isIOS, isMobile]);
 
   const promptInstall = useCallback(async (): Promise<boolean> => {
     if (isInstalled) return false;
 
+    // 1. If native beforeinstallprompt is ready, invoke it directly
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        globalDeferredPrompt = null;
-        setDeferredPrompt(null);
-        setInitialPromptVisible(false);
-        setIsInstalled(true);
-        return true;
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          globalDeferredPrompt = null;
+          setDeferredPrompt(null);
+          setInitialPromptVisible(false);
+          setInstallModalOpen(false);
+          setIsInstalled(true);
+          return true;
+        }
+      } catch (err) {
+        console.warn('Native prompt install failed, falling back to guide:', err);
       }
-      return false;
     }
 
-    if (isIOS) {
-      setIosModalOpen(true);
-      return true;
-    }
-
-    return false;
-  }, [deferredPrompt, isInstalled, isIOS]);
+    // 2. If native prompt is unavailable or was dismissed, open the visual step-by-step modal
+    setInstallModalOpen(true);
+    return true;
+  }, [deferredPrompt, isInstalled]);
 
   const dismissInitialPrompt = useCallback(() => {
     setInitialPromptVisible(false);
@@ -123,13 +134,19 @@ export const usePWAInstall = () => {
   }, []);
 
   return {
-    canInstall: !isInstalled && (!!deferredPrompt || isIOS),
+    canInstall: !isInstalled,
     isInstalled,
     isIOS,
+    isAndroid,
+    isMobile,
+    hasNativePrompt: !!deferredPrompt,
     promptInstall,
     initialPromptVisible,
     dismissInitialPrompt,
-    iosModalOpen,
-    setIosModalOpen,
+    installModalOpen,
+    setInstallModalOpen,
+    // Backward compatibility for existing references
+    iosModalOpen: installModalOpen,
+    setIosModalOpen: setInstallModalOpen,
   };
 };

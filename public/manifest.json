@@ -1,13 +1,13 @@
 
 {
-  "id": "/?source=pwa",
+  "id": "/",
   "name": "Lost Sale Insights",
   "short_name": "LSI",
-  "description": "Track non-purchase visitors and why sales are lost",
+  "description": "Track walk-in visitors who left without buying, request sizes directly from warehouse stock, and manage fulfillment across all branches.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0c0817",
+  "background_color": "#0d091a",
   "theme_color": "#7c3aed",
   "orientation": "portrait-primary",
   "icons": [

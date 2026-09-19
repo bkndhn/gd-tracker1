@@ -10,7 +10,7 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
         <AppLogo
           size="splash"
           animated

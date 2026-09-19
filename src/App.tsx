@@ -9,6 +9,7 @@ import { ExportJobsPanel } from "@/components/ExportJobsPanel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { I18nProvider } from "@/i18n";
 import { ClientThemeSync } from "@/hooks/useClientTheme";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import Index from "./pages/Index";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -32,7 +33,14 @@ const App: React.FC = () => {
       <QueryClientProvider client={queryClient}>
         <I18nProvider>
         <TooltipProvider>
+          {/* Universal status bar fill for standalone mobile PWAs (iOS & Android notches) */}
+          <div
+            className="fixed top-0 left-0 right-0 z-50 bg-primary pointer-events-none transition-colors duration-200"
+            style={{ height: 'env(safe-area-inset-top, 0px)' }}
+            aria-hidden="true"
+          />
           <ClientThemeSync />
+          <PWAInstallPrompt />
           <ExportJobsProvider>
             <Toaster />
             <Sonner />

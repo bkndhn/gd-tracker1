@@ -90,7 +90,7 @@ export const usePushNotifications = () => {
       try {
         new Notification(payload.title, {
           body: payload.body,
-          icon: '/lovable-uploads/d9731f6e-4026-4be4-aaf0-1a401d8ba7be.png',
+          icon: '/icon-192.png',
         });
       } catch {}
     }

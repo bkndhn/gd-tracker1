@@ -8,7 +8,6 @@ import { LostVisitForm } from '@/components/LostVisitForm';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { OfflineStatusBar } from '@/components/OfflineStatusBar';
 
-import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Plus, Settings, FileText, Shield, MessageCircle } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -223,7 +222,6 @@ export const MainApp = () => {
 
   return (
     <>
-      <PWAInstallPrompt />
       <FeatureTour />
       <OnboardingWizard open={onboardingOpen} onOpenChange={setOnboardingOpen} />
       <div className="sticky top-0 z-40"><OfflineStatusBar /></div>
