@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import { toast } from 'sonner';
-import { Store, Plus, Edit, Trash2, Users, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Store, Plus, Edit, Trash2, Users, AlertTriangle, ShieldCheck, Search } from 'lucide-react';
 import { formatISTDate } from '@/lib/dateUtils';
+import { ThemedSearchInput } from '@/components/ThemedSearchInput';
 
 interface ShopItem {
   id: string;
@@ -31,6 +32,13 @@ export const ShopManagement = ({ onRefresh }: ShopManagementProps) => {
   const [maxShops, setMaxShops] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [staffCounts, setStaffCounts] = useState<Record<string, number>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredShops = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return shops;
+    return shops.filter(s => s.name.toLowerCase().includes(q));
+  }, [shops, searchQuery]);
 
   // Add shop dialog
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -300,67 +308,101 @@ export const ShopManagement = ({ onRefresh }: ShopManagementProps) => {
               </Button>
             </div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Shop Name</TableHead>
-                    <TableHead>Assigned Team</TableHead>
-                    <TableHead className="hidden sm:table-cell">Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shops.map(shop => {
-                    const count = staffCounts[shop.id] || 0;
-                    return (
-                      <TableRow key={shop.id}>
-                        <TableCell className="font-semibold text-sm">
-                          <span className="flex items-center gap-2">
-                            <Store className="h-4 w-4 text-primary/70 shrink-0" />
-                            {shop.name}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                            <Users className="h-3 w-3" />
-                            {count} member{count === 1 ? '' : 's'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
-                          {formatISTDate(shop.created_at)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => {
-                                setEditingShop(shop);
-                                setEditName(shop.name);
-                                setIsEditOpen(true);
-                              }}
-                              title="Rename Shop"
-                            >
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              onClick={() => setDeletingShop(shop)}
-                              title="Delete Shop"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
+            <div className="space-y-3">
+              {/* Search Bar */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="w-full sm:max-w-xs">
+                  <ThemedSearchInput
+                    placeholder="Search shops by name..."
+                    value={searchQuery}
+                    onValueChange={setSearchQuery}
+                    onClear={() => setSearchQuery('')}
+                  />
+                </div>
+                {searchQuery.trim() && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>Showing {filteredShops.length} of {shops.length} shops</span>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="text-primary hover:underline text-[11px] font-medium"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Shop Name</TableHead>
+                      <TableHead>Assigned Team</TableHead>
+                      <TableHead className="hidden sm:table-cell">Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredShops.map(shop => {
+                      const count = staffCounts[shop.id] || 0;
+                      return (
+                        <TableRow key={shop.id}>
+                          <TableCell className="font-semibold text-sm">
+                            <span className="flex items-center gap-2">
+                              <Store className="h-4 w-4 text-primary/70 shrink-0" />
+                              {shop.name}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                              <Users className="h-3 w-3" />
+                              {count} member{count === 1 ? '' : 's'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
+                            {formatISTDate(shop.created_at)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => {
+                                  setEditingShop(shop);
+                                  setEditName(shop.name);
+                                  setIsEditOpen(true);
+                                }}
+                                title="Rename Shop"
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                onClick={() => setDeletingShop(shop)}
+                                title="Delete Shop"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+
+                    {filteredShops.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8 text-xs text-muted-foreground">
+                          No shops found matching &quot;{searchQuery}&quot;.
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </CardContent>

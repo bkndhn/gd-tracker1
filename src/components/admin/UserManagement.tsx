@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
-import { UserPlus, Edit, Trash2, Pause, Play, KeyRound } from 'lucide-react';
+import { UserPlus, Edit, Trash2, Pause, Play, KeyRound, Search, RotateCcw, Store, Warehouse, Users } from 'lucide-react';
+import { ThemedSearchInput } from '@/components/ThemedSearchInput';
 import { Database } from '@/types/database';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -302,11 +303,55 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
     }
   }, [editingUser, user, refreshProfile, propOnRefresh, fetchData]);
 
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'manager' | 'warehouse'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused'>('all');
+
+  const shopMap = useMemo(() => new Map(shops.map(s => [s.id, s.name])), [shops]);
+
   // Filter out the current user and super admins from the list
   const displayProfiles = useMemo(() => 
     profiles.filter(p => p.id !== currentProfile?.id && p.role !== 'super_admin'),
     [profiles, currentProfile?.id]
   );
+
+  // Apply search query, role filter, and status filter
+  const filteredProfiles = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return displayProfiles.filter(p => {
+      const status = (p as any).status || 'active';
+      if (roleFilter !== 'all' && p.role !== roleFilter) return false;
+      if (statusFilter !== 'all' && status !== statusFilter) return false;
+
+      if (q) {
+        const assignedShop = p.shop_id ? shopMap.get(p.shop_id) : '';
+        const warehouseShops = (p.warehouse_shop_ids || [])
+          .map((id: string) => shopMap.get(id))
+          .filter(Boolean)
+          .join(' ');
+        const roleLabel = p.role === 'user' ? 'staff' : p.role;
+        const searchable = [
+          p.name,
+          p.email,
+          p.role,
+          roleLabel,
+          status,
+          assignedShop,
+          warehouseShops,
+          p.warehouse_all_shops ? 'all shops warehouse' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        if (!searchable.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [displayProfiles, searchQuery, roleFilter, statusFilter, shopMap]);
+
+  const hasActiveFilters = searchQuery.trim() !== '' || roleFilter !== 'all' || statusFilter !== 'all';
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Loading user data...</div>;
@@ -316,44 +361,151 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
     <TooltipProvider>
       <div className="space-y-6 w-full min-w-0">
         <Card className="w-full min-w-0 overflow-hidden">
-          <CardHeader className="px-3 sm:px-6">
+          <CardHeader className="px-3 sm:px-6 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <UserPlus className="h-5 w-5 shrink-0" />
-                  User Management
+                  <Users className="h-5 w-5 shrink-0 text-primary" />
+                  Team &amp; User Management
                 </CardTitle>
                 <CardDescription>
-                  Manage sub-users and their roles ({displayProfiles.length} users)
+                  Manage team members, roles, and shop assignments ({displayProfiles.length} total)
                 </CardDescription>
               </div>
-              <Button onClick={() => setIsCreateOpen(true)} className="flex items-center justify-center gap-2 w-full sm:w-auto shrink-0">
+              <Button onClick={() => setIsCreateOpen(true)} className="flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 rounded-xl shadow-xs">
                 <UserPlus className="h-4 w-4" />
-                Add User
+                Add Team Member
               </Button>
             </div>
+
+            {/* Search Bar & Quick Filters */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-border/60">
+              <div className="flex-1 min-w-0">
+                <ThemedSearchInput
+                  placeholder="Search team members by name, email, role, shop..."
+                  value={searchQuery}
+                  onValueChange={setSearchQuery}
+                  onClear={() => setSearchQuery('')}
+                />
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Select value={roleFilter} onValueChange={(val: any) => setRoleFilter(val)}>
+                  <SelectTrigger className="w-full sm:w-[130px] h-9 text-xs rounded-xl">
+                    <SelectValue placeholder="All Roles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="user">Staff</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="warehouse">Warehouse</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
+                  <SelectTrigger className="w-full sm:w-[120px] h-9 text-xs rounded-xl">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="paused">Paused</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setRoleFilter('all');
+                      setStatusFilter('all');
+                    }}
+                    className="h-9 px-2.5 text-xs text-muted-foreground hover:text-destructive gap-1 shrink-0 rounded-xl"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span>Reset</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {hasActiveFilters && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
+                <span>
+                  Showing {filteredProfiles.length} of {displayProfiles.length} team members
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setRoleFilter('all');
+                    setStatusFilter('all');
+                  }}
+                  className="text-primary hover:underline text-[11px] font-medium"
+                >
+                  Clear search &amp; filters
+                </button>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="px-3 sm:px-6">
-            <div className="grid gap-4">
-              {displayProfiles.map((p) => {
+            <div className="grid gap-3">
+              {filteredProfiles.map((p) => {
                 const status = (p as any).status || 'active';
                 const isPaused = status === 'paused';
+                const assignedShopName = p.shop_id ? shopMap.get(p.shop_id) : null;
+                const warehouseShopsLabel = p.warehouse_all_shops
+                  ? 'All Shops'
+                  : (p.warehouse_shop_ids || [])
+                      .map((id: string) => shopMap.get(id))
+                      .filter(Boolean)
+                      .join(', ');
+
                 return (
-                  <div key={p.id} className={`border rounded-lg p-3 sm:p-4 min-w-0 ${isPaused ? 'opacity-60 bg-muted/30' : ''}`}>
+                  <div key={p.id} className={`border rounded-xl p-3 sm:p-4 min-w-0 bg-card shadow-2xs hover:shadow-xs transition-shadow ${isPaused ? 'opacity-65 bg-muted/30' : ''}`}>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{p.name}</div>
-                        <div className="text-sm text-muted-foreground truncate">
+                      <div className="min-w-0 space-y-1">
+                        <div className="font-semibold text-sm sm:text-base text-foreground truncate">{p.name}</div>
+                        <div className="text-xs text-muted-foreground truncate font-mono">
                           {p.email || p.user_id}
                         </div>
-                        <div className="mt-1 flex gap-2 flex-wrap">
-                          <Badge variant="secondary">{p.role}</Badge>
-                          <Badge variant={isPaused ? 'destructive' : 'default'}>
+                        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                          <Badge variant="secondary" className="capitalize text-[11px] font-semibold">
+                            {p.role === 'user' ? 'Staff' : p.role}
+                          </Badge>
+                          <Badge
+                            variant={isPaused ? 'destructive' : 'outline'}
+                            className={`text-[11px] ${
+                              isPaused
+                                ? ''
+                                : 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                            }`}
+                          >
                             {status}
                           </Badge>
+
+                          {/* Assigned Shop or Warehouse Scope Badge */}
+                          {p.role === 'warehouse' ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[11px] font-medium gap-1 bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30"
+                            >
+                              <Warehouse className="h-3 w-3 shrink-0 text-violet-600" />
+                              <span>{warehouseShopsLabel ? `${warehouseShopsLabel} (Warehouse)` : 'Warehouse Staff'}</span>
+                            </Badge>
+                          ) : assignedShopName ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[11px] font-normal gap-1 bg-muted/40 text-muted-foreground"
+                            >
+                              <Store className="h-3 w-3 shrink-0 text-primary/70" />
+                              <span>{assignedShopName}</span>
+                            </Badge>
+                          ) : null}
                         </div>
                       </div>
-                      <div className="flex gap-1.5 flex-wrap sm:shrink-0">
+                      <div className="flex gap-1.5 flex-wrap sm:shrink-0 pt-1 sm:pt-0">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -363,7 +515,7 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
                               disabled={togglingStatus === p.id}
                               onClick={() => handleToggleStatus(p)}
                             >
-                              {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                              {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4 text-muted-foreground" />}
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent><p>{isPaused ? 'Activate user' : 'Pause user'}</p></TooltipContent>
@@ -371,7 +523,7 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="outline" size="sm" className="p-2" onClick={() => { setCredentialsUser(p); setIsCredentialsOpen(true); }}>
-                              <KeyRound className="h-4 w-4" />
+                              <KeyRound className="h-4 w-4 text-muted-foreground" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent><p>Change email/password</p></TooltipContent>
@@ -379,7 +531,7 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="outline" size="sm" onClick={() => handleEditUser(p)} className="p-2">
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-4 w-4 text-muted-foreground" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent><p>Edit user</p></TooltipContent>
@@ -397,8 +549,33 @@ export const UserManagement = ({ shops: propShops, profiles: propProfiles, onRef
                   </div>
                 );
               })}
-              {displayProfiles.length === 0 && (
-                <p className="text-center text-muted-foreground py-4">No sub-users yet. Click "Add User" to create one.</p>
+
+              {filteredProfiles.length === 0 && (
+                displayProfiles.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8 text-sm">
+                    No sub-users yet. Click &quot;Add Team Member&quot; to create one.
+                  </p>
+                ) : (
+                  <div className="p-8 text-center rounded-xl border border-dashed bg-muted/20 space-y-2">
+                    <Search className="h-8 w-8 mx-auto text-muted-foreground/50" />
+                    <p className="text-sm font-semibold text-foreground">No team members match your search</p>
+                    <p className="text-xs text-muted-foreground">
+                      No team members found matching your search criteria. Try adjusting your search query or filters.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setRoleFilter('all');
+                        setStatusFilter('all');
+                      }}
+                      className="mt-2 text-xs rounded-xl"
+                    >
+                      Clear Search &amp; Filters
+                    </Button>
+                  </div>
+                )
               )}
             </div>
           </CardContent>
