@@ -469,9 +469,9 @@ export const CreateTenantDialog: React.FC<CreateTenantDialogProps> = ({
 
                   <TabsTrigger
                     value="limits"
-                    className="group min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/25"
+                    className="group min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/25"
                   >
-                    <Sliders className="h-3.5 w-3.5 text-violet-500 group-data-[state=active]:text-white shrink-0 transition-colors" />
+                    <Sliders className="h-3.5 w-3.5 text-primary group-data-[state=active]:text-white shrink-0 transition-colors" />
                     <span className="whitespace-nowrap">Limits</span>
                   </TabsTrigger>
 

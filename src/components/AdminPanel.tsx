@@ -329,8 +329,8 @@ export const AdminPanel = () => {
       shortLabel: 'Privacy',
       icon: ShieldCheck,
       count: 5,
-      activeClass: 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-rose-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20',
-      iconClass: 'text-purple-500 group-data-[state=active]:text-white',
+      activeClass: 'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/20',
+      iconClass: 'text-primary group-data-[state=active]:text-primary-foreground',
     },
   ] as const;
 

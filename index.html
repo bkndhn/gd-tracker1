@@ -22,26 +22,81 @@
       (function() {
         try {
           var THEMES = {
-            purple: '#7c3aed',
-            blue: '#2563eb',
-            emerald: '#059669',
-            rose: '#e11d48',
-            amber: '#d97706',
-            indigo: '#4f46e5',
-            teal: '#0d9488',
-            slate: '#475569'
+            purple: {
+              hex: '#7c3aed',
+              l: { primary: '262 83% 58%', bg: '240 100% 98%', card: '0 0% 100%', border: '240 30% 90%' },
+              d: { primary: '262 83% 65%', bg: '260 60% 8%', card: '260 50% 12%', border: '260 40% 20%' }
+            },
+            blue: {
+              hex: '#2563eb',
+              l: { primary: '221 83% 53%', bg: '215 100% 98%', card: '0 0% 100%', border: '215 30% 90%' },
+              d: { primary: '217 91% 60%', bg: '222 55% 7%', card: '222 45% 11%', border: '222 35% 19%' }
+            },
+            emerald: {
+              hex: '#059669',
+              l: { primary: '160 84% 39%', bg: '155 80% 98%', card: '0 0% 100%', border: '160 30% 90%' },
+              d: { primary: '158 64% 52%', bg: '162 50% 6%', card: '162 40% 10%', border: '162 30% 18%' }
+            },
+            rose: {
+              hex: '#e11d48',
+              l: { primary: '350 89% 60%', bg: '350 80% 99%', card: '0 0% 100%', border: '350 30% 91%' },
+              d: { primary: '350 89% 65%', bg: '352 50% 7%', card: '352 40% 11%', border: '352 30% 19%' }
+            },
+            amber: {
+              hex: '#d97706',
+              l: { primary: '38 92% 50%', bg: '40 80% 98%', card: '0 0% 100%', border: '38 30% 90%' },
+              d: { primary: '38 92% 55%', bg: '28 40% 7%', card: '28 32% 11%', border: '28 25% 18%' }
+            },
+            indigo: {
+              hex: '#4f46e5',
+              l: { primary: '243 75% 59%', bg: '240 80% 98%', card: '0 0% 100%', border: '243 30% 90%' },
+              d: { primary: '243 75% 65%', bg: '245 50% 7%', card: '245 40% 11%', border: '245 30% 19%' }
+            },
+            teal: {
+              hex: '#0d9488',
+              l: { primary: '173 80% 40%', bg: '175 70% 98%', card: '0 0% 100%', border: '173 30% 90%' },
+              d: { primary: '173 80% 50%', bg: '178 50% 6%', card: '178 40% 10%', border: '178 30% 18%' }
+            },
+            slate: {
+              hex: '#475569',
+              l: { primary: '215 25% 27%', bg: '215 20% 98%', card: '0 0% 100%', border: '215 15% 90%' },
+              d: { primary: '215 20% 65%', bg: '220 22% 8%', card: '220 18% 12%', border: '220 15% 18%' }
+            }
           };
-          var hex = localStorage.getItem('gd_applied_theme_hex');
-          if (!hex) {
+
+          var brandTheme = localStorage.getItem('gd_brand_theme');
+          if (!brandTheme) {
             for (var i = 0; i < localStorage.length; i++) {
               var k = localStorage.key(i);
               if (k && k.indexOf('gd_client_theme_') === 0) {
                 var val = localStorage.getItem(k);
-                if (val && THEMES[val]) { hex = THEMES[val]; break; }
+                if (val && THEMES[val]) { brandTheme = val; break; }
               }
             }
           }
-          if (!hex) hex = '#7c3aed';
+          if (!brandTheme || !THEMES[brandTheme]) brandTheme = 'purple';
+          var palette = THEMES[brandTheme];
+          var hex = palette.hex;
+
+          var gdTheme = localStorage.getItem('gd_theme');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var isDark = (gdTheme === 'dark' || (!gdTheme && prefersDark));
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+
+          var tokens = isDark ? palette.d : palette.l;
+          var root = document.documentElement;
+          root.style.setProperty('--primary', tokens.primary);
+          root.style.setProperty('--ring', tokens.primary);
+          root.style.setProperty('--sidebar-primary', tokens.primary);
+          root.style.setProperty('--background', tokens.bg);
+          root.style.setProperty('--card', tokens.card);
+          root.style.setProperty('--popover', tokens.card);
+          root.style.setProperty('--border', tokens.border);
+
           var metas = document.querySelectorAll('meta[name="theme-color"]');
           metas.forEach(function(m) {
             m.setAttribute('content', hex);
@@ -52,18 +107,10 @@
             mNav.setAttribute('content', hex);
             mNav.content = hex;
           }
-          // Set dynamic theme SVG favicon immediately
           var fav = document.getElementById('app-favicon');
           if (fav) {
             var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0c0818"/><stop offset="100%" stop-color="#171032"/></linearGradient><linearGradient id="st" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="' + hex + '"/><stop offset="100%" stop-color="#ffffff"/></linearGradient></defs><rect x="16" y="16" width="480" height="480" rx="124" fill="url(#bg)" stroke="' + hex + '" stroke-width="16"/><g><polygon points="256,380 376,310 376,334 256,404 136,334 136,310" fill="' + hex + '" opacity="0.3"/><path d="M 148 206 L 244 262 L 244 382 L 148 326 Z" fill="' + hex + '"/><path d="M 268 262 L 364 206 L 364 326 L 268 382 Z" fill="' + hex + '" opacity="0.85"/><path d="M 256 142 L 352 198 L 256 254 L 160 198 Z" fill="' + hex + '" opacity="0.9"/><path d="M 216 280 L 256 216 L 336 136" stroke="#ffffff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><path d="M 216 280 L 256 216 L 336 136" stroke="url(#st)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/><polygon points="360,112 308,124 332,148" fill="#ffffff"/><circle cx="256" cy="216" r="18" fill="#ffffff"/><circle cx="256" cy="216" r="11" fill="' + hex + '"/><circle cx="256" cy="216" r="4.5" fill="#ffffff"/></g></svg>';
             fav.href = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-          }
-          var gdTheme = localStorage.getItem('gd_theme');
-          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-          if (gdTheme === 'dark' || (!gdTheme && prefersDark)) {
-            document.documentElement.classList.add('dark');
-          } else if (gdTheme === 'light') {
-            document.documentElement.classList.remove('dark');
           }
         } catch(e) {}
       })();

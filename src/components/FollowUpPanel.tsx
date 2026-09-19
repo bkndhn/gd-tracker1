@@ -225,9 +225,9 @@ export const FollowUpPanel = () => {
             </TabsTrigger>
             <TabsTrigger
               value="leaderboard"
-              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap shrink-0 transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+              className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap shrink-0 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/25 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
             >
-              <Trophy className="h-4 w-4 shrink-0 text-violet-500 group-data-[state=active]:text-white transition-colors" />
+              <Trophy className="h-4 w-4 shrink-0 text-primary group-data-[state=active]:text-primary-foreground transition-colors" />
               <span>Leaderboards</span>
             </TabsTrigger>
             <TabsTrigger

@@ -124,11 +124,11 @@ export const MobileBottomNav = ({
               onClick={() => setActiveTab(item.id)}
               className={`flex-1 min-w-0 flex flex-col items-center justify-center py-1 sm:py-1.5 px-0.5 sm:px-1 rounded-xl sm:rounded-full transition-all duration-200 active:scale-95 focus:outline-none ${
                 isActive
-                  ? `bg-gradient-to-r ${theme.gradient} text-white shadow-md ${theme.glow} font-semibold`
+                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30 font-semibold'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal'
               }`}
             >
-              <Icon className={`h-4 w-4 sm:h-4.5 sm:w-4.5 shrink-0 ${isActive ? 'stroke-[2.5] text-white' : 'stroke-[1.75]'}`} />
+              <Icon className={`h-4 w-4 sm:h-4.5 sm:w-4.5 shrink-0 ${isActive ? 'stroke-[2.5] text-primary-foreground' : 'stroke-[1.75]'}`} />
               <span className="text-[9px] sm:text-[10px] leading-tight tracking-tight mt-0.5 truncate max-w-full text-center px-0.5">
                 {item.label}
               </span>

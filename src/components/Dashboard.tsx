@@ -758,9 +758,9 @@ export const Dashboard = () => {
               </TabsTrigger>
               <TabsTrigger
                 value="predictive"
-                className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-violet-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"
+                className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/25 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"
               >
-                <Sparkles className="h-4 w-4 shrink-0 text-violet-500 group-data-[state=active]:text-white transition-colors" />
+                <Sparkles className="h-4 w-4 shrink-0 text-primary group-data-[state=active]:text-primary-foreground transition-colors" />
                 <span className="font-semibold sm:hidden">AI Demand</span>
                 <span className="font-semibold hidden sm:inline">AI Demand &amp; Re-orders</span>
               </TabsTrigger>

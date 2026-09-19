@@ -1,7 +1,7 @@
 import { ReactNode, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, Package, User, Moon, Sun, Languages, Download, CheckCircle2, Lock, Bell } from 'lucide-react';
+import { LogOut, Package, User, Moon, Sun, Languages, Download, CheckCircle2, Lock, Bell, Palette, Check } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { toast } from 'sonner';
 import { AppLogo } from '@/components/AppLogo';
@@ -13,6 +13,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
 import { WhatsNew } from './WhatsNew';
 import { ScreenLockOverlay } from './ScreenLockOverlay';
+import { BrandThemeSelector } from './BrandThemeSelector';
 import { isScreenLocked } from '@/utils/screenLockSecurity';
 import {
   DropdownMenu,
@@ -21,6 +22,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
@@ -34,7 +38,8 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  useClientTheme();
+  const { currentTheme, overallTheme, allPalettes, updateTheme } = useClientTheme();
+  const activeBrandPalette = allPalettes.find((p) => p.id === currentTheme) || allPalettes[0];
   const { profile, signOut, isSuperAdmin, isAdmin, isManager } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang, t } = useTranslation();
@@ -106,6 +111,7 @@ export const Layout = ({ children }: LayoutProps) => {
               
               <LanguageToggle />
               <ThemeToggle />
+              <BrandThemeSelector />
               <NotificationBell />
               <WhatsNew />
               
@@ -204,6 +210,47 @@ export const Layout = ({ children }: LayoutProps) => {
                       {theme}
                     </Badge>
                   </DropdownMenuItem>
+
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer text-xs font-medium">
+                      <span className="flex items-center gap-2">
+                        <Palette className="h-4 w-4 text-primary" />
+                        Brand Theme
+                      </span>
+                      <div className="flex items-center gap-1.5 mr-1">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full ring-1 ring-border shrink-0 shadow-xs"
+                          style={{ backgroundColor: activeBrandPalette?.hex }}
+                        />
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {activeBrandPalette?.name.split(' ')[0]}
+                        </span>
+                      </div>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-48 p-1.5 rounded-xl shadow-xl z-50">
+                      {allPalettes.map((pal) => {
+                        const isSelected = currentTheme === pal.id || overallTheme === pal.id;
+                        return (
+                          <DropdownMenuItem
+                            key={pal.id}
+                            onClick={() => updateTheme(pal.id)}
+                            className={`flex items-center justify-between px-2 py-1.5 rounded-lg text-xs cursor-pointer ${
+                              isSelected ? 'bg-primary/10 font-semibold text-primary' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="h-3 w-3 rounded-full shrink-0 shadow-xs ring-1 ring-border"
+                                style={{ backgroundColor: pal.hex }}
+                              />
+                              <span>{pal.name}</span>
+                            </div>
+                            {isSelected && <Check className="h-3.5 w-3.5 text-primary stroke-[2.5]" />}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
 
                   <DropdownMenuItem
                     onClick={() => setLang(lang === 'en' ? 'ta' : lang === 'ta' ? 'hi' : 'en')}

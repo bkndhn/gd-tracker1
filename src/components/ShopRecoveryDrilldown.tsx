@@ -340,9 +340,9 @@ export const ShopRecoveryDrilldown = ({
                 </TabsTrigger>
                 <TabsTrigger
                   value="explain"
-                  className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap shrink-0 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
+                  className="group flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap shrink-0 transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/25 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50"
                 >
-                  <HelpCircle className="h-4 w-4 text-purple-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+                  <HelpCircle className="h-4 w-4 text-primary group-data-[state=active]:text-primary-foreground transition-colors shrink-0" />
                   <span>Breakdown</span>
                 </TabsTrigger>
                 <TabsTrigger

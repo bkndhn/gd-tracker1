@@ -518,9 +518,9 @@ export const SuperAdminDashboard = () => {
           </TabsTrigger>
           <TabsTrigger
             value="settings"
-            className="group flex items-center justify-center gap-1 sm:gap-1.5 rounded-lg py-2 px-1 sm:px-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20"
+            className="group flex items-center justify-center gap-1 sm:gap-1.5 rounded-lg py-2 px-1 sm:px-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/25"
           >
-            <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500 group-data-[state=active]:text-white transition-colors shrink-0" />
+            <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary group-data-[state=active]:text-primary-foreground transition-colors shrink-0" />
             <span className="whitespace-nowrap">Settings</span>
           </TabsTrigger>
           <TabsTrigger
