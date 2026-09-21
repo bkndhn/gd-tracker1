@@ -790,6 +790,7 @@ export type Database = {
           ai_enabled: boolean
           ai_lifetime_limit: number | null
           ai_monthly_limit: number | null
+          billing_cycle: string | null
           created_at: string | null
           custom_fields_enabled: boolean
           default_category_id: string | null
@@ -797,6 +798,8 @@ export type Database = {
           deleted_at: string | null
           email: string | null
           id: string
+          last_payment_date: string | null
+          last_payment_ref: string | null
           max_custom_fields: number | null
           max_entries: number | null
           max_images_per_entry: number | null
@@ -807,10 +810,15 @@ export type Database = {
           max_users: number | null
           max_warehouse_users: number | null
           name: string
+          payment_enabled: boolean | null
+          payment_status: string | null
+          phone: string | null
           requirements_enabled: boolean
           role: string
           shop_id: string | null
+          show_plan_to_client: boolean | null
           status: string
+          subscription_amount: number | null
           theme_color: string
           updated_at: string | null
           user_id: string | null
@@ -823,6 +831,7 @@ export type Database = {
           ai_enabled?: boolean
           ai_lifetime_limit?: number | null
           ai_monthly_limit?: number | null
+          billing_cycle?: string | null
           created_at?: string | null
           custom_fields_enabled?: boolean
           default_category_id?: string | null
@@ -830,6 +839,8 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           id: string
+          last_payment_date?: string | null
+          last_payment_ref?: string | null
           max_custom_fields?: number | null
           max_entries?: number | null
           max_images_per_entry?: number | null
@@ -840,10 +851,15 @@ export type Database = {
           max_users?: number | null
           max_warehouse_users?: number | null
           name: string
+          payment_enabled?: boolean | null
+          payment_status?: string | null
+          phone?: string | null
           requirements_enabled?: boolean
           role?: string
           shop_id?: string | null
+          show_plan_to_client?: boolean | null
           status?: string
+          subscription_amount?: number | null
           theme_color?: string
           updated_at?: string | null
           user_id?: string | null
@@ -856,6 +872,7 @@ export type Database = {
           ai_enabled?: boolean
           ai_lifetime_limit?: number | null
           ai_monthly_limit?: number | null
+          billing_cycle?: string | null
           created_at?: string | null
           custom_fields_enabled?: boolean
           default_category_id?: string | null
@@ -863,6 +880,8 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           id?: string
+          last_payment_date?: string | null
+          last_payment_ref?: string | null
           max_custom_fields?: number | null
           max_entries?: number | null
           max_images_per_entry?: number | null
@@ -873,10 +892,15 @@ export type Database = {
           max_users?: number | null
           max_warehouse_users?: number | null
           name?: string
+          payment_enabled?: boolean | null
+          payment_status?: string | null
+          phone?: string | null
           requirements_enabled?: boolean
           role?: string
           shop_id?: string | null
+          show_plan_to_client?: boolean | null
           status?: string
+          subscription_amount?: number | null
           theme_color?: string
           updated_at?: string | null
           user_id?: string | null
@@ -1533,6 +1557,7 @@ export type Database = {
           ai_enabled: boolean
           ai_lifetime_limit: number | null
           ai_monthly_limit: number | null
+          billing_cycle: string | null
           created_at: string | null
           custom_fields_enabled: boolean
           default_category_id: string | null
@@ -1540,6 +1565,8 @@ export type Database = {
           deleted_at: string | null
           email: string | null
           id: string
+          last_payment_date: string | null
+          last_payment_ref: string | null
           max_custom_fields: number | null
           max_entries: number | null
           max_images_per_entry: number | null
@@ -1550,10 +1577,15 @@ export type Database = {
           max_users: number | null
           max_warehouse_users: number | null
           name: string
+          payment_enabled: boolean | null
+          payment_status: string | null
+          phone: string | null
           requirements_enabled: boolean
           role: string
           shop_id: string | null
+          show_plan_to_client: boolean | null
           status: string
+          subscription_amount: number | null
           theme_color: string
           updated_at: string | null
           user_id: string | null
