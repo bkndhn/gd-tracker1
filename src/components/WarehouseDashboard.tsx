@@ -22,6 +22,16 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { formatISTShort } from '@/lib/dateUtils';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, PieChart, Pie } from 'recharts';
+
+const STAGE_COLORS = ['hsl(38 92% 50%)', 'hsl(217 91% 60%)', 'hsl(262 83% 58%)', 'hsl(152 69% 40%)', 'hsl(0 72% 51%)'];
+const hrs = (a?: string | null, b?: string | null) =>
+  a && b ? Math.max(0, (new Date(b).getTime() - new Date(a).getTime()) / 3600000) : null;
+const avg = (xs: (number | null)[]) => {
+  const v = xs.filter((x): x is number => x !== null);
+  return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null;
+};
+const fmtH = (h: number | null) => (h === null ? '—' : h < 1 ? `${Math.round(h * 60)}m` : h < 48 ? `${h.toFixed(1)}h` : `${(h / 24).toFixed(1)}d`);
 
 const statusConfig: Record<RequirementStatus, { label: string; badgeClass: string; icon: any }> = {
   requested: {
@@ -62,6 +72,35 @@ export const WarehouseDashboard = () => {
   const inTransitMoved = requirements.filter(r => r.status === 'moved');
   const completedReceived = requirements.filter(r => r.status === 'received');
 
+  const rejected = requirements.filter(r => r.status === 'rejected');
+  const funnel = [
+    { name: 'Requested', value: requirements.length },
+    { name: 'Packed', value: requirements.filter(r => r.packed_at).length },
+    { name: 'Moved', value: requirements.filter(r => r.moved_at).length },
+    { name: 'Received', value: completedReceived.length },
+  ];
+  const statusPie = [
+    { name: 'Pending', value: pendingRequests.length },
+    { name: 'Packed', value: packedOrders.length },
+    { name: 'Moved', value: inTransitMoved.length },
+    { name: 'Received', value: completedReceived.length },
+    { name: 'Cancelled', value: rejected.length },
+  ].filter(d => d.value > 0);
+  const byShop = useMemo(() => {
+    const m = new Map<string, number>();
+    requirements.forEach(r => m.set(r.shop_name || 'Shop', (m.get(r.shop_name || 'Shop') || 0) + 1));
+    return [...m.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
+  }, [requirements]);
+  const topPeople = (key: 'requested_by_name' | 'packed_by_name' | 'moved_by_name') => {
+    const m = new Map<string, number>();
+    requirements.forEach(r => { const n = r[key]; if (n) m.set(n, (m.get(n) || 0) + 1); });
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+  };
+  const tPack = avg(requirements.map(r => hrs(r.created_at, r.packed_at)));
+  const tMove = avg(requirements.map(r => hrs(r.packed_at, r.moved_at)));
+  const tRecv = avg(requirements.map(r => hrs(r.moved_at, r.received_at)));
+  const tTotal = avg(requirements.map(r => hrs(r.created_at, r.received_at)));
+
   // Filtered requirements list
   const filteredRequirements = useMemo(() => {
     return requirements.filter(r => {
@@ -79,7 +118,7 @@ export const WarehouseDashboard = () => {
   }, [requirements, searchTerm, statusFilter]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* 4 Stage KPI Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent hover:shadow-md transition-shadow">
@@ -139,6 +178,38 @@ export const WarehouseDashboard = () => {
         </Card>
       </div>
 
+      {requirements.length > 0 && (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+            {[['Request → Packed', tPack], ['Packed → Moved', tMove], ['Moved → Received', tRecv], ['Total turnaround', tTotal]].map(([l, v]) => (
+              <div key={l as string} className="rounded-xl border bg-card p-3">
+                <p className="text-[11px] text-muted-foreground">Avg {l as string}</p>
+                <p className="text-lg font-bold text-foreground">{fmtH(v as number | null)}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-3 lg:grid-cols-3">
+            <Card><CardHeader className="p-3 pb-0"><CardTitle className="text-sm">Fulfilment funnel</CardTitle></CardHeader>
+              <CardContent className="p-2 h-52"><ResponsiveContainer><BarChart data={funnel}><XAxis dataKey="name" fontSize={11} /><YAxis allowDecimals={false} fontSize={11} width={28} /><Tooltip /><Bar dataKey="value" radius={[6, 6, 0, 0]}>{funnel.map((_, i) => <Cell key={i} fill={STAGE_COLORS[i]} />)}</Bar></BarChart></ResponsiveContainer></CardContent></Card>
+            <Card><CardHeader className="p-3 pb-0"><CardTitle className="text-sm">Current status</CardTitle></CardHeader>
+              <CardContent className="p-2 h-52"><ResponsiveContainer><PieChart><Pie data={statusPie} dataKey="value" nameKey="name" innerRadius={40} outerRadius={70} label={{ fontSize: 11 }}>{statusPie.map(d => <Cell key={d.name} fill={STAGE_COLORS[['Pending','Packed','Moved','Received','Cancelled'].indexOf(d.name)]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer></CardContent></Card>
+            <Card><CardHeader className="p-3 pb-0"><CardTitle className="text-sm">Requests by shop</CardTitle></CardHeader>
+              <CardContent className="p-2 h-52"><ResponsiveContainer><BarChart data={byShop} layout="vertical"><XAxis type="number" allowDecimals={false} fontSize={11} /><YAxis type="category" dataKey="name" width={80} fontSize={11} /><Tooltip /><Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} /></BarChart></ResponsiveContainer></CardContent></Card>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {([['Top requesters', 'requested_by_name', User], ['Top packers', 'packed_by_name', PackageCheck], ['Top movers', 'moved_by_name', Truck]] as const).map(([title, key, Icon]) => (
+              <div key={key} className="rounded-xl border bg-card p-3">
+                <p className="text-xs font-semibold flex items-center gap-1.5 mb-2"><Icon className="h-4 w-4 text-primary" />{title}</p>
+                {topPeople(key).length === 0 ? <p className="text-xs text-muted-foreground">No data yet</p> :
+                  topPeople(key).map(([n, c]) => (
+                    <div key={n} className="flex justify-between text-xs py-1"><span className="truncate">{n}</span><span className="font-bold">{c}</span></div>
+                  ))}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Live Requirement Status & Fulfillment Feed */}
       <Card className="shadow-sm border-border/60">
         <CardHeader className="pb-4">
@@ -155,14 +226,14 @@ export const WarehouseDashboard = () => {
             <div className="flex items-center gap-2 flex-wrap">
               <div className="w-full sm:w-60">
                 <ThemedSearchInput
-                  placeholder="Search shop, size, note..."
+                  placeholder="Search shop, size, staff..."
                   value={searchTerm}
                   onValueChange={setSearchTerm}
                   className="h-9 text-xs"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px] h-9 text-xs">
+                <SelectTrigger className="w-full sm:w-[140px] h-11 sm:h-9 text-xs">
                   <Filter className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
@@ -204,7 +275,7 @@ export const WarehouseDashboard = () => {
                   return (
                     <div
                       key={req.id}
-                      className="group rounded-xl border border-border/70 p-3.5 sm:p-4 bg-card hover:bg-muted/20 hover:border-border transition-all shadow-2xs"
+                      className="group rounded-xl border border-border/70 p-3 sm:p-4 bg-card hover:bg-muted/20 hover:border-border transition-all shadow-2xs"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
                         <div className="space-y-1.5 flex-1 min-w-0">
@@ -230,39 +301,29 @@ export const WarehouseDashboard = () => {
                           </div>
 
                           {/* Progress Audit Trail */}
-                          <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-x-2 gap-y-1 pt-1">
-                            <span className="inline-flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              Requested by <strong className="text-foreground font-medium">{req.requested_by_name || 'Staff'}</strong>
-                              {' on '}{formatISTShort(req.created_at)}
-                            </span>
-                            {req.packed_by_name && (
-                              <>
-                                <ArrowRight className="h-3 w-3 text-muted-foreground/50 hidden sm:inline" />
-                                <span>
-                                  Packed by <strong className="text-foreground font-medium">{req.packed_by_name}</strong>
-                                  {req.packed_at && ` (${formatISTShort(req.packed_at)})`}
-                                </span>
-                              </>
-                            )}
-                            {req.moved_by_name && (
-                              <>
-                                <ArrowRight className="h-3 w-3 text-muted-foreground/50 hidden sm:inline" />
-                                <span>
-                                  Moved by <strong className="text-foreground font-medium">{req.moved_by_name}</strong>
-                                  {req.moved_at && ` (${formatISTShort(req.moved_at)})`}
-                                </span>
-                              </>
-                            )}
-                            {req.received_by_name && (
-                              <>
-                                <ArrowRight className="h-3 w-3 text-muted-foreground/50 hidden sm:inline" />
-                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                                  Received by {req.received_by_name}
-                                </span>
-                              </>
-                            )}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1.5">
+                            {([
+                              ['Requested', req.requested_by_name || 'Staff', req.created_at, 0],
+                              ['Packed', req.packed_by_name, req.packed_at, 1],
+                              ['Moved', req.moved_by_name, req.moved_at, 2],
+                              ['Received', req.received_by_name, req.received_at, 3],
+                            ] as const).map(([label, who, at, i]) => (
+                              <div key={label} className={`rounded-lg border px-2 py-1.5 text-[11px] leading-tight ${at ? 'bg-muted/40' : 'opacity-50 border-dashed'}`}>
+                                <div className="flex items-center gap-1 font-semibold" style={{ color: at ? STAGE_COLORS[i] : undefined }}>
+                                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: STAGE_COLORS[i] }} />{label}
+                                </div>
+                                <div className="text-foreground truncate">{who || 'Pending'}</div>
+                                <div className="text-muted-foreground">{at ? formatISTShort(at) : '—'}</div>
+                              </div>
+                            ))}
                           </div>
+                          {req.status === 'rejected' && (
+                            <p className="text-[11px] text-destructive">Cancelled by {req.rejected_by_name || 'staff'}{req.reject_reason ? ` — ${req.reject_reason}` : ''}</p>
+                          )}
+                          <p className="text-[11px] text-muted-foreground">
+                            {req.category ? `${req.category} · ` : ''}Urgency: {req.urgency}{req.packed_qty != null ? ` · Packed qty ${req.packed_qty}` : ''}{hrs(req.created_at, req.received_at) !== null ? ` · Turnaround ${fmtH(hrs(req.created_at, req.received_at))}` : ''}
+                          </p>
+                        </div>
                         </div>
 
                         {/* Optional notes */}
