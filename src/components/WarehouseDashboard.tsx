@@ -324,7 +324,6 @@ export const WarehouseDashboard = () => {
                             {req.category ? `${req.category} · ` : ''}Urgency: {req.urgency}{req.packed_qty != null ? ` · Packed qty ${req.packed_qty}` : ''}{hrs(req.created_at, req.received_at) !== null ? ` · Turnaround ${fmtH(hrs(req.created_at, req.received_at))}` : ''}
                           </p>
                         </div>
-                        </div>
 
                         {/* Optional notes */}
                         {req.note && (
