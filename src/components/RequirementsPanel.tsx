@@ -585,19 +585,23 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
     isAdmin || isManager || (r.requested_by === user?.id) || (p?.shop_id && r.shop_id === p.shop_id);
 
   const defaultTab = isWarehouse ? 'queue' : 'raise';
+  const canRaise = !isWarehouse;
+  const canSeeInsights = isAdmin || isManager || isWarehouse;
+  const tabCount = 1 + (canRaise ? 1 : 0) + (canSeeInsights ? 2 : 0);
+  const gridCols = tabCount === 4 ? 'grid-cols-4' : tabCount === 3 ? 'grid-cols-3' : tabCount === 2 ? 'grid-cols-2' : 'grid-cols-1';
 
   return (
     <div className="space-y-4">
       <Tabs defaultValue={defaultTab} className="w-full">
         <div className="w-full pb-1">
-          <TabsList className="w-full grid grid-cols-4 sm:inline-flex sm:w-auto items-center p-1 sm:p-1.5 bg-muted/60 border rounded-xl gap-1 sm:gap-1.5 h-auto [&>button]:min-w-0 [&>button]:px-1 sm:[&>button]:px-3.5 [&>button]:flex-col sm:[&>button]:flex-row [&>button]:gap-0.5 sm:[&>button]:gap-1.5 [&>button]:text-[11px] sm:[&>button]:text-sm [&_span]:truncate">
-            <TabsTrigger
+          <TabsList className={`w-full grid ${gridCols} sm:inline-flex sm:w-auto items-center p-1 sm:p-1.5 bg-muted/60 border rounded-xl gap-1 sm:gap-1.5 h-auto [&>button]:min-w-0 [&>button]:px-1 sm:[&>button]:px-3.5 [&>button]:flex-col sm:[&>button]:flex-row [&>button]:gap-0.5 sm:[&>button]:gap-1.5 [&>button]:text-[11px] sm:[&>button]:text-sm [&_span]:truncate [&>button]:min-h-[48px]`}>
+            {canRaise && <TabsTrigger
               value="raise"
               className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"
             >
               <PackagePlus className="h-4 w-4 shrink-0 text-indigo-500 group-data-[state=active]:text-white transition-colors" />
               <span className="font-semibold whitespace-nowrap">{t('req.raise')}</span>
-            </TabsTrigger>
+            </TabsTrigger>}
             <TabsTrigger
               value="queue"
               className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"
@@ -608,25 +612,25 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
                 {filtered.length}
               </span>
             </TabsTrigger>
-            <TabsTrigger
+            {canSeeInsights && <TabsTrigger
               value="predictive"
               className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/25 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"
             >
               <Sparkles className="h-4 w-4 shrink-0 text-primary group-data-[state=active]:text-primary-foreground transition-colors" />
               <span className="font-semibold whitespace-nowrap">AI Demand</span>
-            </TabsTrigger>
-            <TabsTrigger
+            </TabsTrigger>}
+            {canSeeInsights && <TabsTrigger
               value="reports"
               className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"
             >
               <FileText className="h-4 w-4 shrink-0 text-emerald-500 group-data-[state=active]:text-white transition-colors" />
               <span className="font-semibold whitespace-nowrap">Reports</span>
-            </TabsTrigger>
+            </TabsTrigger>}
           </TabsList>
         </div>
 
         {/* ---------- Raise ---------- */}
-        <TabsContent value="raise" className="mt-4">
+        {canRaise && <TabsContent value="raise" className="mt-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -909,7 +913,7 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
               </Button>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent>}
 
         {/* ---------- Queue ---------- */}
         <TabsContent value="queue" className="mt-4 space-y-4">
