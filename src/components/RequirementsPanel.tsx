@@ -40,6 +40,9 @@ import { toast } from 'sonner';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { PredictiveReorderPanel } from './PredictiveReorderPanel';
 import { RequirementsReport } from '@/components/RequirementsReport';
+import { RequirementScanner } from '@/components/RequirementScanner';
+import { RequirementsMonthlySummary } from '@/components/RequirementsMonthlySummary';
+import { ScanLine } from 'lucide-react';
 
 const STATUS_TONE: Record<string, string> = {
   requested: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
@@ -116,6 +119,7 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
 
   // action dialog
   const [action, setAction] = useState<{ req: StockRequirement; to: RequirementStatus } | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
   const [actionNote, setActionNote] = useState('');
   const [actionQty, setActionQty] = useState<number | ''>('');
 
@@ -924,6 +928,11 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
                   <ClipboardList className="h-5 w-5 text-primary" /> Requirements ({filtered.length})
                 </CardTitle>
                 <div className="flex flex-wrap items-center gap-2">
+                  {(isWarehouse || isAdmin) && (
+                    <Button size="sm" className="gap-1.5 text-xs font-semibold h-9" onClick={() => setScanOpen(true)}>
+                      <ScanLine className="h-4 w-4" /> Scan to pack
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="secondary"
@@ -1285,9 +1294,16 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
         <TabsContent value="predictive" className="mt-4">
           <PredictiveReorderPanel />
         </TabsContent>
-        <TabsContent value="reports" className="mt-4">
+        <TabsContent value="reports" className="mt-4 space-y-4">
+          <RequirementsMonthlySummary rows={requirements} />
           <RequirementsReport rows={requirements} />
         </TabsContent>
+        <RequirementScanner
+          open={scanOpen}
+          onOpenChange={setScanOpen}
+          rows={requirements}
+          onMatch={(req) => updateStatus(req, 'packed', { packed_qty: req.quantity, note: 'Scanned' })}
+        />
       </Tabs>
 
       {/* Workflow Confirmation Dialog */}
