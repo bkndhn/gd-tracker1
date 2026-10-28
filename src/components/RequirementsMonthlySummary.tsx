@@ -55,9 +55,10 @@ export const RequirementsMonthlySummary = ({ rows }: { rows: StockRequirement[] 
 
   const table = (): SheetTable => ({
     title: `Monthly Stock Summary — ${fmtMonth(month)}`,
-    headers: ['Shop', 'Requested', 'Packed', 'Moved', 'Received', 'Rejected', 'Fulfilment %'],
+    columns: ['Shop', 'Requested', 'Packed', 'Moved', 'Received', 'Rejected', 'Fulfilment %'],
     rows: data.map(r => [r.shop, r.requested, r.packed, r.moved, r.received, r.rejected, `${r.fulfilRate}%`]),
-  } as any);
+    fileName: `stock-summary-${month}`,
+  });
 
   const kpis = [
     { label: 'Requested', v: totals.requested, c: 'text-amber-600' },
