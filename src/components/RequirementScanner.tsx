@@ -79,7 +79,14 @@ export const RequirementScanner = ({ open, onOpenChange, rows, onMatch }: Props)
       cancelled = true;
       const s = scannerRef.current;
       scannerRef.current = null;
-      if (s) s.stop().then(() => s.clear()).catch(() => {});
+      if (!s) return;
+      try {
+        if (s.isScanning) {
+          Promise.resolve(s.stop()).then(() => { try { s.clear(); } catch { /* noop */ } }).catch(() => {});
+        } else {
+          try { s.clear(); } catch { /* noop */ }
+        }
+      } catch { /* scanner never started */ }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
