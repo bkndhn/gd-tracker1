@@ -43,6 +43,7 @@ import { RequirementsReport } from '@/components/RequirementsReport';
 import { RequirementScanner } from '@/components/RequirementScanner';
 import { RequirementsMonthlySummary } from '@/components/RequirementsMonthlySummary';
 import { ScanLine } from 'lucide-react';
+import { printRequirementStickers } from '@/lib/requirementSticker';
 
 const STATUS_TONE: Record<string, string> = {
   requested: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
@@ -1248,6 +1249,11 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
                       {/* Footer Action Row: Packed, Moved, Received, Reject, Undo */}
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t">
                         <div className="flex flex-wrap gap-1.5">
+                          {r.status === 'requested' && (
+                            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => printRequirementStickers([r])}>
+                              <ScanLine className="h-3.5 w-3.5" /> QR sticker
+                            </Button>
+                          )}
                           {r.status === 'requested' && canFulfil(r) && (
                             <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => openAction(r, 'packed')}>
                               <PackageCheck className="h-3.5 w-3.5 text-blue-600" /> Packed
