@@ -49,14 +49,26 @@ export interface NewRequirement {
   custom_values?: Record<string, string>;
 }
 
+// Shared in-memory cache so switching Stock/Reports tabs renders instantly
+const reqCache = new Map<string, { requirements: StockRequirement[]; shops: { id: string; name: string }[] }>();
+
 export const useRequirements = () => {
   const { profile, user } = useAuth();
-  const [requirements, setRequirements] = useState<StockRequirement[]>([]);
-  const [shops, setShops] = useState<{ id: string; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
   const p = profile as any;
+  const cacheKey = `${p?.id || ''}`;
+  const cached = reqCache.get(cacheKey);
+  const [requirements, _setRequirements] = useState<StockRequirement[]>(cached?.requirements || []);
+  const [shops, _setShops] = useState<{ id: string; name: string }[]>(cached?.shops || []);
+  const [loading, setLoading] = useState(!cached);
+  const [saving, setSaving] = useState(false);
+  const setRequirements = useCallback((r: StockRequirement[]) => {
+    _setRequirements(r);
+    reqCache.set(cacheKey, { requirements: r, shops: reqCache.get(cacheKey)?.shops || [] });
+  }, [cacheKey]);
+  const setShops = useCallback((s: { id: string; name: string }[]) => {
+    _setShops(s);
+    reqCache.set(cacheKey, { requirements: reqCache.get(cacheKey)?.requirements || [], shops: s });
+  }, [cacheKey]);
   const role = p?.role as string | undefined;
   const tenantId = role === 'admin' || role === 'super_admin' ? p?.id : p?.admin_id;
   const isWarehouse = role === 'warehouse';
