@@ -61,9 +61,12 @@ export const useRequirements = () => {
   const [shops, _setShops] = useState<{ id: string; name: string }[]>(cached?.shops || []);
   const [loading, setLoading] = useState(!cached);
   const [saving, setSaving] = useState(false);
-  const setRequirements = useCallback((r: StockRequirement[]) => {
-    _setRequirements(r);
-    reqCache.set(cacheKey, { requirements: r, shops: reqCache.get(cacheKey)?.shops || [] });
+  const setRequirements = useCallback((r: StockRequirement[] | ((prev: StockRequirement[]) => StockRequirement[])) => {
+    _setRequirements(prev => {
+      const next = typeof r === 'function' ? r(prev) : r;
+      reqCache.set(cacheKey, { requirements: next, shops: reqCache.get(cacheKey)?.shops || [] });
+      return next;
+    });
   }, [cacheKey]);
   const setShops = useCallback((s: { id: string; name: string }[]) => {
     _setShops(s);
