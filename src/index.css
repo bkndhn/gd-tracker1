@@ -309,3 +309,18 @@ All colors MUST be HSL.
     .lazy-shimmer { animation: none; }
   }
 }
+
+/* Phone layout: taller rows, bigger tap targets, Stock-style tabs on every page */
+@media (max-width: 767px) {
+  main button:not([role="checkbox"]):not([role="switch"]):not([role="radio"]),
+  main [role="tab"] { min-height: 44px; }
+  main [role="tablist"] {
+    display: flex; width: 100%; height: auto; min-height: 52px; gap: 4px; padding: 4px;
+    overflow-x: auto; scrollbar-width: none; border-radius: 14px;
+  }
+  main [role="tablist"]::-webkit-scrollbar { display: none; }
+  main [role="tablist"] > [role="tab"] { flex: 1 0 auto; border-radius: 10px; font-size: 0.8rem; }
+  main table td, main table th { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  main input:not([type="checkbox"]):not([type="radio"]), main select,
+  main [role="combobox"] { min-height: 44px; font-size: 16px; }
+}
