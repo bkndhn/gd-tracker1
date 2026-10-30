@@ -27,4 +27,10 @@ describe('scan matching', () => {
     expect(matchScannedRequirement('xl', rows)?.id).toBe('bbbbbbbb-1');
     expect(matchScannedRequirement('cccccccc', rows)).toBeNull();
   });
+
+  it('matches the printed sticker QR code to its request', async () => {
+    const { stickerCode } = await import('@/lib/requirementSticker');
+    const rows = [r({ id: 'aaaaaaaa-1' }), r({ id: 'bbbbbbbb-1' })] as any;
+    expect(matchScannedRequirement(stickerCode(rows[1]), rows)?.id).toBe('bbbbbbbb-1');
+  });
 });
