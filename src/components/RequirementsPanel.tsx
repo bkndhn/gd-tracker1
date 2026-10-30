@@ -44,6 +44,7 @@ import { RequirementScanner } from '@/components/RequirementScanner';
 import { RequirementsMonthlySummary } from '@/components/RequirementsMonthlySummary';
 import { ScanLine } from 'lucide-react';
 import { printRequirementStickers } from '@/lib/requirementSticker';
+import { StockLevelsImport } from '@/components/StockLevelsImport';
 
 const STATUS_TONE: Record<string, string> = {
   requested: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
@@ -1301,6 +1302,7 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
           <PredictiveReorderPanel />
         </TabsContent>
         <TabsContent value="reports" className="mt-4 space-y-4">
+          <StockLevelsImport adminId={effectiveAdminId} canSave={isAdmin} userName={p?.name || 'Staff'} />
           <RequirementsMonthlySummary rows={requirements} />
           <RequirementsReport rows={requirements} />
         </TabsContent>
