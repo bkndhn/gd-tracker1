@@ -324,3 +324,13 @@ All colors MUST be HSL.
   main input:not([type="checkbox"]):not([type="radio"]), main select,
   main [role="combobox"] { min-height: 44px; font-size: 16px; }
 }
+
+/* Phone: same compact header, taller rows and full-width actions on every page */
+@media (max-width: 767px) {
+  main h1, main h2 { font-size: 1.15rem; line-height: 1.4; }
+  main [class*="CardHeader"], main .premium-card > div:first-child { padding: 0.875rem 1rem; }
+  main button:not([role="checkbox"]):not([role="switch"]):not([role="radio"]):not([role="tab"]):not([aria-label]) { min-height: 48px; }
+  main [role="tab"] { min-height: 48px; }
+  main table tr { min-height: 52px; }
+  main [role="dialog"] button { min-height: 44px; }
+}
