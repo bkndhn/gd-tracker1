@@ -15,3 +15,17 @@ describe('parseStockRows', () => {
     expect(errors.length).toBe(2);
   });
 });
+
+import { planStockMerge } from '@/lib/stockImport';
+describe('planStockMerge', () => {
+  it('updates matching items, adds new ones, sums duplicates', () => {
+    const rows = [
+      { item: 'Shirt', size: 'M', category: 'Top', quantity: 5, location: 'A1' },
+      { item: 'shirt ', size: 'm', category: 'Top', quantity: 3, location: 'a1' },
+      { item: 'Pant', size: '32', category: 'Bottom', quantity: 7, location: '' },
+    ];
+    const { updates, inserts } = planStockMerge(rows, [{ id: 'x', item: 'Shirt', size: 'M', location: 'A1' }]);
+    expect(updates).toEqual([{ id: 'x', quantity: 8 }]);
+    expect(inserts.map((i) => i.item)).toEqual(['Pant']);
+  });
+});
