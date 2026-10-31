@@ -21,7 +21,7 @@ async function generateDigest(summary: string): Promise<string> {
           role: 'system',
           content:
             'You are a retail operations analyst for an Indian store chain. Write a crisp weekly digest ' +
-            'in plain HTML (no <html> wrapper, use <p>, <ul>, <li>, <strong>). Cover: performance of lost-sale ' +
+            'in plain text (no HTML or markdown; separate paragraphs with a blank line). Cover: performance of lost-sale ' +
             'follow-ups, recovered revenue, shops that need attention, and 3 concrete actions for next week. ' +
             'Max 250 words. Never invent numbers beyond the data given.',
         },
@@ -33,7 +33,7 @@ async function generateDigest(summary: string): Promise<string> {
   if (res.status === 402) throw new Error('AI credits exhausted, please top up in Settings');
   if (!res.ok) throw new Error(`AI error ${res.status}`);
   const json = await res.json();
-  return json?.choices?.[0]?.message?.content ?? '<p>No digest available.</p>';
+  return json?.choices?.[0]?.message?.content ?? 'No digest available.';
 }
 
 
