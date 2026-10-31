@@ -42,7 +42,7 @@ import { PredictiveReorderPanel } from './PredictiveReorderPanel';
 import { RequirementsReport } from '@/components/RequirementsReport';
 import { RequirementScanner } from '@/components/RequirementScanner';
 import { RequirementsMonthlySummary } from '@/components/RequirementsMonthlySummary';
-import { ScanLine } from 'lucide-react';
+import { ScanLine, Boxes } from 'lucide-react';
 import { printRequirementStickers } from '@/lib/requirementSticker';
 import { StockLevelsImport } from '@/components/StockLevelsImport';
 import { StockInventory } from '@/components/StockInventory';
