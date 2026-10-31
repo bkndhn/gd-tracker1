@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Upload, Save, AlertTriangle, Boxes } from 'lucide-react';
 import { toast } from 'sonner';
-import { parseStockRows, type StockLevelRow } from '@/lib/stockImport';
+import { parseStockRows, planStockMerge, type StockLevelRow } from '@/lib/stockImport';
 import { formatISTDateTime } from '@/lib/dateUtils';
 
 interface Stored { rows: StockLevelRow[]; uploaded_by: string; uploaded_at: string; file: string }
@@ -95,7 +95,7 @@ export const StockLevelsImport = ({ adminId, canSave, userName }: { adminId?: st
             </>
           )}
         </div>
-        {preview && !canSave && <p className="text-sm text-muted-foreground">Preview only — an admin must save stock uploads.</p>}
+        {preview && !canSave && <p className="text-sm text-muted-foreground">Preview only — ask an admin or warehouse staff to save this upload.</p>}
         {preview && preview.errors.length > 0 && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm space-y-1 max-h-32 overflow-auto">
             <p className="font-semibold flex items-center gap-1 text-destructive"><AlertTriangle className="h-4 w-4" /> {preview.errors.length} rows skipped</p>
