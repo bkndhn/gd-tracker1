@@ -1645,6 +1645,7 @@ export type Database = {
       get_user_role_secure: { Args: { user_uuid: string }; Returns: string }
       get_user_shop_id_secure: { Args: { user_uuid: string }; Returns: string }
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
+      verify_cron_secret: { Args: { _secret: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
