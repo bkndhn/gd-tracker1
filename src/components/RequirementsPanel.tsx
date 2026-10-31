@@ -42,9 +42,10 @@ import { PredictiveReorderPanel } from './PredictiveReorderPanel';
 import { RequirementsReport } from '@/components/RequirementsReport';
 import { RequirementScanner } from '@/components/RequirementScanner';
 import { RequirementsMonthlySummary } from '@/components/RequirementsMonthlySummary';
-import { ScanLine } from 'lucide-react';
+import { ScanLine, Boxes } from 'lucide-react';
 import { printRequirementStickers } from '@/lib/requirementSticker';
 import { StockLevelsImport } from '@/components/StockLevelsImport';
+import { StockInventory } from '@/components/StockInventory';
 
 const STATUS_TONE: Record<string, string> = {
   requested: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
@@ -591,14 +592,15 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
     isAdmin || isManager || (r.requested_by === user?.id) || (p?.shop_id && r.shop_id === p.shop_id);
 
   const defaultTab = isWarehouse ? 'queue' : 'raise';
+  const [activeTab, setActiveTab] = useState<string>(defaultTab);
   const canRaise = !isWarehouse;
   const canSeeInsights = isAdmin || isManager || isWarehouse;
-  const tabCount = 1 + (canRaise ? 1 : 0) + (canSeeInsights ? 2 : 0);
-  const gridCols = tabCount === 4 ? 'grid-cols-4' : tabCount === 3 ? 'grid-cols-3' : tabCount === 2 ? 'grid-cols-2' : 'grid-cols-1';
+  const tabCount = 2 + (canRaise ? 1 : 0) + (canSeeInsights ? 2 : 0);
+  const gridCols = tabCount === 5 ? 'grid-cols-5' : tabCount === 4 ? 'grid-cols-4' : tabCount === 3 ? 'grid-cols-3' : tabCount === 2 ? 'grid-cols-2' : 'grid-cols-1';
 
   return (
     <div className="space-y-4">
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="w-full pb-1">
           <TabsList className={`w-full grid ${gridCols} sm:inline-flex sm:w-auto items-center p-1 sm:p-1.5 bg-muted/60 border rounded-xl gap-1 sm:gap-1.5 h-auto [&>button]:min-w-0 [&>button]:px-1 sm:[&>button]:px-3.5 [&>button]:flex-col sm:[&>button]:flex-row [&>button]:gap-0.5 sm:[&>button]:gap-1.5 [&>button]:text-[11px] sm:[&>button]:text-sm [&_span]:truncate [&>button]:min-h-[48px]`}>
             {canRaise && <TabsTrigger
@@ -617,6 +619,13 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
               <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 group-data-[state=active]:bg-white/25 group-data-[state=active]:text-white font-bold shrink-0">
                 {filtered.length}
               </span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="stock"
+              className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:text-muted-foreground whitespace-nowrap"
+            >
+              <Boxes className="h-4 w-4 shrink-0" />
+              <span className="font-semibold whitespace-nowrap">Stock</span>
             </TabsTrigger>
             {canSeeInsights && <TabsTrigger
               value="predictive"
@@ -1297,6 +1306,10 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="stock" className="mt-4">
+          <StockInventory adminId={effectiveAdminId} canEdit={isAdmin || isManager || isWarehouse} userName={p?.name || 'Staff'}
+            onRequest={canRaise ? (it) => { setForm(f => ({ ...f, note: [it.item, it.size && `Size ${it.size}`, it.category].filter(Boolean).join(' · ') })); setActiveTab('raise'); toast.success('Fill quantity and send your request'); } : undefined} />
         </TabsContent>
         <TabsContent value="predictive" className="mt-4">
           <PredictiveReorderPanel />

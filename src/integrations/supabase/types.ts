@@ -1146,6 +1146,48 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_items: {
+        Row: {
+          admin_id: string
+          category: string
+          created_at: string
+          id: string
+          item: string
+          location: string
+          min_qty: number
+          quantity: number
+          size: string
+          updated_at: string
+          updated_by_name: string | null
+        }
+        Insert: {
+          admin_id: string
+          category?: string
+          created_at?: string
+          id?: string
+          item?: string
+          location?: string
+          min_qty?: number
+          quantity?: number
+          size?: string
+          updated_at?: string
+          updated_by_name?: string | null
+        }
+        Update: {
+          admin_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          item?: string
+          location?: string
+          min_qty?: number
+          quantity?: number
+          size?: string
+          updated_at?: string
+          updated_by_name?: string | null
+        }
+        Relationships: []
+      }
       stock_requirement_events: {
         Row: {
           actor_id: string
