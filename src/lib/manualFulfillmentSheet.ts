@@ -63,7 +63,7 @@ export function directPrintFulfillmentSheet({
       ? `${formatISTShort(r.moved_at)} · ${escapeHtml(r.moved_by_name || 'Staff')}`
       : 'Date: ____/____';
     const receivedInfo = r.received_at
-      ? `Recv: ${r.received_by_name || 'Store'}`
+      ? `Recv: ${escapeHtml(r.received_by_name || 'Store')}`
       : 'Sign: ____________';
 
     return `
