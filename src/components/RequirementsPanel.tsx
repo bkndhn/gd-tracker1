@@ -602,7 +602,7 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="w-full pb-1">
-          <TabsList className={`w-full grid ${gridCols} sm:inline-flex sm:w-auto items-center p-1 sm:p-1.5 bg-muted/60 border rounded-xl gap-1 sm:gap-1.5 h-auto [&>button]:min-w-0 [&>button]:px-1 sm:[&>button]:px-3.5 [&>button]:flex-col sm:[&>button]:flex-row [&>button]:gap-0.5 sm:[&>button]:gap-1.5 [&>button]:text-[11px] sm:[&>button]:text-sm [&_span]:truncate [&>button]:min-h-[48px]`}>
+          <TabsList className={`w-full ${tabCount > 4 ? 'flex overflow-x-auto snap-x [&>button]:min-w-[68px] [&>button]:snap-start' : `grid ${gridCols}`} sm:inline-flex sm:w-auto items-center p-1 sm:p-1.5 bg-muted/60 border rounded-xl gap-1 sm:gap-1.5 h-auto [&>button]:min-w-0 [&>button]:px-1 sm:[&>button]:px-3.5 [&>button]:flex-col sm:[&>button]:flex-row [&>button]:gap-0.5 sm:[&>button]:gap-1.5 [&>button]:text-[11px] sm:[&>button]:text-sm [&_span]:truncate [&>button]:min-h-[48px]`}>
             {canRaise && <TabsTrigger
               value="raise"
               className="flex-1 sm:flex-initial shrink-0 group flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium rounded-lg transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-indigo-500/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-background/50 whitespace-nowrap"
