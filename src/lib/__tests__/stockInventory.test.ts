@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { isLowStock, stockItemCode } from '@/components/StockInventory';
 describe('stock inventory', () => {
   it('flags low stock at or below the low-stock level', () => {
