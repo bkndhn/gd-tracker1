@@ -1,6 +1,7 @@
 // deno-lint-ignore-file
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { isValidCronRequest } from '../_shared/security.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -63,9 +64,8 @@ Deno.serve(async (req) => {
   try {
     // Verify caller is super_admin (when called by user)
     const authHeader = req.headers.get('Authorization');
-    const isCron = req.headers.get('x-cron-secret') === Deno.env.get('CRON_SECRET');
-
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const isCron = await isValidCronRequest(req, supabase);
 
     if (!isCron) {
       if (!authHeader) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

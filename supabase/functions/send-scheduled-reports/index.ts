@@ -1,5 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { isValidCronRequest, escapeHtml } from '../_shared/security.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -9,6 +10,11 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+    if (!(await isValidCronRequest(req, supabase))) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_API_KEY) {
       return new Response(JSON.stringify({ error: 'RESEND_API_KEY missing' }), {
@@ -76,13 +82,13 @@ Deno.serve(async (req) => {
         const rows = (entries || []).slice(0, 50).map((e: any) => `
           <tr>
             <td style="padding:6px;border-bottom:1px solid #eee">${new Date(e.created_at).toLocaleString()}</td>
-            <td style="padding:6px;border-bottom:1px solid #eee">${e.employee_name || '-'}</td>
-            <td style="padding:6px;border-bottom:1px solid #eee">${(e.notes || '').slice(0, 120)}</td>
+            <td style="padding:6px;border-bottom:1px solid #eee">${escapeHtml(e.employee_name || '-')}</td>
+            <td style="padding:6px;border-bottom:1px solid #eee">${escapeHtml((e.notes || '').slice(0, 120))}</td>
           </tr>`).join('');
 
         const html = `
           <div style="font-family:Arial,sans-serif;max-width:680px;margin:auto">
-            <h2 style="color:#4f46e5">GD Report — ${s.frequency.toUpperCase()}</h2>
+            <h2 style="color:#4f46e5">GD Report — ${escapeHtml(String(s.frequency).toUpperCase())}</h2>
             <p>Period: <b>${rangeStart.toLocaleDateString()} → ${now.toLocaleDateString()}</b></p>
             <p>Total entries: <b>${total}</b></p>
             <table style="width:100%;border-collapse:collapse;font-size:13px">
