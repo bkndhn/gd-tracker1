@@ -18,7 +18,7 @@ export function useSignedUrl(url: string | null | undefined): string {
     let cancelled = false;
     supabase.storage
       .from(parsed.bucket)
-      .createSignedUrl(parsed.path, 3600)
+      .createSignedUrl(parsed.path, 300)
       .then(({ data, error }) => {
         if (!cancelled) {
           setSignedUrl(data?.signedUrl || url);
@@ -76,7 +76,7 @@ export function useSignedImageUrls(
           const paths = items.map(i => i.path);
           const { data } = await supabase.storage
             .from(bucket)
-            .createSignedUrls(paths, 3600);
+            .createSignedUrls(paths, 300);
           if (data) {
             data.forEach((signed, idx) => {
               if (signed.signedUrl) {

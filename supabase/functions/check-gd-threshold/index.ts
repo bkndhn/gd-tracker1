@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const escHtml = (v: unknown) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
     }
 
     const alertRows = allAlerts
-      .map(a => `<tr><td style="padding: 10px; border: 1px solid #ddd;">${a.shopName}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: #dc2626; font-weight: bold;">${a.count}</td><td style="padding: 10px; border: 1px solid #ddd;">${a.type === 'daily' ? 'Daily' : 'Weekly'}</td></tr>`)
+      .map(a => `<tr><td style="padding: 10px; border: 1px solid #ddd;">${escHtml(a.shopName)}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: #dc2626; font-weight: bold;">${a.count}</td><td style="padding: 10px; border: 1px solid #ddd;">${a.type === 'daily' ? 'Daily' : 'Weekly'}</td></tr>`)
       .join('');
 
     const emailHtml = `<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

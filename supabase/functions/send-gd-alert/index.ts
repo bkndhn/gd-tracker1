@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+const escHtml = (v: unknown) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 interface AlertRequest {
   shopId?: string;
   checkPeriod?: 'daily' | 'weekly';
@@ -118,13 +120,13 @@ Deno.serve(async (req) => {
     }
 
     // Determine recipients - use caller's email or provided one
+    // Alerts always go to the calling admin only; a recipientEmail is accepted
+    // only when it matches the caller's own address.
     let emailRecipients: string[] = [];
-    if (recipientEmail) {
-      emailRecipients = [recipientEmail];
-    } else if (callerProfile.role === 'admin') {
-      // Only send to the calling admin
-      const { data: callerFull } = await supabaseAuth.from('profiles').select('email').eq('id', userId).single();
-      if (callerFull?.email) emailRecipients = [callerFull.email];
+    const { data: callerFull } = await supabaseAuth.from('profiles').select('email').eq('id', userId).single();
+    const ownEmail = String(callerFull?.email || '').trim().toLowerCase();
+    if (ownEmail && (!recipientEmail || String(recipientEmail).trim().toLowerCase() === ownEmail)) {
+      emailRecipients = [ownEmail];
     }
 
     if (emailRecipients.length === 0) {
@@ -136,7 +138,7 @@ Deno.serve(async (req) => {
 
     const periodText = checkPeriod === 'daily' ? 'today' : 'this week';
     const shopAlertRows = alertShops
-      .map(s => `<tr><td style="padding: 10px; border: 1px solid #ddd;">${s.shopName}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: #dc2626; font-weight: bold;">${s.count}</td></tr>`)
+      .map(s => `<tr><td style="padding: 10px; border: 1px solid #ddd;">${escHtml(s.shopName)}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: #dc2626; font-weight: bold;">${s.count}</td></tr>`)
       .join('');
 
     const emailHtml = `<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -144,7 +146,7 @@ Deno.serve(async (req) => {
         <h1 style="color: white; margin: 0;">⚠️ GD Alert - Threshold Exceeded</h1>
       </div>
       <div style="background: #fff; padding: 25px; border: 1px solid #e5e7eb; border-radius: 0 0 10px 10px;">
-        <p>The following shops exceeded <strong>${threshold} GD entries</strong> ${periodText}:</p>
+        <p>The following shops exceeded <strong>${escHtml(threshold)} GD entries</strong> ${periodText}:</p>
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <thead><tr style="background: #f3f4f6;"><th style="padding: 12px; border: 1px solid #ddd;">Shop</th><th style="padding: 12px; border: 1px solid #ddd;">Count</th></tr></thead>
           <tbody>${shopAlertRows}</tbody>

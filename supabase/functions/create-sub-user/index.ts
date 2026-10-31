@@ -146,6 +146,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (role !== 'warehouse' && shop_id) {
+      const { data: ownShop } = await supabaseAdmin
+        .from('shops')
+        .select('id')
+        .eq('id', shop_id)
+        .eq('admin_id', tenantId)
+        .is('deleted_at', null)
+        .maybeSingle()
+      if (!ownShop) {
+        return new Response(JSON.stringify({ error: 'Select a valid shop from your account' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
     // Create auth user. The signup trigger intentionally ignores any client
     // metadata for role/admin_id, so the tenant assignment is applied here with
     // the service role after the user exists.

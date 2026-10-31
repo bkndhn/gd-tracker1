@@ -24,7 +24,12 @@ interface Payload {
 
 function esc(v: unknown): string {
   const s = v === null || v === undefined ? '' : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  return /[",\n']/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
+
+function escHtml(v: unknown): string {
+  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function base64FromBytes(bytes: Uint8Array): string {
@@ -80,10 +85,24 @@ Deno.serve(async (req) => {
 
     // ---- Recipients (validated, caller always included) -------------------
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const norm = (r: unknown) => String(r || '').trim().toLowerCase();
+    const requestedExtras = Array.from(new Set((Array.isArray(body.recipients) ? body.recipients : [])
+      .map(norm).filter(r => emailRe.test(r) && r.length <= 255))).slice(0, 20);
+    // Extra recipients must be members of the caller's own organisation
+    let allowedExtras: string[] = [];
+    if (requestedExtras.length) {
+      const { data: members } = await supabase
+        .from('profiles')
+        .select('email')
+        .in('email', requestedExtras)
+        .is('deleted_at', null);
+      const ok = new Set((members || []).map((m: any) => norm(m.email)));
+      allowedExtras = requestedExtras.filter(r => ok.has(r));
+    }
     const recipients = Array.from(
       new Set(
-        [callerEmail, profile.email, ...(body.recipients || [])]
-          .map(r => (r || '').trim().toLowerCase())
+        [callerEmail, profile.email, ...allowedExtras]
+          .map(norm)
           .filter(r => emailRe.test(r) && r.length <= 255),
       ),
     ).slice(0, 10);
@@ -207,12 +226,12 @@ Deno.serve(async (req) => {
           <p style="margin:6px 0 0;opacity:.9;font-size:13px">Generated ${new Date().toLocaleString('en-GB')}</p>
         </div>
         <div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;padding:24px;color:#111827">
-          <p style="margin-top:0">Hi ${profile.name || 'there'},</p>
+          <p style="margin-top:0">Hi ${escHtml(profile.name || 'there')},</p>
           <p>The full export you requested is attached as <strong>${fileName}</strong>.</p>
           <table style="width:100%;font-size:14px;border-collapse:collapse">
             <tr><td style="padding:6px 0;color:#6b7280">Rows</td><td style="text-align:right"><strong>${rows.length}</strong></td></tr>
             <tr><td style="padding:6px 0;color:#6b7280">Columns</td><td style="text-align:right"><strong>${headers.length}</strong></td></tr>
-            <tr><td style="padding:6px 0;color:#6b7280">Date range</td><td style="text-align:right"><strong>${range}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280">Date range</td><td style="text-align:right"><strong>${escHtml(range)}</strong></td></tr>
             <tr><td style="padding:6px 0;color:#6b7280">File size</td><td style="text-align:right"><strong>${(fileBytes.length / 1024).toFixed(0)} KB</strong></td></tr>
           </table>
           <p style="color:#6b7280;font-size:12px;margin-bottom:0">Generated automatically by GD Tracker. Data is scoped to your account only.</p>

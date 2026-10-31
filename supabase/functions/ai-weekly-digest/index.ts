@@ -6,7 +6,7 @@ const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const CRON_SECRET = Deno.env.get('CRON_SECRET');
+import { isValidCronRequest, escapeHtml, textToSafeHtml } from '../_shared/security.ts';
 
 const inr = (n: number) => `Rs ${Math.round(n).toLocaleString('en-IN')}`;
 
@@ -21,7 +21,7 @@ async function generateDigest(summary: string): Promise<string> {
           role: 'system',
           content:
             'You are a retail operations analyst for an Indian store chain. Write a crisp weekly digest ' +
-            'in plain HTML (no <html> wrapper, use <p>, <ul>, <li>, <strong>). Cover: performance of lost-sale ' +
+            'in plain text (no HTML or markdown; separate paragraphs with a blank line). Cover: performance of lost-sale ' +
             'follow-ups, recovered revenue, shops that need attention, and 3 concrete actions for next week. ' +
             'Max 250 words. Never invent numbers beyond the data given.',
         },
@@ -33,7 +33,7 @@ async function generateDigest(summary: string): Promise<string> {
   if (res.status === 402) throw new Error('AI credits exhausted, please top up in Settings');
   if (!res.ok) throw new Error(`AI error ${res.status}`);
   const json = await res.json();
-  return json?.choices?.[0]?.message?.content ?? '<p>No digest available.</p>';
+  return json?.choices?.[0]?.message?.content ?? 'No digest available.';
 }
 
 
@@ -155,8 +155,7 @@ Deno.serve(async (req) => {
     if (!RESEND_API_KEY) return json({ error: 'Email key missing' }, 500);
 
     const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const cronHeader = req.headers.get('x-cron-secret');
-    const isCron = !!CRON_SECRET && cronHeader === CRON_SECRET;
+    const isCron = await isValidCronRequest(req, supa);
 
     let targets: { adminId: string; email: string }[] = [];
 
@@ -203,9 +202,9 @@ Deno.serve(async (req) => {
               <tr><td style="padding:6px;border:1px solid #eee">Converted</td><td style="padding:6px;border:1px solid #eee"><b>${stats.converted}</b></td></tr>
               <tr><td style="padding:6px;border:1px solid #eee">Recovered revenue</td><td style="padding:6px;border:1px solid #eee"><b>${inr(stats.recovered)}</b></td></tr>
             </table>
-            ${highlights.fixes.length ? `<h3 style="margin:16px 0 6px;font-size:15px">Top 3 fixes this week</h3><ol style="margin:0 0 12px;padding-left:18px;font-size:14px">${highlights.fixes.map((f: any) => `<li><b>${f.dimension}:</b> ${f.label} — ${f.count} lost visits${f.estimatedValue ? ` (~${inr(f.estimatedValue)} recoverable)` : ''}</li>`).join('')}</ol>` : ''}
-            ${highlights.gaps.length ? `<h3 style="margin:16px 0 6px;font-size:15px">Stock &amp; size gaps</h3><ul style="margin:0 0 12px;padding-left:18px;font-size:14px">${highlights.gaps.map((g: any) => `<li>${g.label} — ${g.count} misses</li>`).join('')}</ul>` : ''}
-            ${body}
+            ${highlights.fixes.length ? `<h3 style="margin:16px 0 6px;font-size:15px">Top 3 fixes this week</h3><ol style="margin:0 0 12px;padding-left:18px;font-size:14px">${highlights.fixes.map((f: any) => `<li><b>${escapeHtml(f.dimension)}:</b> ${escapeHtml(f.label)} — ${escapeHtml(f.count)} lost visits${f.estimatedValue ? ` (~${inr(f.estimatedValue)} recoverable)` : ''}</li>`).join('')}</ol>` : ''}
+            ${highlights.gaps.length ? `<h3 style="margin:16px 0 6px;font-size:15px">Stock &amp; size gaps</h3><ul style="margin:0 0 12px;padding-left:18px;font-size:14px">${highlights.gaps.map((g: any) => `<li>${escapeHtml(g.label)} — ${escapeHtml(g.count)} misses</li>`).join('')}</ul>` : ''}
+            ${textToSafeHtml(body)}
           </div>`;
 
         const mail = await fetch('https://api.resend.com/emails', {

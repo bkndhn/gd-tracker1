@@ -57,13 +57,13 @@ export function directPrintFulfillmentSheet({
     const isUrgent = r.urgency === 'urgent';
     const reqTime = formatISTShort(r.created_at);
     const packedInfo = r.packed_at
-      ? `${r.packed_qty ?? r.quantity} pcs · ${r.packed_by_name || 'Staff'}`
+      ? `${r.packed_qty ?? r.quantity} pcs · ${escapeHtml(r.packed_by_name || 'Staff')}`
       : '____ pcs by _______';
     const movedInfo = r.moved_at
-      ? `${formatISTShort(r.moved_at)} · ${r.moved_by_name || 'Staff'}`
+      ? `${formatISTShort(r.moved_at)} · ${escapeHtml(r.moved_by_name || 'Staff')}`
       : 'Date: ____/____';
     const receivedInfo = r.received_at
-      ? `Recv: ${r.received_by_name || 'Store'}`
+      ? `Recv: ${escapeHtml(r.received_by_name || 'Store')}`
       : 'Sign: ____________';
 
     return `
@@ -442,7 +442,8 @@ export function exportFulfillmentSheetToCSV({
   });
 
   const esc = (v: string | number) => {
-    const s = String(v ?? '');
+    const raw = String(v ?? '');
+    const s = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
 

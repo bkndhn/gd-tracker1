@@ -134,11 +134,13 @@ Deno.serve(async (req) => {
       updated += count || 0;
     }
     if (matchingValues?.length) {
-      const ids = matchingValues.map((v: any) => v.gd_entry_id).filter(Boolean);
-      if (ids.length) {
+      // Only entries verified to belong to this tenant
+      const ids = entries.map((e: any) => e.id).filter(Boolean);
+      if (ids.length && last10.length >= 6) {
         const { count } = await supabase
           .from('gd_entry_custom_values')
           .update({ value: masked }, { count: 'exact' })
+          .in('gd_entry_id', ids)
           .ilike('value', `%${last10}`);
         updated += count || 0;
       }

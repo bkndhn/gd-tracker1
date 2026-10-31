@@ -1,7 +1,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const CRON_SECRET = Deno.env.get('CRON_SECRET');
+import { isValidCronRequest } from '../_shared/security.ts';
 
 interface RetentionPolicy {
   months: number; // 0 = keep forever
@@ -12,8 +12,11 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const cronHeader = req.headers.get('x-cron-secret');
-    const isCron = !!CRON_SECRET && cronHeader === CRON_SECRET;
+    const cronClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+    const isCron = await isValidCronRequest(req, cronClient);
     if (!isCron) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

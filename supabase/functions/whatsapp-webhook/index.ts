@@ -83,6 +83,18 @@ async function reasonField(supa: any, adminId: string) {
   return fields.find((f: any) => /reason|why|lost/i.test(f.name)) || fields[0] || null;
 }
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
+const ALLOWED_IMAGES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_AUDIO = ['audio/ogg', 'audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/amr', 'audio/webm', 'audio/wav'];
+function looksLikeImage(b: Uint8Array): boolean {
+  if (b.length < 12) return false;
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return true; // jpeg
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return true; // png
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45) return true; // webp
+  return false;
+}
+
 async function createEntry(supa: any, session: any, contact: any) {
   const draft = session.draft || {};
   const entryPayload = {
@@ -111,9 +123,11 @@ async function createEntry(supa: any, session: any, contact: any) {
   // Voice note
   if (draft.audio_id) {
     const media = await fetchMedia(draft.audio_id);
-    if (media) {
+    const okAudio = media && media.bytes.byteLength > 0 && media.bytes.byteLength <= MAX_AUDIO_BYTES
+      && ALLOWED_AUDIO.includes(String(media.mime).split(';')[0].trim().toLowerCase());
+    if (media && okAudio) {
       const path = `${contact.admin_id}/${entry.id}/${Date.now()}-wa-voice.ogg`;
-      const up = await supa.storage.from('gd-voice-notes').upload(path, media.bytes, { contentType: media.mime });
+      const up = await supa.storage.from('gd-voice-notes').upload(path, media.bytes, { contentType: String(media.mime).split(';')[0].trim() });
       if (!up.error) {
         const { data: signed } = await supa.storage.from('gd-voice-notes').createSignedUrl(path, 3600);
         await supa.from('goods_damaged_entries').update({ voice_note_url: signed?.signedUrl || path }).eq('id', entry.id);
@@ -125,9 +139,12 @@ async function createEntry(supa: any, session: any, contact: any) {
   for (const [i, imgId] of (draft.image_ids || []).slice(0, 3).entries()) {
     const media = await fetchMedia(imgId);
     if (!media) continue;
-    const ext = media.mime.includes('png') ? 'png' : 'jpg';
+    const imgMime = String(media.mime).split(';')[0].trim().toLowerCase();
+    if (!ALLOWED_IMAGES.includes(imgMime) || media.bytes.byteLength === 0 || media.bytes.byteLength > MAX_IMAGE_BYTES) continue;
+    if (!looksLikeImage(media.bytes)) continue;
+    const ext = imgMime === 'image/png' ? 'png' : imgMime === 'image/webp' ? 'webp' : 'jpg';
     const path = `${contact.admin_id}/${entry.id}/${Date.now()}-${i}-wa.${ext}`;
-    const up = await supa.storage.from('gd-entry-images').upload(path, media.bytes, { contentType: media.mime });
+    const up = await supa.storage.from('gd-entry-images').upload(path, media.bytes, { contentType: imgMime });
     if (up.error) continue;
     const { data: signed } = await supa.storage.from('gd-entry-images').createSignedUrl(path, 3600);
     await supa.from('gd_entry_images').insert({
@@ -207,7 +224,7 @@ async function handleMessage(supa: any, msg: any, contactName?: string): Promise
   if (!contact) {
     const reply = await handleCustomerReply(supa, from, text);
     if (reply) return reply;
-    console.log('unregistered whatsapp sender', from, contactName || '');
+    console.log('unregistered whatsapp sender', `***${String(from).slice(-4)}`);
     await sendText(from, 'This number is not registered for visit logging. Ask your admin to add it in Admin → WhatsApp intake.');
     return { status: 'unmatched', error: 'Sender is not a registered staff number and matches no recent follow-up' };
   }
