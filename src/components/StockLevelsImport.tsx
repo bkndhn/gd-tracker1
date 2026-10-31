@@ -42,10 +42,27 @@ export const StockLevelsImport = ({ adminId, canSave, userName }: { adminId?: st
     const res = existing
       ? await supabase.from('app_settings').update({ value: value as any }).eq('id', existing.id)
       : await supabase.from('app_settings').insert({ admin_id: adminId, key: 'stock_levels', value: value as any });
+    if (res.error) { setSaving(false); return toast.error('Save failed: ' + res.error.message); }
+    // Also push quantities into warehouse stock so shop staff and the queue see them.
+    const sb = supabase as any;
+    const { data: ex } = await sb.from('stock_items').select('id,item,size,location').eq('admin_id', adminId).limit(5000);
+    const { updates, inserts } = planStockMerge(preview.rows, ex || []);
+    let failed = 0;
+    for (const u of updates) {
+      const { error } = await sb.from('stock_items').update({ quantity: u.quantity, updated_by_name: userName }).eq('id', u.id);
+      if (error) failed++;
+    }
+    if (inserts.length) {
+      const { error } = await sb.from('stock_items').insert(inserts.map((r) => ({
+        admin_id: adminId, item: r.item || '', size: r.size || '', category: r.category || '', location: r.location || '',
+        quantity: r.quantity, min_qty: 0, updated_by_name: userName,
+      })));
+      if (error) failed += inserts.length;
+    }
     setSaving(false);
-    if (res.error) return toast.error('Save failed: ' + res.error.message);
     setCurrent(value); setPreview(null);
-    toast.success(`${value.rows.length} stock lines saved`);
+    if (failed) toast.warning(`Saved, but ${failed} lines could not update warehouse stock`);
+    else toast.success(`${value.rows.length} lines saved · ${updates.length} updated, ${inserts.length} new in Stock`);
   };
 
   const shown = useMemo(() => {
