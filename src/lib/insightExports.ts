@@ -95,7 +95,8 @@ export function exportTableToExcel(table: SheetTable, template: ExportTemplate =
 /** Plain CSV download (RFC-4180 quoting) for spreadsheet-agnostic consumers. */
 export function exportTableToCSV(table: SheetTable, template: ExportTemplate = DEFAULT_EXPORT_TEMPLATE) {
   const esc = (v: string | number) => {
-    const s = String(v ?? '');
+    const raw = String(v ?? '');
+    const s = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const lines: string[] = [];
