@@ -1315,7 +1315,7 @@ export const RequirementsPanel = ({ isActive }: { isActive?: boolean } = {}) => 
           <PredictiveReorderPanel />
         </TabsContent>
         <TabsContent value="reports" className="mt-4 space-y-4">
-          <StockLevelsImport adminId={effectiveAdminId} canSave={isAdmin} userName={p?.name || 'Staff'} />
+          <StockLevelsImport adminId={effectiveAdminId} canSave={isAdmin || isManager || isWarehouse} userName={p?.name || 'Staff'} />
           <RequirementsMonthlySummary rows={requirements} />
           <RequirementsReport rows={requirements} />
         </TabsContent>

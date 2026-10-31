@@ -51,3 +51,29 @@ export function parseStockRows(sheet: unknown[][]): { rows: StockLevelRow[]; err
   });
   return { rows, errors };
 }
+
+/** Key used to match an uploaded line to an existing warehouse stock item. */
+export const stockKey = (r: { item: string; size: string; location: string }) =>
+  [r.item, r.size, r.location].map((v) => (v || '').trim().toLowerCase()).join('|');
+
+/** Split uploaded rows into quantity updates for existing items and new items to add.
+ *  Duplicate lines in the same upload are summed. Existing items not in the file are left alone. */
+export function planStockMerge(
+  rows: StockLevelRow[],
+  existing: { id: string; item: string; size: string; location: string }[],
+) {
+  const byKey = new Map(existing.map((e) => [stockKey(e), e.id]));
+  const merged = new Map<string, StockLevelRow>();
+  for (const r of rows) {
+    const k = stockKey(r);
+    const prev = merged.get(k);
+    merged.set(k, prev ? { ...prev, quantity: prev.quantity + r.quantity } : { ...r });
+  }
+  const updates: { id: string; quantity: number }[] = [];
+  const inserts: StockLevelRow[] = [];
+  for (const [k, r] of merged) {
+    const id = byKey.get(k);
+    if (id) updates.push({ id, quantity: Math.max(0, r.quantity) }); else inserts.push({ ...r, quantity: Math.max(0, r.quantity) });
+  }
+  return { updates, inserts };
+}
