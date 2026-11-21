@@ -20,6 +20,8 @@ import { ClipboardList } from 'lucide-react';
 import { PageSkeleton } from '@/components/PageSkeleton';
 import { useTranslation } from '@/i18n';
 import { MandatoryPasswordChangeModal } from '@/components/MandatoryPasswordChangeModal';
+import { ChatLauncher } from '@/components/chat/ChatLauncher';
+import { LiveStatCards } from '@/components/LiveStatCards';
 
 // Lazy load heavy components with prefetch helpers for instant nav
 const importDashboard = () => import('@/components/Dashboard').then(m => ({ default: m.Dashboard }));
@@ -167,6 +169,7 @@ export const MainApp = () => {
         return (isAdmin || isManager) && !isSuperAdmin ? (
           <ErrorBoundary boundary="Dashboard">
             <Suspense fallback={<PageSkeleton variant="dashboard" />}>
+              <LiveStatCards />
               <Dashboard />
             </Suspense>
           </ErrorBoundary>
@@ -316,6 +319,7 @@ export const MainApp = () => {
           isWarehouse={isWarehouse}
         />
 
+        {!isSuperAdmin && <ChatLauncher />}
         <MandatoryPasswordChangeModal />
       </Layout>
     </>

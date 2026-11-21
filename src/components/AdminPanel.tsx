@@ -20,6 +20,7 @@ import { CustomerDataPrivacy } from '@/components/admin/CustomerDataPrivacy';
 import { SessionsPanel } from '@/components/admin/SessionsPanel';
 import { UsageMetering } from '@/components/admin/UsageMetering';
 import { ThemeSettings } from '@/components/admin/ThemeSettings';
+import { TeamChat } from '@/components/chat/TeamChat';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -482,6 +483,9 @@ export const AdminPanel = () => {
 
           {/* Tab 3: WhatsApp Integration */}
           <TabsContent value="whatsapp" className="space-y-6 mt-0">
+            {/* 0. Team chat with shop staff */}
+            <TeamChat />
+
             {/* 1. Cloud API credentials */}
             <WhatsAppSettings />
 
