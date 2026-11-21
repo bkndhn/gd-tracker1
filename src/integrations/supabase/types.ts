@@ -1339,6 +1339,47 @@ export type Database = {
           },
         ]
       }
+      team_messages: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          message: string
+          sender_id: string
+          sender_name: string | null
+          sender_role: string | null
+          shop_id: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          message: string
+          sender_id: string
+          sender_name?: string | null
+          sender_role?: string | null
+          shop_id: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          sender_id?: string
+          sender_name?: string | null
+          sender_role?: string | null
+          shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_messages_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_sessions: {
         Row: {
           admin_id: string | null
@@ -1585,6 +1626,10 @@ export type Database = {
       }
       can_access_requirement: {
         Args: { _admin_id: string; _requested_by: string; _shop_id: string }
+        Returns: boolean
+      }
+      can_access_team_thread: {
+        Args: { _admin_id: string; _shop_id: string }
         Returns: boolean
       }
       can_fulfil_requirement: {
